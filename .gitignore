@@ -1,0 +1,97 @@
+# ====================
+# JDK / Java
+# ====================
+FRONTEND/jdks/
+*.tar.gz
+*.tar.gz.lock
+*.reserved.lock
+.ready
+CACHEDIR.TAG
+
+# ====================
+# Build Outputs
+# ====================
+**/build/
+**/.gradle/
+**/out/
+**/target/
+*.class
+*.jar
+*.war
+*.ear
+FRONTEND/caches/
+FRONTEND/daemon/
+FRONTEND/wrapper/
+FRONTEND/local.properties
+
+# ====================
+# Kotlin/JavaScript Outputs
+# ====================
+*.wasm
+**/*.js.map
+*.mjs
+webApp.js
+!**/wasmJsMain/resources/*.js
+
+# ====================
+# Cache Files
+# ====================
+**/maplibre-cache
+**/.kotlin/
+**/kotlin-js-store/
+**/node_modules/
+**/.cache/
+
+# ====================
+# IDE Files
+# ====================
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# ====================
+# Uploaded Media (Use Cloud Storage!)
+# ====================
+BACKEND/uploads/
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.pdf
+*.doc
+*.docx
+
+# ====================
+# Logs and Temp
+# ====================
+*.log
+*.tmp
+*.temp
+**/logs/
+
+# ====================
+# Native Libraries
+# ====================
+FRONTEND/native/
+*.so
+*.dll
+*.dylib
+# Build tools (download separately)
+FRONTEND/binaryen/
+FRONTEND/nodejs/
+FRONTEND/yarn/
+*.node
+*.a
+*.so
+*.dylib
+*.dll
+FRONTEND/binaryen/
+FRONTEND/nodejs/
+FRONTEND/yarn/

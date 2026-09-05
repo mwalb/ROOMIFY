@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Roomify</title>
+
+    <style>
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+
+            width: 100%;
+            height: 100%;
+
+            margin: 0;
+            padding: 0;
+
+            overflow: hidden;
+
+            background: transparent;
+        }
+
+
+        /*
+         * ========================================================
+         * GOOGLE MAP
+         * ========================================================
+         */
+
+        #google-map-container {
+
+            position: fixed;
+
+            top: 0;
+            left: 0;
+
+            width: 100vw;
+            height: 100vh;
+
+            z-index: 1;
+
+            display: block;
+
+            visibility: visible;
+
+            opacity: 1;
+
+            background: #e5e3df;
+
+            touch-action: none;
+        }
+
+
+        /*
+         * ========================================================
+         * COMPOSE
+         * ========================================================
+         *
+         * Compose is still present because Kotlin/Wasm needs
+         * its canvas.
+         *
+         * But it is completely transparent on the map screen.
+         *
+         * Search/menu/sidebar are NOT Compose.
+         */
+
+        #ComposeTarget {
+
+            position: fixed;
+
+            top: 0;
+            left: 0;
+
+            width: 100vw;
+            height: 100vh;
+
+            z-index: 0;
+
+            margin: 0;
+            padding: 0;
+
+            background: transparent;
+        }
+
+
+        #ComposeTarget,
+        #ComposeTarget canvas {
+
+            background: transparent !important;
+
+            background-color: transparent !important;
+        }
+
+    </style>
+
+
+    <!-- Google Maps -->
+
+    <script
+            src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBrLZm8FhK4Xn6baE12QbY2D4wtTyfzj3M&libraries=places&loading=async">
+    </script>
+
+
+    <!-- Roomify Google Maps implementation -->
+
+    <script src="roomify-map.js"></script>
+
+
+    <!-- Kotlin/Wasm -->
+
+    <script src="webApp.js"></script>
+
+</head>
+
+
+<body>
+
+
+<!-- Google Maps -->
+
+<div id="google-map-container"></div>
+
+
+<!-- Kotlin Compose -->
+
+<div id="ComposeTarget"></div>
+
+
+<script>
+
+    /*
+     * ========================================================
+     * INITIAL MAP LAYER
+     * ========================================================
+     */
+
+    function roomifySetMapLayer() {
+
+        const map =
+            document.getElementById(
+                "google-map-container"
+            );
+
+        const compose =
+            document.getElementById(
+                "ComposeTarget"
+            );
+
+        if (!map || !compose) {
+            return;
+        }
+
+
+        map.style.zIndex = "1";
+
+        compose.style.zIndex = "0";
+
+
+        map.style.display =
+            "block";
+
+        map.style.visibility =
+            "visible";
+
+        map.style.opacity =
+            "1";
+
+
+        compose.style.background =
+            "transparent";
+
+        compose.style.backgroundColor =
+            "transparent";
+
+
+        const canvases =
+            compose.querySelectorAll(
+                "canvas"
+            );
+
+
+        canvases.forEach(
+            function (canvas) {
+
+                canvas.style.background =
+                    "transparent";
+
+                canvas.style.backgroundColor =
+                    "transparent";
+            }
+        );
+    }
+
+
+    roomifySetMapLayer();
+
+
+    if (
+        document.readyState ===
+        "loading"
+    ) {
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            roomifySetMapLayer
+        );
+    }
+
+
+    /*
+     * Kotlin/Wasm creates the canvas asynchronously.
+     *
+     * Only maintain transparency.
+     *
+     * We DO NOT continuously manipulate z-index.
+     */
+
+    const composeTarget =
+        document.getElementById(
+            "ComposeTarget"
+        );
+
+
+    if (composeTarget) {
+
+        const observer =
+            new MutationObserver(
+                function () {
+
+                    /*
+                     * Only force transparency if we are on the map layer.
+                     *
+                     * We detect this by checking the z-index of
+                     * the map container.
+                     */
+
+                    const map =
+                        document.getElementById(
+                            "google-map-container"
+                        );
+
+                    if (
+                        map &&
+                        map.style.zIndex === "1"
+                    ) {
+
+                        composeTarget.style.background =
+                            "transparent";
+
+                        composeTarget.style.backgroundColor =
+                            "transparent";
+
+
+                        const canvases =
+                            composeTarget.querySelectorAll(
+                                "canvas"
+                            );
+
+
+                        canvases.forEach(
+                            function (canvas) {
+
+                                canvas.style.background =
+                                    "transparent";
+
+                                canvas.style.backgroundColor =
+                                    "transparent";
+                            }
+                        );
+                    }
+                }
+            );
+
+
+        observer.observe(
+            composeTarget,
+            {
+                childList: true,
+                subtree: true
+            }
+        );
+    }
+
+
+    console.log(
+        "Roomify: index.html loaded"
+    );
+
+</script>
+
+</body>
+
+</html>
