@@ -84,17 +84,22 @@ kotlin {
             implementation(libs.kamel.image)
             implementation(compose.materialIconsExtended)
             implementation(libs.kotlinx.serialization.json)
+            implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
         }
 
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
 
+        val iosMain by creating {
+            dependsOn(commonMain.get())
+        }
+
         val iosArm64Main by getting {
-            dependsOn(iosMain.get())
+            dependsOn(iosMain)
         }
         val iosSimulatorArm64Main by getting {
-            dependsOn(iosMain.get())
+            dependsOn(iosMain)
         }
 
         // =========================

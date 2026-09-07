@@ -297,8 +297,19 @@ actual fun MapContent(
         }
     }
 
-    // The map DOM node outlives Compose navigation.  It may have been hidden
-    // by the login screen, so reveal it as soon as the map composable enters.
+    /*
+     * ========================================================
+     * LIFECYCLE: SHOW/HIDE MAP
+     * ========================================================
+     */
+
+    DisposableEffect(Unit) {
+        onDispose {
+            println("Roomify: MapContent disposed - hiding map")
+            hideMapLayer()
+        }
+    }
+
     LaunchedEffect(Unit) {
         println("Roomify: MapContent rendering - showing map")
         ensureMapContainer()

@@ -41,6 +41,7 @@ import com.mohamedrejeb.calf.picker.rememberFilePickerLauncher
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
 import kotlinx.coroutines.launch
+import org.com.currentTimeMillis
 import org.com.i18n.Language
 import org.com.i18n.LocalLocalizationManager
 import org.com.i18n.LocalRoomifyStrings
@@ -146,7 +147,7 @@ fun ProfileScreen(
                         text = "My Profile",
                         modifier = Modifier.align(Alignment.Center),
                         color = Color.White,
-                        fontSize = 22.sp,
+                        fontSize = 24.sp,
                         fontWeight = FontWeight.Black
                     )
                 }
@@ -174,8 +175,13 @@ fun ProfileScreen(
                             } else if (!user.profileImage.isNullOrBlank()) {
                                 val fullUrl = if (user.profileImage.startsWith("http")) user.profileImage 
                                               else "${ApiClient.MEDIA_BASE_URL}${if (user.profileImage.startsWith("/")) "" else "/"}${user.profileImage}"
+                                
+                                // Cache buster
+                                val finalUrl = if (fullUrl.contains("?")) "$fullUrl&cb=${currentTimeMillis()}"
+                                               else "$fullUrl?cb=${currentTimeMillis()}"
+                                
                                 KamelImage(
-                                    resource = { asyncPainterResource(fullUrl) },
+                                    resource = { asyncPainterResource(finalUrl) },
                                     contentDescription = "Profile Picture",
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier.fillMaxSize(),
@@ -208,14 +214,15 @@ fun ProfileScreen(
 
                     Text(
                         text = user.name,
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFF1A1A1A)
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color(0xFF111111)
                     )
                     Text(
                         text = user.email,
-                        fontSize = 14.sp,
-                        color = Color.Gray
+                        fontSize = 15.sp,
+                        color = Color.DarkGray,
+                        fontWeight = FontWeight.Bold
                     )
 
                     Spacer(Modifier.height(12.dp))

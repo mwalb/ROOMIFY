@@ -19,7 +19,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -39,6 +38,7 @@ import io.kamel.image.asyncPainterResource
 import org.com.i18n.LocalRoomifyStrings
 import org.com.model.Room
 import org.com.model.User
+import org.com.ui.components.SpacePlannerDialog
 
 private val PrimaryColor = Color(0xFF1A237E)
 private val PrimaryLight = Color(0xFF3949AB)
@@ -62,6 +62,7 @@ fun PropertyDetailsScreen(
     val scrollState = rememberScrollState()
     
     var selectedImageUrl by remember { mutableStateOf<String?>(null) }
+    var showSpacePlanner by remember { mutableStateOf(false) }
 
     val isMyProperty = currentUser?.id == room.postedBy
 
@@ -217,12 +218,12 @@ fun PropertyDetailsScreen(
                             Text(room.propertyType?.uppercase() ?: "PROPERTY", modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp), fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = PrimaryColor)
                         }
                         Spacer(Modifier.height(8.dp))
-                        Text(text = room.title ?: "", fontSize = 22.sp, fontWeight = FontWeight.Black, color = Color(0xFF1A1A1A), lineHeight = 28.sp)
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
-                            Icon(Icons.Default.LocationOn, null, tint = Color.Gray, modifier = Modifier.size(14.dp))
-                            Spacer(Modifier.width(4.dp))
+                        Text(text = room.title ?: "", fontSize = 24.sp, fontWeight = FontWeight.Black, color = Color(0xFF111111), lineHeight = 30.sp)
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 6.dp)) {
+                            Icon(Icons.Default.LocationOn, null, tint = Color.DarkGray, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
                             @Suppress("DEPRECATION")
-                            Text(text = room.address ?: "", fontSize = 12.sp, color = Color.Gray)
+                            Text(text = room.address ?: "", fontSize = 14.sp, color = Color.DarkGray, fontWeight = FontWeight.Medium)
                         }
                     }
 
@@ -254,6 +255,9 @@ fun PropertyDetailsScreen(
                             }
                         }
                     }
+
+                    // Section: Neighborhood Insights
+                    NeighborhoodInsights()
 
                     // Section: Video / Virtual Tour
                     if (room.hasVideo && !room.videoUrl.isNullOrBlank()) {
@@ -305,6 +309,33 @@ fun PropertyDetailsScreen(
                         )
                     }
 
+                    // Section: Space Planner
+                    SectionTitleDetails("Living Arrangement")
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().clickable { showSpacePlanner = true },
+                        shape = RoundedCornerShape(16.dp),
+                        color = PrimaryColor.copy(alpha = 0.05f),
+                        border = BorderStroke(1.dp, PrimaryColor.copy(alpha = 0.1f))
+                    ) {
+                        Row(
+                            Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier.size(44.dp).background(PrimaryColor, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.Architecture, null, tint = Color.White, modifier = Modifier.size(22.dp))
+                            }
+                            Spacer(Modifier.width(16.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text("Interactive Space Planner", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = PrimaryColor)
+                                Text("Visualize your furniture in this ${room.area.toInt()}m² room", fontSize = 12.sp, color = Color.Gray)
+                            }
+                            Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = PrimaryColor, modifier = Modifier.size(18.dp))
+                        }
+                    }
+
                     SectionTitleDetails("Location")
                     Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), color = Color(0xFFF8F9FA), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
                         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -329,6 +360,7 @@ fun PropertyDetailsScreen(
                                 Box(Modifier.size(44.dp).background(Color(0xFFF0F2F5), CircleShape), contentAlignment = Alignment.Center) { Icon(Icons.Default.Person, null, tint = PrimaryColor, modifier = Modifier.size(24.dp)) }
                                 Spacer(Modifier.width(12.dp))
                                 Column(Modifier.weight(1f)) {
+                                    @Suppress("DEPRECATION")
                                     Text(room.ownerName ?: "Owner", fontSize = 15.sp, fontWeight = FontWeight.Bold)
                                     Text("Owner", fontSize = 12.sp, color = Color.Gray)
                                 }
@@ -388,6 +420,7 @@ fun PropertyDetailsScreen(
                                         text = { Text("This action cannot be undone. Are you sure you want to remove this listing?") },
                                         confirmButton = {
                                             TextButton(onClick = { onDeleteProperty(room); showDeleteDialog = false }) {
+                                                @Suppress("DEPRECATION")
                                                 Text("DELETE", color = Color.Red, fontWeight = FontWeight.Bold)
                                             }
                                         },
@@ -425,8 +458,12 @@ fun PropertyDetailsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
-                        Text(strings.monthlyRent, fontSize = 11.sp, color = Color.Gray)
-                        Text(room.formattedPrice, fontSize = 18.sp, fontWeight = FontWeight.Black, color = PrimaryColor)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(strings.monthlyRent, fontSize = 13.sp, color = Color.DarkGray, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.width(8.dp))
+                            PriceValueBadge()
+                        }
+                        Text(room.formattedPrice, fontSize = 20.sp, fontWeight = FontWeight.Black, color = PrimaryColor)
                     }
                     
                     if (isMyProperty) {
@@ -451,6 +488,15 @@ fun PropertyDetailsScreen(
                 }
             }
         }
+    }
+
+    // Space Planner Dialog
+    if (showSpacePlanner) {
+        SpacePlannerDialog(
+            roomArea = room.area,
+            roomImageUrl = room.firstImageUrl,
+            onDismiss = { showSpacePlanner = false }
+        )
     }
 
     // Full Screen Image Viewer
@@ -559,6 +605,7 @@ private fun RelatedPropertyCard(room: Room, onClick: () -> Unit) {
                     Box(Modifier.fillMaxSize().background(Color(0xFFF0F2F5)))
                 }
             )
+            @Suppress("DEPRECATION")
             Column(Modifier.padding(8.dp)) {
                 Text(
                     text = room.title ?: "Property",
@@ -604,17 +651,69 @@ private fun SmallFeature(icon: ImageVector, value: String, label: String) {
         enter = expandVertically() + fadeIn(tween(800))
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(icon, null, tint = PrimaryColor, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.height(4.dp))
-            Text(value, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-            Text(label, fontSize = 10.sp, color = Color.Gray)
+            Icon(icon, null, tint = PrimaryColor, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.height(6.dp))
+            @Suppress("DEPRECATION")
+            Text(value, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold)
+            Text(label, fontSize = 12.sp, color = Color.DarkGray, fontWeight = FontWeight.Bold)
         }
     }
 }
 
 @Composable
 private fun SectionTitleDetails(text: String) {
-    Text(text, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = Color.Black)
+    Text(text, fontSize = 18.sp, fontWeight = FontWeight.Black, color = Color.Black)
+}
+
+@Composable
+private fun NeighborhoodInsights() {
+    Column {
+        SectionTitleDetails("Neighborhood Pulse")
+        Spacer(Modifier.height(12.dp))
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = Color(0xFFF8F9FA),
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(1.dp, Color(0xFFEEEEEE))
+        ) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                InsightItem(Icons.Default.ShoppingBag, "Mlimani City Mall", "1.2 km", Color(0xFFE91E63))
+                InsightItem(Icons.Default.LocalHospital, "Aga Khan Hospital", "2.5 km", Color(0xFF2196F3))
+                InsightItem(Icons.Default.School, "Academic Schools", "0.8 km", Color(0xFF4CAF50))
+            }
+        }
+    }
+}
+
+@Composable
+private fun InsightItem(icon: ImageVector, name: String, dist: String, color: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Surface(color = color.copy(alpha = 0.1f), shape = CircleShape, modifier = Modifier.size(32.dp)) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(icon, null, tint = color, modifier = Modifier.size(16.dp))
+            }
+        }
+        Spacer(Modifier.width(12.dp))
+        Text(name, modifier = Modifier.weight(1f), fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        Text(dist, fontSize = 12.sp, color = Color.Gray, fontWeight = FontWeight.Black)
+    }
+}
+
+@Composable
+private fun PriceValueBadge() {
+    Surface(
+        color = Color(0xFFFFF9C4),
+        shape = RoundedCornerShape(4.dp),
+        border = BorderStroke(0.5.dp, Color(0xFFFBC02D))
+    ) {
+        Text(
+            "GREAT VALUE", 
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            fontSize = 8.sp, 
+            fontWeight = FontWeight.Black, 
+            color = Color(0xFFF57F17)
+        )
+    }
 }
 
 @Composable
@@ -631,11 +730,29 @@ private fun PropertyImage(url: String, modifier: Modifier = Modifier) {
         },
         onFailure = { throwable: Throwable ->
             Box(Modifier.fillMaxSize().background(Color(0xFFF0F2F5)), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(16.dp)
+                ) {
                     Icon(Icons.Default.BrokenImage, null, tint = Color.LightGray, modifier = Modifier.size(32.dp))
                     Spacer(Modifier.height(4.dp))
-                    @Suppress("DEPRECATION")
-                    Text("Image failed to load", fontSize = 10.sp, color = Color.Gray)
+                    Text(
+                        text = "Image failed to load",
+                        fontSize = 10.sp,
+                        color = Color.Gray,
+                        textAlign = TextAlign.Center
+                    )
+                    // Add URL for debugging context
+                    if (url.isNotBlank()) {
+                        Text(
+                            text = url.takeLast(40), 
+                            fontSize = 8.sp,
+                            color = Color.LightGray,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
         }

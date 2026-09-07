@@ -38,6 +38,7 @@ import org.com.i18n.LocalRoomifyStrings
 import org.com.model.Room
 import org.com.model.User
 import kotlinx.coroutines.launch
+import org.com.currentTimeMillis
 import org.com.network.ApiClient
 
 private val PrimaryColor = Color(0xFF1A237E)
@@ -48,6 +49,7 @@ private val PrimaryLight = Color(0xFF3949AB)
 fun DalaliDashboardScreen(
     user: User,
     properties: List<Room>,
+    isRefreshing: Boolean = false,
     onAddProperty: () -> Unit,
     onLogout: () -> Unit,
     onViewProperty: (Room) -> Unit,
@@ -130,13 +132,25 @@ fun DalaliDashboardScreen(
                             }
                             Spacer(Modifier.width(12.dp))
                             Column(Modifier.weight(1f)) {
-                                Text("Agent Console", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                Text(user.name, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Black)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text("Agent Console", color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
+                                    if (isRefreshing) {
+                                        Spacer(Modifier.width(8.dp))
+                                        CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 2.dp, color = Color.White)
+                                    }
+                                }
+                                Text(user.name, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black)
                             }
                             
                             if (!user.profileImage.isNullOrBlank()) {
-                                val fullUrl = if (user.profileImage.startsWith("http")) user.profileImage 
-                                              else "${ApiClient.MEDIA_BASE_URL}${if (user.profileImage.startsWith("/")) "" else "/"}${user.profileImage}"
+                                val profileImg = user.profileImage!!
+                                val fullUrl = if (profileImg.startsWith("http")) profileImg 
+                                              else "${ApiClient.MEDIA_BASE_URL}${if (profileImg.startsWith("/")) "" else "/"}$profileImg"
+                                
+                                // Cache buster
+                                val finalUrl = if (fullUrl.contains("?")) "$fullUrl&cb=${currentTimeMillis()}"
+                                               else "$fullUrl?cb=${currentTimeMillis()}"
+
                                 Box(
                                     modifier = Modifier
                                         .size(36.dp)
@@ -145,11 +159,16 @@ fun DalaliDashboardScreen(
                                         .clickable { onNavigate("profile") }
                                 ) {
                                     KamelImage(
-                                        resource = { asyncPainterResource(fullUrl) },
+                                        resource = { asyncPainterResource(finalUrl) },
                                         contentDescription = "Profile",
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier.fillMaxSize(),
-                                        onLoading = { _: Float -> Box(Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.1f))) }
+                                        onLoading = { _: Float -> Box(Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.1f))) },
+                                        onFailure = {
+                                            IconButton(onClick = onLogout, modifier = Modifier.fillMaxSize()) {
+                                                Icon(Icons.AutoMirrored.Filled.Logout, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                            }
+                                        }
                                     )
                                 }
                             } else {
@@ -234,10 +253,10 @@ private fun StatBox(title: String, value: String, icon: ImageVector, modifier: M
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(Modifier.padding(16.dp)) {
-            Icon(icon, null, tint = PrimaryColor, modifier = Modifier.size(20.dp))
-            Spacer(Modifier.height(12.dp))
-            Text(value, fontSize = 18.sp, fontWeight = FontWeight.Black, color = PrimaryColor)
-            Text(title, fontSize = 11.sp, color = Color.Gray, fontWeight = FontWeight.Bold)
+            Icon(icon, null, tint = PrimaryColor, modifier = Modifier.size(22.dp))
+            Spacer(Modifier.height(10.dp))
+            Text(value, fontSize = 20.sp, fontWeight = FontWeight.Black, color = PrimaryColor)
+            Text(title, fontSize = 13.sp, color = Color.DarkGray, fontWeight = FontWeight.ExtraBold)
         }
     }
 }

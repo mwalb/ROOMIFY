@@ -203,10 +203,10 @@
                 outline: 0;
                 padding: 0 12px;
                 font-family: Arial, sans-serif;
-                font-size: 14px;
+                font-size: 16px;
                 color: #1A237E;
                 background: transparent;
-                font-weight: 500;
+                font-weight: 600;
             }
 
             .roomify-search-input::placeholder {
@@ -298,9 +298,9 @@
 
             .roomify-sidebar-brand {
                 color: #ffffff;
-                font-size: 21px;
-                font-weight: 800;
-                letter-spacing: 1px;
+                font-size: 24px;
+                font-weight: 900;
+                letter-spacing: 1.5px;
             }
 
             .roomify-sidebar-close {
@@ -332,29 +332,29 @@
             }
 
             .roomify-sidebar-section-title {
-                padding: 0 12px 8px;
-                font-size: 10px;
-                font-weight: 700;
-                color: rgba(255, 255, 255, 0.55);
+                padding: 0 12px 10px;
+                font-size: 12px;
+                font-weight: 800;
+                color: rgba(255, 255, 255, 0.7);
                 text-transform: uppercase;
-                letter-spacing: 1.3px;
+                letter-spacing: 1.5px;
             }
 
             .roomify-sidebar-item {
                 width: 100%;
-                min-height: 48px;
+                min-height: 52px;
                 border: 0;
                 background: transparent;
                 border-radius: 16px;
                 display: flex;
                 align-items: center;
-                padding: 0 12px;
-                margin-bottom: 3px;
+                padding: 0 16px;
+                margin-bottom: 5px;
                 cursor: pointer;
                 text-align: left;
-                color: rgba(255, 255, 255, 0.80);
-                font-size: 14px;
-                font-weight: 500;
+                color: rgba(255, 255, 255, 0.95);
+                font-size: 16px;
+                font-weight: 600;
                 transition: background 0.15s ease;
             }
 
@@ -525,8 +525,8 @@
             }
 
             .roomify-popup-title {
-                font-size: 18px;
-                font-weight: 700;
+                font-size: 20px;
+                font-weight: 800;
                 color: #ffffff;
                 white-space: nowrap;
                 overflow: hidden;
@@ -569,8 +569,9 @@
             }
 
             .roomify-popup-location-text {
-                font-size: 12px;
-                color: rgba(255,255,255,0.90);
+                font-size: 14px;
+                font-weight: 500;
+                color: rgba(255, 255, 255, 0.95);
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
@@ -592,8 +593,8 @@
             }
 
             .roomify-popup-price {
-                font-size: 19px;
-                font-weight: 800;
+                font-size: 21px;
+                font-weight: 900;
                 color: #ffffff;
             }
 
@@ -1003,7 +1004,8 @@
                     window.roomifyCurrentUser.role,
                     window.roomifyCurrentUser.name,
                     window.roomifyCurrentUser.email,
-                    window.roomifyCurrentUser.initials
+                    window.roomifyCurrentUser.initials,
+                    window.roomifyCurrentUser.profileImage
                 );
             }
 
@@ -1391,8 +1393,15 @@
         // Update Account Box at bottom
         if (role) {
             var avatarContent = initials || "U";
-            if (profileImage) {
-                avatarContent = `<img src="${profileImage}" style="width:100%; height:100%; border-radius:12px; object-fit:cover;" onerror="this.parentElement.innerHTML='${initials || 'U'}'" />`;
+            // Check if profileImage is valid and not the upload endpoint
+            if (profileImage && profileImage.indexOf("profile/image") === -1) {
+                // Add cache buster to profile image
+                var buster = new Date().getTime();
+                var imgUrl = profileImage.indexOf("?") > -1 ?
+                             profileImage + "&cb=" + buster :
+                             profileImage + "?cb=" + buster;
+
+                avatarContent = `<img src="${imgUrl}" style="width:100%; height:100%; border-radius:12px; object-fit:cover;" onerror="this.parentElement.innerHTML='${initials || 'U'}'" />`;
             }
 
             accountSection.innerHTML = `

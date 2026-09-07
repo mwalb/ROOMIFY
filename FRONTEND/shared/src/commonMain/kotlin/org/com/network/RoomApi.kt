@@ -9,6 +9,7 @@ import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import org.com.currentTimeMillis
 import org.com.model.Room
 
 class RoomApi {
@@ -41,7 +42,10 @@ class RoomApi {
         )
 
         return client
-            .get("rooms")
+            .get("rooms") {
+                // Add cache buster to prevent stale data
+                parameter("t", currentTimeMillis())
+            }
             .body<List<Room>>()
             .also { rooms ->
 

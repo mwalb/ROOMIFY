@@ -148,6 +148,7 @@ object RoomifyApi {
     suspend fun uploadProfileImage(imageBytes: ByteArray): ApiResponse<String> {
         return try {
             val response = ApiClient.client.post("users/profile/image") {
+                // Let Ktor's MultiPartFormDataContent set the Content-Type with boundary
                 setBody(
                     MultiPartFormDataContent(
                         formData {
@@ -161,6 +162,7 @@ object RoomifyApi {
             }
             response.body()
         } catch (e: Exception) {
+            println("RoomifyApi: Profile image upload error: ${e.message}")
             ApiResponse(success = false, message = e.message ?: "Upload failed")
         }
     }

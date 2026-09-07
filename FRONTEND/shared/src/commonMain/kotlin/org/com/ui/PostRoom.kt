@@ -206,8 +206,8 @@ fun PostRoom(
                             text = strings.postARoom,
                             modifier = Modifier.weight(1f),
                             textAlign = TextAlign.Center,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Black,
                             color = Color.White
                         )
                         Box(
@@ -767,15 +767,15 @@ private fun MediaUploadBox(title: String, isSelected: Boolean, icon: ImageVector
 @Composable
 private fun ProfessionalTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, placeholder: String = "", singleLine: Boolean = true, minHeight: androidx.compose.ui.unit.Dp? = null) {
     Column(modifier) {
-        Text(label, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.Gray, modifier = Modifier.padding(bottom = 4.dp))
+        Text(label, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Color.DarkGray, modifier = Modifier.padding(bottom = 6.dp))
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            modifier = Modifier.fillMaxWidth().then(if (minHeight != null) Modifier.height(minHeight) else Modifier.height(60.dp)),
-            placeholder = { Text(placeholder, color = Color.LightGray, fontSize = 13.sp) },
+            modifier = Modifier.fillMaxWidth().then(if (minHeight != null) Modifier.height(minHeight) else Modifier.height(64.dp)),
+            placeholder = { Text(placeholder, color = Color.Gray, fontSize = 14.sp) },
             shape = RoundedCornerShape(12.dp),
             singleLine = singleLine,
-            textStyle = LocalTextStyle.current.copy(fontSize = 14.sp),
+            textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, fontWeight = FontWeight.Medium),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                 unfocusedBorderColor = MaterialTheme.colorScheme.outline,
@@ -894,9 +894,9 @@ private fun StatusOverlay(success: Boolean, msg: String, btnText: String, onDism
 @Composable
 private fun SectionTitle(text: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(4.dp, 18.dp).background(PrimaryColor, RoundedCornerShape(2.dp)))
-        Spacer(Modifier.width(8.dp))
-        Text(text, fontSize = 18.sp, fontWeight = FontWeight.Black, color = PrimaryColor)
+        Box(Modifier.size(5.dp, 20.dp).background(PrimaryColor, RoundedCornerShape(2.dp)))
+        Spacer(Modifier.width(10.dp))
+        Text(text, fontSize = 20.sp, fontWeight = FontWeight.Black, color = PrimaryColor)
     }
 }
 

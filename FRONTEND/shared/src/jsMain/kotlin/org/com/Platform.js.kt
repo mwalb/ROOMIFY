@@ -1,6 +1,7 @@
 package org.com
 
 import web.navigator.navigator
+import kotlin.js.Date
 
 class JsPlatform: Platform {
     private val userAgent = navigator.userAgent
@@ -12,3 +13,5 @@ class JsPlatform: Platform {
 }
 
 actual fun getPlatform(): Platform = JsPlatform()
+
+actual fun currentTimeMillis(): Long = Date.now().toLong()

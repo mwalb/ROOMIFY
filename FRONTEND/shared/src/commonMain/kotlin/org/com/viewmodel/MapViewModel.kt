@@ -33,6 +33,44 @@ class MapViewModel(
     )
         private set
 
+    var filterType by mutableStateOf<String?>(null)
+    var filterArea by mutableStateOf<String?>(null)
+    var filterMaxPrice by mutableStateOf<Double?>(null)
+
+    val filteredRooms: List<Room>
+        get() {
+            var filtered = rooms
+            
+            filterType?.let { type ->
+                filtered = filtered.filter { it.propertyType?.uppercase() == type.uppercase() }
+            }
+            
+            filterArea?.let { area ->
+                filtered = filtered.filter { 
+                    it.address?.contains(area, ignoreCase = true) == true || 
+                    it.title?.contains(area, ignoreCase = true) == true 
+                }
+            }
+            
+            filterMaxPrice?.let { max ->
+                filtered = filtered.filter { it.price <= max }
+            }
+            
+            return filtered
+        }
+
+    fun setFilters(type: String?, area: String?, maxPrice: Double?) {
+        filterType = type
+        filterArea = area
+        filterMaxPrice = maxPrice
+    }
+
+    fun clearFilters() {
+        filterType = null
+        filterArea = null
+        filterMaxPrice = null
+    }
+
 
     /*
      * =========================================================

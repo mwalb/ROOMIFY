@@ -81,9 +81,9 @@ private object LoginColors {
     val White55 = Color(0x8CFFFFFF)
 
     val Surface = Color.White
-    val TextDark = Color(0xFF1A1A2E)
-    val TextSecondary = Color(0xFF6B7280)
-    val Border = Color(0xFF9E9E9E) // Stronger border
+    val TextDark = Color(0xFF000000)
+    val TextSecondary = Color(0xFF374151)
+    val Border = Color(0xFF757575)
 
     val Error = Color(0xFFEF4444)
     val ErrorBackground = Color(0xFFFEF2F2)
@@ -482,8 +482,8 @@ private fun DesktopLoginLayout(
 
                 Text(
                     text = "Welcome Back",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Black,
                     color = LoginColors.TextDark
                 )
 
@@ -493,8 +493,9 @@ private fun DesktopLoginLayout(
 
                 Text(
                     text = "Sign in to your account",
-                    fontSize = 14.sp,
-                    color = LoginColors.TextSecondary
+                    fontSize = 15.sp,
+                    color = LoginColors.TextSecondary,
+                    fontWeight = FontWeight.Bold
                 )
 
                 Spacer(

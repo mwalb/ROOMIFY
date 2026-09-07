@@ -107,3 +107,14 @@ val User.verificationBadge: String
         VerificationStatus.PENDING -> "⏳ Pending"
         VerificationStatus.UNVERIFIED -> "⚠️ Unverified"
     }
+
+
+/**
+ * Returns the full URL for the profile image, or null if invalid or missing.
+ */
+fun User.getFullProfileImageUrl(baseUrl: String): String? {
+    if (profileImage.isNullOrBlank()) return null
+
+    return if (profileImage.startsWith("http")) profileImage 
+           else "$baseUrl${if (profileImage.startsWith("/")) "" else "/"}$profileImage"
+}

@@ -67,9 +67,21 @@ data class Room(
 
     fun getFullUrl(path: String): String {
         if (path.isEmpty()) return ""
-        if (path.startsWith("http")) return path
+        
+        // Fix potential localhost issues from database
+        val fixedPath = if (path.contains("localhost:8080")) {
+            path.replace("http://localhost:8080", "")
+                .replace("localhost:8080", "")
+        } else path
+
         val baseUrl = ApiClient.MEDIA_BASE_URL
-        return if (path.startsWith("/")) "$baseUrl$path" else "$baseUrl/$path"
+        val fullUrl = if (fixedPath.startsWith("http")) fixedPath
+                      else if (fixedPath.startsWith("/")) "$baseUrl$fixedPath" 
+                      else "$baseUrl/$fixedPath"
+                      
+        // Add cache buster
+        return if (fullUrl.contains("?")) "$fullUrl&cb=${org.com.currentTimeMillis()}"
+               else "$fullUrl?cb=${org.com.currentTimeMillis()}"
     }
 
     val locationSummary: String

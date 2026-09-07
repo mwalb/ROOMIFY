@@ -41,7 +41,7 @@ object ApiClient {
      * http://localhost:8080/api/rooms
      */
 
-    const val MEDIA_BASE_URL = "http://192.168.100.3:8080"
+    const val MEDIA_BASE_URL = "http://10.90.70.133:8080"
     private const val BASE_URL = "$MEDIA_BASE_URL/api/"
     private var token: String? = null
 
@@ -94,10 +94,6 @@ object ApiClient {
         defaultRequest {
 
             url(BASE_URL)
-
-            contentType(
-                ContentType.Application.Json
-            )
 
             accept(
                 ContentType.Application.Json
@@ -152,6 +148,7 @@ object ApiClient {
                 url(endpoint)
 
                 if (body != null) {
+                    contentType(ContentType.Application.Json)
                     setBody(body)
                 }
             }
@@ -177,6 +174,7 @@ object ApiClient {
                 url(endpoint)
 
                 if (body != null) {
+                    contentType(ContentType.Application.Json)
                     setBody(body)
                 }
             }

@@ -39,13 +39,39 @@ import org.com.network.RoomifyApi
 import org.com.ui.AnalyticsScreen
 import org.com.ui.SplashScreen
 import org.com.ui.TenantScreen
+import org.com.ui.DiscoveryDashboard
 import org.com.ui.auth.LoginScreen
 import org.com.ui.auth.RegisterScreen
 import org.com.viewmodel.MapViewModel
 import org.com.viewmodel.PostRoomViewModel
 
+import androidx.compose.material3.Typography
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import org.com.ui.DiscoveryDashboard
+
 @Composable
 fun App() {
+    
+    val roomifyTypography = Typography(
+        displayLarge = TextStyle(fontWeight = FontWeight.Black, fontSize = 34.sp),
+        displayMedium = TextStyle(fontWeight = FontWeight.Black, fontSize = 28.sp),
+        displaySmall = TextStyle(fontWeight = FontWeight.Bold, fontSize = 24.sp),
+        headlineLarge = TextStyle(fontWeight = FontWeight.ExtraBold, fontSize = 22.sp),
+        headlineMedium = TextStyle(fontWeight = FontWeight.Bold, fontSize = 20.sp),
+        headlineSmall = TextStyle(fontWeight = FontWeight.Bold, fontSize = 18.sp),
+        titleLarge = TextStyle(fontWeight = FontWeight.Bold, fontSize = 18.sp),
+        titleMedium = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 16.sp),
+        titleSmall = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 14.sp),
+        bodyLarge = TextStyle(fontWeight = FontWeight.Medium, fontSize = 16.sp),
+        bodyMedium = TextStyle(fontWeight = FontWeight.Medium, fontSize = 14.sp),
+        bodySmall = TextStyle(fontWeight = FontWeight.Medium, fontSize = 12.sp),
+        labelLarge = TextStyle(fontWeight = FontWeight.Bold, fontSize = 14.sp),
+        labelMedium = TextStyle(fontWeight = FontWeight.Bold, fontSize = 12.sp),
+        labelSmall = TextStyle(fontWeight = FontWeight.Bold, fontSize = 11.sp)
+    )
 
     // ============================================================
     // SPLASH
@@ -167,7 +193,7 @@ fun App() {
     // ============================================================
 
     var currentRoute by remember {
-        mutableStateOf("map")
+        mutableStateOf("discovery")
     }
 
     var pendingRoom by remember {
@@ -251,10 +277,10 @@ fun App() {
                     currentRoute = "tenant"
                     postLoginDestination = null
                 }
-                // Case 3: Default - show map
+                // Case 3: Default - show discovery
                 else -> {
-                    println("App: 🗺️ Navigating to MapScreen")
-                    currentRoute = "map"
+                    println("App: 🗺️ Navigating to Discovery")
+                    currentRoute = "discovery"
                 }
             }
 
@@ -277,10 +303,14 @@ fun App() {
             "map", "explore" -> {
                 currentRoute = "map"
             }
+            "discovery" -> {
+                viewModel.clearFilters()
+                currentRoute = "discovery"
+            }
             "logout" -> {
                 scope.launch {
                     authManager.logout()
-                    currentRoute = "map"
+                    currentRoute = "discovery"
                 }
             }
             "analytics" -> {
@@ -318,7 +348,7 @@ fun App() {
     // ============================================================
 
     RoomifyLocalization {
-        MaterialTheme {
+        MaterialTheme(typography = roomifyTypography) {
             Surface(
                 modifier = Modifier.fillMaxSize(),
                 color = Color.Transparent,
@@ -405,13 +435,31 @@ fun App() {
                         } else {
                             // Show main app
                             when (currentRoute) {
+                                "discovery" -> {
+                                    DiscoveryDashboard(
+                                        onSearch = { type, area, price ->
+                                            viewModel.setFilters(type, area, price)
+                                            currentRoute = "map"
+                                        }
+                                    )
+                                }
                                 "map" -> {
                                     Box(modifier = Modifier.fillMaxSize()) {
                                         MapScreen(
-                                            rooms = viewModel.rooms,
+                                            rooms = viewModel.filteredRooms,
                                             selectedRoom = viewModel.selectedRoom,
                                             authState = authState,
                                             routingDestination = routingDestination,
+                                            isRefreshing = viewModel.isLoading,
+                                            activeFilters = if (viewModel.filterArea != null || viewModel.filterType != null || viewModel.filterMaxPrice != null) {
+                                                buildString {
+                                                    viewModel.filterArea?.let { append(it) }
+                                                    viewModel.filterType?.let { if (isNotEmpty()) append(" • "); append(it) }
+                                                    viewModel.filterMaxPrice?.let { if (isNotEmpty()) append(" • "); append("<${it.toInt() / 1000}k") }
+                                                }
+                                            } else null,
+                                            onRefresh = viewModel::loadRooms,
+                                            onClearFilters = viewModel::clearFilters,
                                             onClearRoute = {
                                                 routingDestination = null
                                             },
@@ -436,8 +484,9 @@ fun App() {
                                     OwnerDashboardScreen(
                                         ownerName = user.name,
                                         profileImage = user.profileImage,
-                                        properties = viewModel.rooms,
+                                        properties = viewModel.rooms.filter { it.postedBy == user.id || it.ownerName == user.name },
                                         bookings = ownerBookings,
+                                        isRefreshing = viewModel.isLoading,
                                         onAddProperty = { currentRoute = "postroom" },
                                         onViewAnalytics = {
                                             postLoginDestination = "ownerdashboard"
@@ -477,7 +526,8 @@ fun App() {
                                     val user = (authState as AuthState.Authenticated).user
                                     DalaliDashboardScreen(
                                         user = user,
-                                        properties = viewModel.rooms.filter { it.dalaliName == user.name },
+                                        properties = viewModel.rooms.filter { it.dalaliName == user.name || it.postedBy == user.id },
+                                        isRefreshing = viewModel.isLoading,
                                         onAddProperty = { currentRoute = "postroom" },
                                         onViewAnalytics = {
                                             postLoginDestination = "dalalidashboard"
@@ -580,6 +630,7 @@ fun App() {
                                         profileImage = user.profileImage,
                                         bookings = tenantBookings,
                                         allRooms = viewModel.rooms,
+                                        isRefreshing = viewModel.isLoading,
                                         onExploreRooms = {
                                             currentRoute = "map"
                                         },
@@ -599,10 +650,20 @@ fun App() {
                                     // Default - show map
                                     Box(modifier = Modifier.fillMaxSize()) {
                                         MapScreen(
-                                            rooms = viewModel.rooms,
+                                            rooms = viewModel.filteredRooms,
                                             selectedRoom = viewModel.selectedRoom,
                                             authState = authState,
                                             routingDestination = routingDestination,
+                                            isRefreshing = viewModel.isLoading,
+                                            activeFilters = if (viewModel.filterArea != null || viewModel.filterType != null || viewModel.filterMaxPrice != null) {
+                                                buildString {
+                                                    viewModel.filterArea?.let { append(it) }
+                                                    viewModel.filterType?.let { if (isNotEmpty()) append(" • "); append(it) }
+                                                    viewModel.filterMaxPrice?.let { if (isNotEmpty()) append(" • "); append("<${it.toInt() / 1000}k") }
+                                                }
+                                            } else null,
+                                            onRefresh = viewModel::loadRooms,
+                                            onClearFilters = viewModel::clearFilters,
                                             onClearRoute = {
                                                 routingDestination = null
                                             },
@@ -674,63 +735,75 @@ fun App() {
 
                     else -> {
                         // Logged-out state
-                        if (currentRoute == "register") {
-                            RegisterScreen(
-                                authState = authState,
-                                onRegister = { request ->
-                                    scope.launch { authManager.register(request) }
-                                },
-                                onGoogleRegister = { idToken, role ->
-                                    scope.launch { authManager.googleRegister(idToken, role) }
-                                },
-                                onLoginClick = { currentRoute = "login" },
-                                onBack = { currentRoute = "login" }
-                            )
-                        } else if (currentRoute == "login") {
-                            LoginScreen(
-                                authState = authState,
-                                onLogin = { email, password, role ->
-                                    println("App: 🔐 Login called for $email")
-                                    scope.launch { authManager.login(email, password, role) }
-                                },
-                                onGoogleLogin = { idToken ->
-                                    println("App: 🔐 Google login called")
-                                    scope.launch { authManager.googleLogin(idToken) }
-                                },
-                                onRegisterClick = {
-                                    println("App: 📝 Navigate to Register")
-                                    currentRoute = "register"
-                                },
-                                onBack = {
-                                    println("App: ⬅️ Back from Login")
-                                    pendingRoom = null
-                                    postLoginDestination = null
-                                    currentRoute = "map"
-                                },
-                                onGuestLogin = {
-                                    println("App: 🎭 Guest login")
-                                    scope.launch { authManager.guestLogin() }
-                                },
-                                onForgotPassword = {
-                                    println("App: 🔑 Forgot password")
-                                }
-                            )
-                        } else {
-                            // Public map
-                            MapScreen(
-                                rooms = viewModel.rooms,
-                                selectedRoom = viewModel.selectedRoom,
-                                authState = authState,
-                                routingDestination = routingDestination,
-                                onClearRoute = {
-                                    routingDestination = null
-                                },
-                                onRoomSelected = viewModel::selectRoom,
-                                onClearSelection = viewModel::clearSelectedRoom,
-                                onViewProperty = ::viewProperty,
-                                onNavigate = ::navigateTo,
-                                modifier = Modifier.fillMaxSize()
-                            )
+                        when (currentRoute) {
+                            "register" -> {
+                                RegisterScreen(
+                                    authState = authState,
+                                    onRegister = { request ->
+                                        scope.launch { authManager.register(request) }
+                                    },
+                                    onGoogleRegister = { idToken, role ->
+                                        scope.launch { authManager.googleRegister(idToken, role) }
+                                    },
+                                    onLoginClick = { currentRoute = "login" },
+                                    onBack = { currentRoute = "login" }
+                                )
+                            }
+                            "login" -> {
+                                LoginScreen(
+                                    authState = authState,
+                                    onLogin = { email, password, role ->
+                                        println("App: 🔐 Login called for $email")
+                                        scope.launch { authManager.login(email, password, role) }
+                                    },
+                                    onGoogleLogin = { idToken ->
+                                        println("App: 🔐 Google login called")
+                                        scope.launch { authManager.googleLogin(idToken) }
+                                    },
+                                    onRegisterClick = {
+                                        println("App: 📝 Navigate to Register")
+                                        currentRoute = "register"
+                                    },
+                                    onBack = {
+                                        println("App: ⬅️ Back from Login")
+                                        pendingRoom = null
+                                        postLoginDestination = null
+                                        currentRoute = "map"
+                                    },
+                                    onGuestLogin = {
+                                        println("App: 🎭 Guest login")
+                                        scope.launch { authManager.guestLogin() }
+                                    },
+                                    onForgotPassword = {
+                                        println("App: 🔑 Forgot password")
+                                    }
+                                )
+                            }
+                            "discovery" -> {
+                                DiscoveryDashboard(
+                                    onSearch = { type, area, price ->
+                                        viewModel.setFilters(type, area, price)
+                                        currentRoute = "map"
+                                    }
+                                )
+                            }
+                            else -> {
+                                // Public map
+                                MapScreen(
+                                    rooms = viewModel.filteredRooms,
+                                    selectedRoom = viewModel.selectedRoom,
+                                    authState = authState,
+                                    routingDestination = routingDestination,
+                                    onClearRoute = {
+                                        routingDestination = null
+                                    },
+                                    onRoomSelected = viewModel::selectRoom,
+                                    onClearSelection = viewModel::clearSelectedRoom,
+                                    onViewProperty = ::viewProperty,
+                                    onNavigate = ::navigateTo,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
                         }
                     }
                 }

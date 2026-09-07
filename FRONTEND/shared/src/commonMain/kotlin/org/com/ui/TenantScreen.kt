@@ -10,6 +10,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,7 +27,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -36,7 +37,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.com.currentTimeMillis
 import org.com.model.Room
 import org.com.model.Booking
 import org.com.network.ApiClient
@@ -52,6 +55,7 @@ fun TenantScreen(
     profileImage: String? = null,
     bookings: List<Booking> = emptyList(),
     allRooms: List<Room> = emptyList(),
+    isRefreshing: Boolean = false,
     onExploreRooms: () -> Unit, 
     onLogout: () -> Unit,
     onViewProperty: (Room) -> Unit = {},
@@ -145,13 +149,25 @@ fun TenantScreen(
                             }
                             Spacer(Modifier.width(12.dp))
                             Column(Modifier.weight(1f)) {
-                                Text("Tenant Console", color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                Text("Hello, $tenantName", color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Black)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    @Suppress("DEPRECATION")
+                                    Text("Tenant Console", color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
+                                    if (isRefreshing) {
+                                        Spacer(Modifier.width(8.dp))
+                                        CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 2.dp, color = Color.White)
+                                    }
+                                }
+                                Text("Hello, $tenantName", color = Color.White, fontSize = 19.sp, fontWeight = FontWeight.Black)
                             }
                             
-                            if (!profileImage.isNullOrBlank()) {
+                            if (!profileImage.isNullOrBlank() && !profileImage.contains("profile/image")) {
                                 val fullUrl = if (profileImage.startsWith("http")) profileImage 
                                               else "${ApiClient.MEDIA_BASE_URL}${if (profileImage.startsWith("/")) "" else "/"}$profileImage"
+                                
+                                // Cache buster to ensure refresh
+                                val finalUrl = if (fullUrl.contains("?")) "$fullUrl&cb=${currentTimeMillis()}"
+                                               else "$fullUrl?cb=${currentTimeMillis()}"
+
                                 Box(
                                     modifier = Modifier
                                         .size(36.dp)
@@ -160,11 +176,17 @@ fun TenantScreen(
                                         .clickable { onNavigate("profile") }
                                 ) {
                                     KamelImage(
-                                        resource = { asyncPainterResource(fullUrl) },
+                                        resource = { asyncPainterResource(finalUrl) },
                                         contentDescription = "Profile",
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier.fillMaxSize(),
-                                        onLoading = { _: Float -> Box(Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.1f))) }
+                                        onLoading = { _: Float -> Box(Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.1f))) },
+                                        onFailure = {
+                                            // Fallback to logout icon if image fails
+                                            IconButton(onClick = onLogout, modifier = Modifier.fillMaxSize()) {
+                                                Icon(Icons.AutoMirrored.Filled.Logout, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                            }
+                                        }
                                     )
                                 }
                             } else {
@@ -192,7 +214,10 @@ fun TenantScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(Modifier.padding(20.dp)) {
-                                Text("Find your next home", fontSize = 18.sp, fontWeight = FontWeight.Black, color = PrimaryColor)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text("Find your next home", fontSize = 18.sp, fontWeight = FontWeight.Black, color = PrimaryColor, modifier = Modifier.weight(1f))
+                                    TopTenantBadge()
+                                }
                                 Text("Browse rooms on the interactive map and book your ideal stay.", fontSize = 13.sp, color = Color.Gray, modifier = Modifier.padding(vertical = 8.dp))
                                 Button(
                                     onClick = onExploreRooms,
@@ -202,10 +227,27 @@ fun TenantScreen(
                                 ) {
                                     Icon(Icons.Default.Map, null, modifier = Modifier.size(18.dp))
                                     Spacer(Modifier.width(8.dp))
+                                    @Suppress("DEPRECATION")
                                     Text("EXPLORE MAP", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                                 }
                             }
                         }
+
+                        // Smart Match Carousel
+                        if (allRooms.isNotEmpty()) {
+                            SectionTitleTenant("Smart Match ✨")
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                items(allRooms.take(5)) { room ->
+                                    SmartMatchCard(room) { onViewProperty(room) }
+                                }
+                            }
+                        }
+
+                        // Platform Activity Stream
+                        ActivityStream()
 
                         // Quick Actions Row
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -235,6 +277,116 @@ fun TenantScreen(
                         InfoCardCompact("Digital Contracts", "View and sign rental terms directly in app.", Icons.Default.Description)
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TopTenantBadge() {
+    Surface(
+        color = SuccessColor,
+        shape = CircleShape
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+        ) {
+            Icon(Icons.Default.VerifiedUser, null, tint = Color.White, modifier = Modifier.size(10.dp))
+            Spacer(Modifier.width(4.dp))
+            Text("TOP TENANT", color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Black)
+        }
+    }
+}
+
+@Composable
+private fun SmartMatchCard(room: Room, onClick: () -> Unit) {
+    var animatedProgress by remember { mutableStateOf(0f) }
+    val matchScore = remember { (85..99).random() }
+    
+    LaunchedEffect(Unit) { animatedProgress = matchScore / 100f }
+    val progress by animateFloatAsState(animatedProgress, tween(1500))
+
+    Card(
+        onClick = onClick,
+        modifier = Modifier.width(200.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Box {
+            KamelImage(
+                resource = { asyncPainterResource(room.firstImageUrl ?: "") },
+                contentDescription = null,
+                modifier = Modifier.fillMaxWidth().height(120.dp),
+                contentScale = ContentScale.Crop
+            )
+            
+            // Match Overlay
+            Surface(
+                modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
+                color = Color.Black.copy(alpha = 0.7f),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Row(Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(16.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(progress = { progress }, color = SuccessColor, strokeWidth = 2.dp)
+                        Text("${(progress * 100).toInt()}%", color = Color.White, fontSize = 6.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(Modifier.width(4.dp))
+                    Text("Match", color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+        Column(Modifier.padding(12.dp)) {
+            Text(room.title ?: "Property", fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+            Text(room.formattedPrice, fontSize = 11.sp, color = PrimaryColor, fontWeight = FontWeight.ExtraBold)
+        }
+    }
+}
+
+@Composable
+private fun ActivityStream() {
+    val activities = listOf(
+        "Modern Apartment in Mbezi just booked! 🔥",
+        "New property listed in Upanga 🏠",
+        "Owner Sarah responded to a message 💬",
+        "Trending: Studios under 500k 📈"
+    )
+    
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = Color(0xFF121212),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Default.NotificationsActive, null, tint = Color.Yellow, modifier = Modifier.size(14.dp))
+            Spacer(Modifier.width(8.dp))
+            var currentIndex by remember { mutableStateOf(0) }
+            
+            LaunchedEffect(Unit) {
+                while(true) {
+                    delay(4000)
+                    currentIndex = (currentIndex + 1) % activities.size
+                }
+            }
+
+            AnimatedContent(
+                targetState = currentIndex,
+                transitionSpec = {
+                    (slideInVertically { it } + fadeIn()).togetherWith(slideOutVertically { -it } + fadeOut())
+                }
+            ) { index ->
+                Text(
+                    text = activities[index],
+                    color = Color.White,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
             }
         }
     }
@@ -274,7 +426,7 @@ private fun TenantDrawerItem(label: String, icon: ImageVector, onClick: () -> Un
 
 @Composable
 private fun SectionTitleTenant(text: String) {
-    Text(text, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1A1A1A))
+    Text(text, fontSize = 16.sp, fontWeight = FontWeight.Black, color = Color(0xFF111111))
 }
 
 @Composable
@@ -345,6 +497,7 @@ private fun BookingStatusCardCompact(booking: Booking, room: Room?, onClick: () 
             Spacer(Modifier.width(16.dp))
             
             Column(Modifier.weight(1f)) {
+                @Suppress("DEPRECATION")
                 Text(booking.roomTitle ?: "Room", fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                 
                 val statusText = when(booking.status) {

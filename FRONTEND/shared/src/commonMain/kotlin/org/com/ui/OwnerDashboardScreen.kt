@@ -42,6 +42,7 @@ import io.kamel.image.asyncPainterResource
 import org.com.i18n.LocalRoomifyStrings
 import org.com.model.Room
 import kotlinx.coroutines.launch
+import org.com.currentTimeMillis
 import org.com.model.Booking
 import org.com.network.ApiClient
 
@@ -56,6 +57,7 @@ fun OwnerDashboardScreen(
     profileImage: String? = null,
     properties: List<Room>,
     bookings: List<Booking> = emptyList(),
+    isRefreshing: Boolean = false,
     onAddProperty: () -> Unit,
     onLogout: () -> Unit,
     onViewProperty: (Room) -> Unit,
@@ -158,13 +160,24 @@ fun OwnerDashboardScreen(
                             }
                             Spacer(Modifier.width(12.dp))
                             Column(Modifier.weight(1f)) {
-                                Text("Owner Dashboard", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                Text(ownerName, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Black)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text("Owner Dashboard", color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
+                                    if (isRefreshing) {
+                                        Spacer(Modifier.width(8.dp))
+                                        CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 2.dp, color = Color.White)
+                                    }
+                                }
+                                Text(ownerName, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black)
                             }
                             
                             if (!profileImage.isNullOrBlank()) {
                                 val fullUrl = if (profileImage.startsWith("http")) profileImage 
                                               else "${ApiClient.MEDIA_BASE_URL}${if (profileImage.startsWith("/")) "" else "/"}$profileImage"
+                                
+                                // Cache buster to ensure refresh
+                                val finalUrl = if (fullUrl.contains("?")) "$fullUrl&cb=${currentTimeMillis()}"
+                                               else "$fullUrl?cb=${currentTimeMillis()}"
+
                                 Box(
                                     modifier = Modifier
                                         .size(36.dp)
@@ -173,11 +186,17 @@ fun OwnerDashboardScreen(
                                         .clickable { onNavigate("profile") }
                                 ) {
                                     KamelImage(
-                                        resource = { asyncPainterResource(fullUrl) },
+                                        resource = { asyncPainterResource(finalUrl) },
                                         contentDescription = "Profile",
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier.fillMaxSize(),
-                                        onLoading = { _: Float -> Box(Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.1f))) }
+                                        onLoading = { _: Float -> Box(Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.1f))) },
+                                        onFailure = { 
+                                            // Fallback to logout icon if image fails
+                                            IconButton(onClick = onLogout, modifier = Modifier.fillMaxSize()) {
+                                                Icon(Icons.AutoMirrored.Filled.Logout, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                            }
+                                        }
                                     )
                                 }
                             } else {
@@ -217,9 +236,13 @@ fun OwnerDashboardScreen(
                                     StatCardCompact("Views", properties.sumOf { it.viewCount }.toString(), Icons.Default.Visibility, Modifier.weight(1f))
                                 }
 
+                                // Revenue Performance Chart
+                                SectionHeaderOwner("Revenue Performance")
+                                RevenueChart()
+
                                 // Quick Actions
                                 Column {
-                                    Text("Quick Actions", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Color.Gray)
+                                    SectionHeaderOwner("Quick Actions")
                                     Spacer(Modifier.height(12.dp))
                                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                         ActionItemCompact("Add New", Icons.Default.Add, PrimaryColor, Modifier.weight(1f), onAddProperty)
@@ -230,7 +253,7 @@ fun OwnerDashboardScreen(
                             }
                             1 -> {
                                 // Properties List
-                                Text("My Properties", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Color.Gray)
+                                SectionHeaderOwner("My Properties")
                                 if (properties.isEmpty()) {
                                     EmptyState("No properties listed")
                                 } else {
@@ -282,9 +305,9 @@ private fun DashboardTab(title: String, active: Boolean, onClick: () -> Unit) {
             .padding(vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(title, fontSize = 13.sp, fontWeight = if (active) FontWeight.Bold else FontWeight.Medium, color = if (active) PrimaryColor else Color.Gray)
+        Text(title, fontSize = 14.sp, fontWeight = if (active) FontWeight.ExtraBold else FontWeight.Bold, color = if (active) PrimaryColor else Color.DarkGray)
         Spacer(Modifier.height(4.dp))
-        Box(Modifier.width(20.dp).height(2.dp).background(if (active) PrimaryColor else Color.Transparent))
+        Box(Modifier.width(20.dp).height(3.dp).background(if (active) PrimaryColor else Color.Transparent))
     }
 }
 
@@ -292,10 +315,10 @@ private fun DashboardTab(title: String, active: Boolean, onClick: () -> Unit) {
 private fun StatCardCompact(title: String, value: String, icon: ImageVector, modifier: Modifier = Modifier) {
     Surface(modifier = modifier, color = Color.White, shape = RoundedCornerShape(20.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
         Column(Modifier.padding(16.dp)) {
-            Icon(icon, null, tint = PrimaryColor, modifier = Modifier.size(18.dp))
+            Icon(icon, null, tint = PrimaryColor, modifier = Modifier.size(20.dp))
             Spacer(Modifier.height(8.dp))
-            Text(value, fontSize = 18.sp, fontWeight = FontWeight.Black, color = PrimaryColor)
-            Text(title, fontSize = 11.sp, color = Color.Gray, fontWeight = FontWeight.Bold)
+            Text(value, fontSize = 20.sp, fontWeight = FontWeight.Black, color = PrimaryColor)
+            Text(title, fontSize = 13.sp, color = Color.DarkGray, fontWeight = FontWeight.ExtraBold)
         }
     }
 }
@@ -353,7 +376,10 @@ private fun OwnerPropertyCard(room: Room, onClick: () -> Unit) {
             }
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
-                Text(room.title ?: "Property", fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, color = Color(0xFF1A1A1A))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(room.title ?: "Property", fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, color = Color(0xFF1A1A1A), modifier = Modifier.weight(1f))
+                    LivePulseIndicator()
+                }
                 Spacer(Modifier.height(2.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(room.formattedPrice, fontSize = 13.sp, color = PrimaryColor, fontWeight = FontWeight.ExtraBold)
@@ -362,9 +388,110 @@ private fun OwnerPropertyCard(room: Room, onClick: () -> Unit) {
                         Text(room.status, color = if (room.status == "AVAILABLE") Color(0xFF2E7D32) else Color.Red, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                     }
                 }
+                
+                // Listing Health
+                Spacer(Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    LinearProgressIndicator(
+                        progress = { 0.85f },
+                        modifier = Modifier.weight(1f).height(4.dp).clip(CircleShape),
+                        color = SuccessColor,
+                        trackColor = Color(0xFFF0F2F5)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text("85% Health", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+                }
             }
             Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = Color.LightGray, modifier = Modifier.size(18.dp))
         }
+    }
+}
+
+@Composable
+private fun SectionHeaderOwner(title: String) {
+    Text(title, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Color.Gray, letterSpacing = 0.5.sp)
+}
+
+@Composable
+private fun RevenueChart() {
+    val revenueData = listOf(1.2f, 2.4f, 1.8f, 3.6f, 4.2f, 3.1f)
+    val maxRevenue = revenueData.maxOrNull() ?: 1f
+
+    Surface(
+        modifier = Modifier.fillMaxWidth().height(160.dp),
+        color = Color.White,
+        shape = RoundedCornerShape(20.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.BarChart, null, tint = PrimaryColor, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Monthly Earnings (Estimated)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.DarkGray)
+            }
+            Spacer(Modifier.weight(1f))
+            Row(
+                modifier = Modifier.fillMaxWidth().height(80.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.Bottom
+            ) {
+                revenueData.forEachIndexed { index, value ->
+                    var barHeight by remember { mutableStateOf(0f) }
+                    val animatedHeight by animateFloatAsState(
+                        targetValue = barHeight,
+                        animationSpec = tween(durationMillis = 1000, delayMillis = index * 100)
+                    )
+                    
+                    LaunchedEffect(Unit) { barHeight = value / maxRevenue }
+
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(animatedHeight)
+                            .background(
+                                Brush.verticalGradient(listOf(PrimaryLight, PrimaryColor)),
+                                RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp)
+                            )
+                    )
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun").forEach { month ->
+                    Text(month, fontSize = 9.sp, color = Color.LightGray, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LivePulseIndicator() {
+    val infiniteTransition = rememberInfiniteTransition()
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        )
+    )
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.4f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        )
+    )
+
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 4.dp)) {
+        Box(contentAlignment = Alignment.Center) {
+            Box(Modifier.size(6.dp).graphicsLayer { scaleX = scale; scaleY = scale; this.alpha = alpha }.background(Color.Red, CircleShape))
+            Box(Modifier.size(4.dp).background(Color.Red, CircleShape))
+        }
+        Spacer(Modifier.width(4.dp))
+        Text("LIVE", color = Color.Red, fontSize = 8.sp, fontWeight = FontWeight.Black)
     }
 }
 

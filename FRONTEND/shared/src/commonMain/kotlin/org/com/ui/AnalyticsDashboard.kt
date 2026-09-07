@@ -70,8 +70,8 @@ fun AnalyticsScreen(onBack: () -> Unit) {
                 title = {
                     Text(
                         "Analytics Dashboard",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Black
                     )
                 },
                 navigationIcon = {
@@ -166,7 +166,7 @@ fun AnimatedTabRow(
 @Composable
 fun TabItem(title: String, isSelected: Boolean, onClick: () -> Unit) {
     val animatedColor by animateColorAsState(
-        targetValue = if (isSelected) Color.White else Color.White.copy(alpha = 0.7f),
+        targetValue = if (isSelected) Color.White else Color.White.copy(alpha = 0.85f),
         animationSpec = tween(300)
     )
 
@@ -179,8 +179,8 @@ fun TabItem(title: String, isSelected: Boolean, onClick: () -> Unit) {
         Text(
             text = title,
             color = animatedColor,
-            fontSize = 14.sp,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+            fontSize = 15.sp,
+            fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold
         )
 
         // Animated Underline
