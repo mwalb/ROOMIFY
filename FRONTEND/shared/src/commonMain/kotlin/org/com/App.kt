@@ -49,6 +49,7 @@ import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.sp
 import org.com.ui.DiscoveryDashboard
 
@@ -209,9 +210,24 @@ fun App() {
         mutableStateOf<Room?>(null)
     }
 
+    var showSpacePlanner by remember {
+        mutableStateOf(false)
+    }
+
     val isLoggedIn = authState is AuthState.Authenticated
 
+    val uriHandler = LocalUriHandler.current
+
     val platformContext = LocalPlatformContext.current
+
+    fun withAuth(destination: String, action: () -> Unit) {
+        if (isLoggedIn) {
+            action()
+        } else {
+            postLoginDestination = destination
+            currentRoute = "login"
+        }
+    }
 
     // ============================================================
     // DEBUG: Log auth state changes
@@ -256,25 +272,56 @@ fun App() {
                     currentRoute = "details"
                     postLoginDestination = null
                 }
-                // Case 0: User is an Owner - go to postroom as requested
-                authenticatedState.user.role.equals("OWNER", ignoreCase = true) -> {
-                    println("App: 🏠 Owner logged in - Navigating to PostRoom")
-                    loadOwnerBookings()
-                    currentRoute = "postroom"
+                postLoginDestination == "booking" && pendingRoom != null -> {
+                    println("App: 📅 Navigating to booking after login")
+                    currentRoute = "booking"
                     postLoginDestination = null
                 }
-                // Case 0.5: User is a Dalali - go to dalali dashboard
+                postLoginDestination == "chat" && pendingRoom != null -> {
+                    println("App: 💬 Navigating to chat after login")
+                    currentRoute = "chat"
+                    postLoginDestination = null
+                }
+                postLoginDestination == "planner" && pendingRoom != null -> {
+                    println("App: 📐 Opening space planner after login")
+                    currentRoute = "details"
+                    showSpacePlanner = true
+                    postLoginDestination = null
+                }
+                postLoginDestination == "route" && pendingRoom != null -> {
+                    println("App: 🧭 Showing route after login")
+                    currentRoute = "details"
+                    uriHandler.openUri("https://www.google.com/maps/search/?api=1&query=${pendingRoom?.latitude},${pendingRoom?.longitude}")
+                    postLoginDestination = null
+                }
+                postLoginDestination == "call" && pendingRoom != null -> {
+                    println("App: 📞 Calling owner after login")
+                    currentRoute = "details"
+                    uriHandler.openUri("tel:${pendingRoom?.contactPhone}")
+                    postLoginDestination = null
+                }
+                // Case 2: Role-based routing
+                authenticatedState.user.role.equals("OWNER", ignoreCase = true) -> {
+                    println("App: 🏠 Owner logged in - Navigating to Owner Dashboard")
+                    loadOwnerBookings()
+                    currentRoute = "ownerdashboard"
+                    postLoginDestination = null
+                }
                 authenticatedState.user.role.equals("DALALI", ignoreCase = true) -> {
                     println("App: 🤝 Dalali logged in - Navigating to Dalali Dashboard")
                     loadOwnerBookings()
                     currentRoute = "dalalidashboard"
                     postLoginDestination = null
                 }
-                // Case 2: User came from Login/Register button - show TenantScreen
-                postLoginDestination == "tenant" -> {
-                    println("App: 👤 Navigating to TenantScreen")
+                authenticatedState.user.role.equals("TENANT", ignoreCase = true) -> {
+                    println("App: 👤 Tenant logged in - Navigating to Tenant Dashboard")
                     loadTenantBookings()
                     currentRoute = "tenant"
+                    postLoginDestination = null
+                }
+                authenticatedState.user.role.equals("ADMIN", ignoreCase = true) -> {
+                    println("App: ⚡ Admin logged in - Navigating to Admin Dashboard")
+                    currentRoute = "admindashboard"
                     postLoginDestination = null
                 }
                 // Case 3: Default - show discovery
@@ -296,14 +343,12 @@ fun App() {
         println("App: navigateTo -> $route")
         when (route) {
             "login" -> {
-                // User wants to login - set postLoginDestination to "tenant"
-                postLoginDestination = "tenant"
                 currentRoute = "login"
             }
             "map", "explore" -> {
                 currentRoute = "map"
             }
-            "discovery" -> {
+            "discovery", "filters" -> {
                 viewModel.clearFilters()
                 currentRoute = "discovery"
             }
@@ -330,17 +375,8 @@ fun App() {
 
     fun viewProperty(room: Room) {
         println("App: viewProperty -> ${room.id}")
-        if (isLoggedIn) {
-            // Already logged in - show details directly
-            pendingRoom = room
-            currentRoute = "details"
-        } else {
-            // Not logged in - store room and go to login
-            pendingRoom = room
-            // Set destination to "details" so after login we go to property details
-            postLoginDestination = "details"
-            currentRoute = "login"
-        }
+        pendingRoom = room
+        currentRoute = "details"
     }
 
     // ============================================================
@@ -354,8 +390,8 @@ fun App() {
                 color = Color.Transparent,
                 tonalElevation = 0.dp
             ) {
-                when (authState) {
-                    is AuthState.Loading -> {
+                when {
+                    authState is AuthState.Loading -> {
                         // Show loading spinner
                         Box(
                             modifier = Modifier.fillMaxSize(),
@@ -368,73 +404,99 @@ fun App() {
                         }
                     }
 
-                    is AuthState.Authenticated -> {
-                        // ================================================
-                        // USER IS LOGGED IN
-                        // ================================================
-
-                        // Check if user should see property details
-                        if (currentRoute == "details" && pendingRoom != null) {
-                            PropertyDetailsScreen(
-                                room = pendingRoom!!,
-                                currentUser = (authState as AuthState.Authenticated).user,
-                                otherProperties = viewModel.rooms.filter { it.postedBy == pendingRoom?.postedBy && it.id != pendingRoom?.id },
-                                onBack = {
-                                    pendingRoom = null
-                                    postLoginDestination = null
-                                    currentRoute = "map"
-                                },
-                                onBookNow = { room ->
+                    currentRoute == "details" && pendingRoom != null -> {
+                        PropertyDetailsScreen(
+                            room = pendingRoom!!,
+                            currentUser = (authState as? AuthState.Authenticated)?.user,
+                            otherProperties = viewModel.rooms.filter { it.postedBy == pendingRoom?.postedBy && it.id != pendingRoom?.id },
+                            onBack = {
+                                pendingRoom = null
+                                postLoginDestination = null
+                                currentRoute = "map"
+                            },
+                            onBookNow = { room ->
+                                withAuth("booking") {
                                     pendingRoom = room
                                     currentRoute = "booking"
-                                },
-                                onMessageOwner = { room ->
+                                }
+                            },
+                            onMessageOwner = { room ->
+                                withAuth("chat") {
                                     pendingRoom = room
                                     currentRoute = "chat"
-                                },
-                                onEditProperty = { room ->
-                                    postRoomViewModel.startEditing(room)
-                                    currentRoute = "postroom"
-                                },
-                                onDeleteProperty = { room ->
-                                    if (room.id != null) {
-                                        postRoomViewModel.deleteRoom(
-                                            roomId = room.id,
-                                            onSuccess = {
-                                                viewModel.loadRooms() // Refresh map
-                                                pendingRoom = null
-                                                currentRoute = "map"
-                                            },
-                                            onError = { error ->
-                                                println("Delete Error: $error")
-                                            }
-                                        )
-                                    }
-                                },
-                                onViewProperty = { room ->
-                                    pendingRoom = room
-                                    // Stays on details but with new room
                                 }
-                            )
-                        } else if (currentRoute == "booking" && pendingRoom != null) {
-                            BookingScreen(
-                                room = pendingRoom!!,
-                                onBack = { currentRoute = "details" },
-                                onConfirmBooking = { booking ->
-                                    scope.launch {
-                                        bookingApi.createBooking(booking.copy(userId = (authState as AuthState.Authenticated).user.id))
-                                    }
+                            },
+                            onShowRoute = { room ->
+                                withAuth("route") {
+                                    uriHandler.openUri("https://www.google.com/maps/search/?api=1&query=${room.latitude},${room.longitude}")
                                 }
-                            )
-                        } else if (currentRoute == "chat" && pendingRoom != null) {
-                            ChatScreen(
-                                currentUser = (authState as AuthState.Authenticated).user,
-                                otherUserName = pendingRoom?.ownerName ?: "Owner",
-                                onBack = { currentRoute = "details" }
-                            )
-                        } else {
-                            // Show main app
-                            when (currentRoute) {
+                            },
+                            onCallOwner = { room ->
+                                withAuth("call") {
+                                    uriHandler.openUri("tel:${room.contactPhone}")
+                                }
+                            },
+                            onSpacePlanner = { room ->
+                                withAuth("planner") {
+                                    showSpacePlanner = true
+                                }
+                            },
+                            showSpacePlanner = showSpacePlanner,
+                            onDismissSpacePlanner = { showSpacePlanner = false },
+                            onEditProperty = { room ->
+                                postRoomViewModel.startEditing(room)
+                                currentRoute = "postroom"
+                            },
+                            onDeleteProperty = { room ->
+                                if (room.id != null) {
+                                    postRoomViewModel.deleteRoom(
+                                        roomId = room.id,
+                                        onSuccess = {
+                                            viewModel.loadRooms() // Refresh map
+                                            pendingRoom = null
+                                            currentRoute = "map"
+                                        },
+                                        onError = { error ->
+                                            println("Delete Error: $error")
+                                        }
+                                    )
+                                }
+                            },
+                            onViewProperty = { room ->
+                                pendingRoom = room
+                                // Stays on details but with new room
+                            }
+                        )
+                    }
+
+                    currentRoute == "booking" && pendingRoom != null && authState is AuthState.Authenticated -> {
+                        val auth = authState as AuthState.Authenticated
+                        BookingScreen(
+                            room = pendingRoom!!,
+                            onBack = { currentRoute = "details" },
+                            onConfirmBooking = { booking ->
+                                scope.launch {
+                                    bookingApi.createBooking(booking.copy(userId = auth.user.id))
+                                }
+                            }
+                        )
+                    }
+
+                    currentRoute == "chat" && pendingRoom != null && authState is AuthState.Authenticated -> {
+                        val auth = authState as AuthState.Authenticated
+                        ChatScreen(
+                            currentUser = auth.user,
+                            otherUserName = pendingRoom?.ownerName ?: "Owner",
+                            onBack = { currentRoute = "details" }
+                        )
+                    }
+
+                    authState is AuthState.Authenticated -> {
+                        // ================================================
+                        // USER IS LOGGED IN - Main App logic
+                        // ================================================
+                        val user = (authState as AuthState.Authenticated).user
+                        when (currentRoute) {
                                 "discovery" -> {
                                     DiscoveryDashboard(
                                         onSearch = { type, area, price ->
@@ -704,13 +766,13 @@ fun App() {
                         } else {
                             LoginScreen(
                                 authState = authState,
-                                onLogin = { email, password, role ->
+                                onLogin = { email, password ->
                                     println("App: 🔐 Login called for $email")
-                                    scope.launch { authManager.login(email, password, role) }
+                                    scope.launch { authManager.login(email, password) }
                                 },
-                                onGoogleLogin = { idToken ->
+                                onGoogleLogin = {
                                     println("App: 🔐 Google login called")
-                                    scope.launch { authManager.googleLogin(idToken) }
+                                    scope.launch { authManager.googleLogin("") } // Need idToken here normally
                                 },
                                 onRegisterClick = {
                                     println("App: 📝 Navigate to Register")
@@ -750,16 +812,16 @@ fun App() {
                                 )
                             }
                             "login" -> {
-                                LoginScreen(
-                                    authState = authState,
-                                    onLogin = { email, password, role ->
-                                        println("App: 🔐 Login called for $email")
-                                        scope.launch { authManager.login(email, password, role) }
-                                    },
-                                    onGoogleLogin = { idToken ->
-                                        println("App: 🔐 Google login called")
-                                        scope.launch { authManager.googleLogin(idToken) }
-                                    },
+                            LoginScreen(
+                                authState = authState,
+                                onLogin = { email, password ->
+                                    println("App: 🔐 Login called for $email")
+                                    scope.launch { authManager.login(email, password) }
+                                },
+                                onGoogleLogin = {
+                                    println("App: 🔐 Google login called")
+                                    scope.launch { authManager.googleLogin("") }
+                                },
                                     onRegisterClick = {
                                         println("App: 📝 Navigate to Register")
                                         currentRoute = "register"

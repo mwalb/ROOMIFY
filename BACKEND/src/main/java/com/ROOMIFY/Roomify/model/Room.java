@@ -115,6 +115,7 @@ public class Room {
 
     // ==================== RELATIONSHIPS ====================
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "dalali_id", insertable = false, updatable = false)
     private User dalali;
@@ -132,7 +133,6 @@ public class Room {
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "room_images", joinColumns = @JoinColumn(name = "room_id"))
     @Column(name = "image")
-    @OrderColumn(name = "image_order")
     private List<String> images = new ArrayList<>();
 
     // ==================== CONSTRUCTORS ====================

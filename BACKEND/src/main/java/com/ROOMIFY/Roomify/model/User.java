@@ -1,5 +1,6 @@
 package com.ROOMIFY.Roomify.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -21,6 +22,7 @@ public class User {
     @Column(unique = true)
     private String email;
 
+    @JsonIgnore
     private String password;
 
     private String phone;
@@ -39,11 +41,14 @@ public class User {
     @Column(columnDefinition = "TIMESTAMP")
     private LocalDateTime lastLoginAt;
 
+    @JsonIgnore
     private String passwordResetToken;
 
+    @JsonIgnore
     @Column(columnDefinition = "TIMESTAMP")
     private LocalDateTime resetTokenExpiry;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "user")
     private List<Booking> bookings;
 

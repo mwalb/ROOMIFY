@@ -41,7 +41,7 @@ object ApiClient {
      * http://localhost:8080/api/rooms
      */
 
-    const val MEDIA_BASE_URL = "http://10.90.70.133:8080"
+    const val MEDIA_BASE_URL = "http://localhost:8080"
     private const val BASE_URL = "$MEDIA_BASE_URL/api/"
     private var token: String? = null
 

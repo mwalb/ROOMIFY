@@ -207,26 +207,12 @@ public class RoomController {
                         .body(new ApiResponse<>(false, null, "Room not found"));
             }
 
-            // Increment view count (using a separate query to avoid issues)
+            // Increment view count
             try {
                 repo.incrementViewCount(id);
             } catch (Exception e) {
                 System.err.println("Failed to increment view count: " + e.getMessage());
             }
-
-            // Force initialize lazy collections while session is open
-            if (room.getImages() != null) {
-                room.getImages().size(); // Force initialization
-            }
-            if (room.getAmenities() != null) {
-                room.getAmenities().size(); // Force initialization
-            }
-            if (room.getRules() != null) {
-                room.getRules().size(); // Force initialization
-            }
-
-            // Set dalali to null to avoid circular reference during serialization
-            room.setDalali(null);
 
             return ResponseEntity.ok(room);
 
@@ -237,27 +223,12 @@ public class RoomController {
         }
     }
 
-    // Get all rooms - FIXED with proper lazy loading handling
+    // Get all rooms - FIXED
     @GetMapping
     @Transactional(readOnly = true)
     public ResponseEntity<?> getAllRooms() {
         try {
             List<Room> rooms = repo.findAll();
-
-            // Initialize lazy collections for each room
-            for (Room room : rooms) {
-                if (room.getImages() != null) {
-                    room.getImages().size();
-                }
-                if (room.getAmenities() != null) {
-                    room.getAmenities().size();
-                }
-                if (room.getRules() != null) {
-                    room.getRules().size();
-                }
-                room.setDalali(null);
-            }
-
             return ResponseEntity.ok(rooms);
 
         } catch (Exception e) {
@@ -273,21 +244,6 @@ public class RoomController {
     public ResponseEntity<?> getRoomsByOwner(@PathVariable Long postedBy) {
         try {
             List<Room> rooms = repo.findByPostedBy(postedBy);
-
-            // Initialize lazy collections
-            for (Room room : rooms) {
-                if (room.getImages() != null) {
-                    room.getImages().size();
-                }
-                if (room.getAmenities() != null) {
-                    room.getAmenities().size();
-                }
-                if (room.getRules() != null) {
-                    room.getRules().size();
-                }
-                room.setDalali(null);
-            }
-
             return ResponseEntity.ok(rooms);
         } catch (Exception e) {
             e.printStackTrace();
@@ -302,21 +258,6 @@ public class RoomController {
     public ResponseEntity<?> getAvailableRooms() {
         try {
             List<Room> rooms = repo.findByIsAvailableTrue();
-
-            // Initialize lazy collections
-            for (Room room : rooms) {
-                if (room.getImages() != null) {
-                    room.getImages().size();
-                }
-                if (room.getAmenities() != null) {
-                    room.getAmenities().size();
-                }
-                if (room.getRules() != null) {
-                    room.getRules().size();
-                }
-                room.setDalali(null);
-            }
-
             return ResponseEntity.ok(rooms);
         } catch (Exception e) {
             e.printStackTrace();
@@ -331,21 +272,6 @@ public class RoomController {
     public ResponseEntity<?> getRoomsByStatus(@PathVariable String status) {
         try {
             List<Room> rooms = repo.findByStatus(status);
-
-            // Initialize lazy collections
-            for (Room room : rooms) {
-                if (room.getImages() != null) {
-                    room.getImages().size();
-                }
-                if (room.getAmenities() != null) {
-                    room.getAmenities().size();
-                }
-                if (room.getRules() != null) {
-                    room.getRules().size();
-                }
-                room.setDalali(null);
-            }
-
             return ResponseEntity.ok(rooms);
         } catch (Exception e) {
             e.printStackTrace();
@@ -381,15 +307,6 @@ public class RoomController {
     public ResponseEntity<ApiResponse<List<Room>>> getRoomsByDalali(@PathVariable Long dalaliId) {
         try {
             List<Room> rooms = repo.findByDalaliId(dalaliId);
-
-            // Initialize lazy collections
-            for (Room room : rooms) {
-                if (room.getImages() != null) room.getImages().size();
-                if (room.getAmenities() != null) room.getAmenities().size();
-                if (room.getRules() != null) room.getRules().size();
-                room.setDalali(null);
-            }
-
             return ResponseEntity.ok(new ApiResponse<>(true, rooms, "Properties retrieved successfully"));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -403,15 +320,6 @@ public class RoomController {
     public ResponseEntity<ApiResponse<List<Room>>> getPendingPropertiesByDalali(@PathVariable Long dalaliId) {
         try {
             List<Room> rooms = repo.findPendingPropertiesByDalali(dalaliId);
-
-            // Initialize lazy collections
-            for (Room room : rooms) {
-                if (room.getImages() != null) room.getImages().size();
-                if (room.getAmenities() != null) room.getAmenities().size();
-                if (room.getRules() != null) room.getRules().size();
-                room.setDalali(null);
-            }
-
             return ResponseEntity.ok(new ApiResponse<>(true, rooms, "Pending properties retrieved successfully"));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -425,15 +333,6 @@ public class RoomController {
     public ResponseEntity<ApiResponse<List<Room>>> getRentedPropertiesByDalali(@PathVariable Long dalaliId) {
         try {
             List<Room> rooms = repo.findRentedPropertiesByDalali(dalaliId);
-
-            // Initialize lazy collections
-            for (Room room : rooms) {
-                if (room.getImages() != null) room.getImages().size();
-                if (room.getAmenities() != null) room.getAmenities().size();
-                if (room.getRules() != null) room.getRules().size();
-                room.setDalali(null);
-            }
-
             return ResponseEntity.ok(new ApiResponse<>(true, rooms, "Rented properties retrieved successfully"));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -447,15 +346,6 @@ public class RoomController {
     public ResponseEntity<ApiResponse<List<Room>>> getAvailablePropertiesByDalali(@PathVariable Long dalaliId) {
         try {
             List<Room> rooms = repo.findAvailablePropertiesByDalali(dalaliId);
-
-            // Initialize lazy collections
-            for (Room room : rooms) {
-                if (room.getImages() != null) room.getImages().size();
-                if (room.getAmenities() != null) room.getAmenities().size();
-                if (room.getRules() != null) room.getRules().size();
-                room.setDalali(null);
-            }
-
             return ResponseEntity.ok(new ApiResponse<>(true, rooms, "Available properties retrieved successfully"));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -581,15 +471,6 @@ public class RoomController {
     public ResponseEntity<ApiResponse<List<Room>>> getFeaturedProperties() {
         try {
             List<Room> featured = repo.findByFeaturedTrue();
-
-            // Initialize lazy collections
-            for (Room room : featured) {
-                if (room.getImages() != null) room.getImages().size();
-                if (room.getAmenities() != null) room.getAmenities().size();
-                if (room.getRules() != null) room.getRules().size();
-                room.setDalali(null);
-            }
-
             return ResponseEntity.ok(new ApiResponse<>(true, featured, "Featured properties retrieved"));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -603,15 +484,6 @@ public class RoomController {
     public ResponseEntity<ApiResponse<List<Room>>> searchProperties(@RequestParam String keyword) {
         try {
             List<Room> results = repo.searchByKeyword(keyword);
-
-            // Initialize lazy collections
-            for (Room room : results) {
-                if (room.getImages() != null) room.getImages().size();
-                if (room.getAmenities() != null) room.getAmenities().size();
-                if (room.getRules() != null) room.getRules().size();
-                room.setDalali(null);
-            }
-
             return ResponseEntity.ok(new ApiResponse<>(true, results, "Search results retrieved"));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -627,15 +499,6 @@ public class RoomController {
             @RequestParam double max) {
         try {
             List<Room> results = repo.findByPriceBetween(min, max);
-
-            // Initialize lazy collections
-            for (Room room : results) {
-                if (room.getImages() != null) room.getImages().size();
-                if (room.getAmenities() != null) room.getAmenities().size();
-                if (room.getRules() != null) room.getRules().size();
-                room.setDalali(null);
-            }
-
             return ResponseEntity.ok(new ApiResponse<>(true, results, "Properties retrieved by price range"));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

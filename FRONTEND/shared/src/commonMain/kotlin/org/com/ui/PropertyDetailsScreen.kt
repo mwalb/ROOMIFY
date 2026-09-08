@@ -52,6 +52,11 @@ fun PropertyDetailsScreen(
     onBack: () -> Unit,
     onBookNow: (Room) -> Unit,
     onMessageOwner: (Room) -> Unit,
+    onShowRoute: (Room) -> Unit = {},
+    onCallOwner: (Room) -> Unit = {},
+    onSpacePlanner: (Room) -> Unit = {},
+    showSpacePlanner: Boolean = false,
+    onDismissSpacePlanner: () -> Unit = {},
     onEditProperty: (Room) -> Unit = {},
     onDeleteProperty: (Room) -> Unit = {},
     onViewProperty: (Room) -> Unit = {}
@@ -62,7 +67,6 @@ fun PropertyDetailsScreen(
     val scrollState = rememberScrollState()
     
     var selectedImageUrl by remember { mutableStateOf<String?>(null) }
-    var showSpacePlanner by remember { mutableStateOf(false) }
 
     val isMyProperty = currentUser?.id == room.postedBy
 
@@ -312,7 +316,7 @@ fun PropertyDetailsScreen(
                     // Section: Space Planner
                     SectionTitleDetails("Living Arrangement")
                     Surface(
-                        modifier = Modifier.fillMaxWidth().clickable { showSpacePlanner = true },
+                        modifier = Modifier.fillMaxWidth().clickable { onSpacePlanner(room) },
                         shape = RoundedCornerShape(16.dp),
                         color = PrimaryColor.copy(alpha = 0.05f),
                         border = BorderStroke(1.dp, PrimaryColor.copy(alpha = 0.1f))
@@ -340,7 +344,7 @@ fun PropertyDetailsScreen(
                     Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), color = Color(0xFFF8F9FA), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
                         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                             Button(
-                                onClick = { uriHandler.openUri("https://www.google.com/maps/search/?api=1&query=${room.latitude},${room.longitude}") },
+                                onClick = { onShowRoute(room) },
                                 modifier = Modifier.fillMaxWidth().height(40.dp),
                                 shape = RoundedCornerShape(10.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
@@ -368,7 +372,7 @@ fun PropertyDetailsScreen(
                                     Icon(Icons.AutoMirrored.Filled.Message, null, tint = Color(0xFF2196F3), modifier = Modifier.size(20.dp))
                                 }
                                 Spacer(Modifier.width(8.dp))
-                                IconButton(onClick = { uriHandler.openUri("tel:${room.contactPhone}") }, modifier = Modifier.background(SuccessColor.copy(alpha = 0.1f), CircleShape)) {
+                                IconButton(onClick = { onCallOwner(room) }, modifier = Modifier.background(SuccessColor.copy(alpha = 0.1f), CircleShape)) {
                                     Icon(Icons.Default.Call, null, tint = SuccessColor, modifier = Modifier.size(20.dp))
                                 }
                             }
@@ -495,7 +499,7 @@ fun PropertyDetailsScreen(
         SpacePlannerDialog(
             roomArea = room.area,
             roomImageUrl = room.firstImageUrl,
-            onDismiss = { showSpacePlanner = false }
+            onDismiss = onDismissSpacePlanner
         )
     }
 

@@ -306,22 +306,6 @@ public class AuthController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
             }
 
-            // Verify role
-            if (role != null && !role.isEmpty()) {
-                try {
-                    UserRole selectedRole = UserRole.valueOf(role.toUpperCase());
-                    if (!user.getRole().equals(selectedRole)) {
-                        response.put("success", false);
-                        response.put("message", "You selected " + role + " but your account is registered as " + user.getRole().toString().toLowerCase());
-                        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
-                    }
-                } catch (IllegalArgumentException e) {
-                    response.put("success", false);
-                    response.put("message", "Invalid role specified");
-                    return ResponseEntity.badRequest().body(response);
-                }
-            }
-
             // Update last login
             user.setLastLoginAt(LocalDateTime.now());
             User updatedUser = userRepository.save(user);
@@ -407,5 +391,13 @@ public class AuthController {
             response.put("message", "Guest login failed: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Map<String, Object>> logout() {
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "Logged out successfully");
+        return ResponseEntity.ok(response);
     }
 }

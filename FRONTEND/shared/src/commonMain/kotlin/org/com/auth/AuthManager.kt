@@ -23,15 +23,14 @@ class AuthManager {
     // LOGIN
     // ============================================================
 
-    suspend fun login(email: String, password: String, role: String = "tenant") {
+    suspend fun login(email: String, password: String) {
         _authState.value = AuthState.Loading
 
         try {
-            println("AuthManager: Logging in $email as $role")
+            println("AuthManager: Logging in $email")
             val request = LoginRequest(
                 email = email,
-                password = password,
-                role = role.lowercase()
+                password = password
             )
             val response = RoomifyApi.login(request)
             handleResponse(response)

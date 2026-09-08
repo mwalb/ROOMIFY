@@ -113,8 +113,8 @@ private fun currentLoginLayout(): LoginLayout {
 @Composable
 fun LoginScreen(
     authState: AuthState,
-    onLogin: (String, String, String) -> Unit,
-    onGoogleLogin: (String) -> Unit,
+    onLogin: (String, String) -> Unit,
+    onGoogleLogin: () -> Unit,
     onRegisterClick: () -> Unit,
     onBack: () -> Unit,
     onGuestLogin: () -> Unit,
@@ -131,10 +131,6 @@ fun LoginScreen(
 
     var showPassword by remember {
         mutableStateOf(false)
-    }
-
-    var selectedRole by remember {
-        mutableStateOf("Tenant")
     }
 
     val loading =
@@ -178,16 +174,11 @@ fun LoginScreen(
                     onTogglePassword = {
                         showPassword = !showPassword
                     },
-                    selectedRole = selectedRole,
-                    onRoleChange = {
-                        selectedRole = it
-                    },
                     formValid = formValid,
                     onLogin = {
                         onLogin(
                             email.trim(),
-                            password,
-                            selectedRole
+                            password
                         )
                     },
                     onGoogleLogin = onGoogleLogin,
@@ -212,16 +203,11 @@ fun LoginScreen(
                     onTogglePassword = {
                         showPassword = !showPassword
                     },
-                    selectedRole = selectedRole,
-                    onRoleChange = {
-                        selectedRole = it
-                    },
                     formValid = formValid,
                     onLogin = {
                         onLogin(
                             email.trim(),
-                            password,
-                            selectedRole
+                            password
                         )
                     },
                     onGoogleLogin = onGoogleLogin,
@@ -250,11 +236,9 @@ private fun MobileLoginLayout(
     onPasswordChange: (String) -> Unit,
     showPassword: Boolean,
     onTogglePassword: () -> Unit,
-    selectedRole: String,
-    onRoleChange: (String) -> Unit,
     formValid: Boolean,
     onLogin: () -> Unit,
-    onGoogleLogin: (String) -> Unit,
+    onGoogleLogin: () -> Unit,
     onRegisterClick: () -> Unit,
     onBack: () -> Unit,
     onGuestLogin: () -> Unit,
@@ -293,8 +277,6 @@ private fun MobileLoginLayout(
             onPasswordChange = onPasswordChange,
             showPassword = showPassword,
             onTogglePassword = onTogglePassword,
-            selectedRole = selectedRole,
-            onRoleChange = onRoleChange,
             formValid = formValid,
             onLogin = onLogin,
             onGoogleLogin = onGoogleLogin,
@@ -321,11 +303,9 @@ private fun DesktopLoginLayout(
     onPasswordChange: (String) -> Unit,
     showPassword: Boolean,
     onTogglePassword: () -> Unit,
-    selectedRole: String,
-    onRoleChange: (String) -> Unit,
     formValid: Boolean,
     onLogin: () -> Unit,
-    onGoogleLogin: (String) -> Unit,
+    onGoogleLogin: () -> Unit,
     onRegisterClick: () -> Unit,
     onBack: () -> Unit,
     onGuestLogin: () -> Unit,
@@ -665,85 +645,7 @@ private fun DesktopLoginLayout(
                 }
 
                 Spacer(
-                    modifier = Modifier.height(8.dp)
-                )
-
-                /* ====================================================
-                   ROLE LABEL
-                   ==================================================== */
-
-                Text(
-                    text = "Sign in as",
-                    fontSize = 13.sp,
-                    fontWeight =
-                        FontWeight.Medium,
-                    color =
-                        LoginColors.TextSecondary,
-                    modifier = Modifier
-                        .width(contentWidth)
-                        .padding(start = 4.dp)
-                )
-
-                Spacer(
-                    modifier = Modifier.height(8.dp)
-                )
-
-                /* ====================================================
-                   ROLE CHIPS
-                   ==================================================== */
-
-                Row(
-                    modifier = Modifier
-                        .width(contentWidth),
-                    horizontalArrangement =
-                        Arrangement.spacedBy(8.dp)
-                ) {
-
-                    LoginRoleChip(
-                        modifier =
-                            Modifier.weight(1f),
-                        label = "Tenant",
-                        icon =
-                            Icons.Default.Person,
-                        selected =
-                            selectedRole == "Tenant",
-                        enabled = !loading,
-                        onClick = {
-                            onRoleChange("Tenant")
-                        }
-                    )
-
-                    LoginRoleChip(
-                        modifier =
-                            Modifier.weight(1f),
-                        label = "Owner",
-                        icon =
-                            Icons.Default.Storefront,
-                        selected =
-                            selectedRole == "Owner",
-                        enabled = !loading,
-                        onClick = {
-                            onRoleChange("Owner")
-                        }
-                    )
-
-                    LoginRoleChip(
-                        modifier =
-                            Modifier.weight(1f),
-                        label = "Dalali",
-                        icon =
-                            Icons.Default.Handshake,
-                        selected =
-                            selectedRole == "Dalali",
-                        enabled = !loading,
-                        onClick = {
-                            onRoleChange("Dalali")
-                        }
-                    )
-                }
-
-                Spacer(
-                    modifier = Modifier.height(16.dp)
+                    modifier = Modifier.height(24.dp)
                 )
 
                 /* ====================================================
@@ -858,7 +760,7 @@ private fun DesktopLoginLayout(
 
                 OutlinedButton(
                     onClick = {
-                        onGoogleLogin(selectedRole)
+                        onGoogleLogin()
                     },
                     enabled = !loading,
                     modifier = Modifier
@@ -1108,11 +1010,9 @@ private fun LoginFormCard(
     onPasswordChange: (String) -> Unit,
     showPassword: Boolean,
     onTogglePassword: () -> Unit,
-    selectedRole: String,
-    onRoleChange: (String) -> Unit,
     formValid: Boolean,
     onLogin: () -> Unit,
-    onGoogleLogin: (String) -> Unit,
+    onGoogleLogin: () -> Unit,
     onRegisterClick: () -> Unit,
     onBack: () -> Unit,
     onGuestLogin: () -> Unit,
@@ -1316,79 +1216,7 @@ private fun LoginFormCard(
             }
 
             Spacer(
-                modifier = Modifier.height(8.dp)
-            )
-
-            /* ROLE */
-
-            Text(
-                text = "Sign in as",
-                fontSize = 12.sp,
-                fontWeight =
-                    FontWeight.Medium,
-                color =
-                    LoginColors.TextSecondary,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 4.dp)
-            )
-
-            Spacer(
-                modifier = Modifier.height(6.dp)
-            )
-
-            Row(
-                modifier =
-                    Modifier.fillMaxWidth(),
-                horizontalArrangement =
-                    Arrangement.spacedBy(6.dp)
-            ) {
-
-                LoginRoleChip(
-                    modifier =
-                        Modifier.weight(1f),
-                    label = "Tenant",
-                    icon =
-                        Icons.Default.Person,
-                    selected =
-                        selectedRole == "Tenant",
-                    enabled = !loading,
-                    onClick = {
-                        onRoleChange("Tenant")
-                    }
-                )
-
-                LoginRoleChip(
-                    modifier =
-                        Modifier.weight(1f),
-                    label = "Owner",
-                    icon =
-                        Icons.Default.Storefront,
-                    selected =
-                        selectedRole == "Owner",
-                    enabled = !loading,
-                    onClick = {
-                        onRoleChange("Owner")
-                    }
-                )
-
-                LoginRoleChip(
-                    modifier =
-                        Modifier.weight(1f),
-                    label = "Dalali",
-                    icon =
-                        Icons.Default.Handshake,
-                    selected =
-                        selectedRole == "Dalali",
-                    enabled = !loading,
-                    onClick = {
-                        onRoleChange("Dalali")
-                    }
-                )
-            }
-
-            Spacer(
-                modifier = Modifier.height(12.dp)
+                modifier = Modifier.height(16.dp)
             )
 
             /* ERROR */
@@ -1492,7 +1320,7 @@ private fun LoginFormCard(
 
             OutlinedButton(
                 onClick = {
-                    onGoogleLogin(selectedRole)
+                    onGoogleLogin()
                 },
                 enabled = !loading,
                 modifier = Modifier
@@ -1634,68 +1462,6 @@ private fun LoginFormCard(
             }
         }
     }
-}
-
-
-/* ============================================================
-   ROLE CHIP
-   ============================================================ */
-
-@Composable
-private fun LoginRoleChip(
-    modifier: Modifier,
-    label: String,
-    icon: ImageVector,
-    selected: Boolean,
-    enabled: Boolean,
-    onClick: () -> Unit
-) {
-
-    FilterChip(
-        selected = selected,
-        onClick = onClick,
-        enabled = enabled,
-        modifier =
-            modifier.height(36.dp),
-        label = {
-            Text(
-                text = label,
-                fontSize = 12.sp,
-                fontWeight =
-                    if (selected)
-                        FontWeight.Bold
-                    else
-                        FontWeight.Normal
-            )
-        },
-        leadingIcon = {
-
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier =
-                    Modifier.size(15.dp)
-            )
-        },
-        shape =
-            RoundedCornerShape(10.dp),
-        colors =
-            FilterChipDefaults.filterChipColors(
-                containerColor =
-                    LoginColors.ChipBackground,
-                labelColor =
-                    LoginColors.TextSecondary,
-                iconColor =
-                    LoginColors.TextSecondary,
-                selectedContainerColor =
-                    LoginColors.GradientStart
-                        .copy(alpha = 0.12f),
-                selectedLabelColor =
-                    LoginColors.GradientStart,
-                selectedLeadingIconColor =
-                    LoginColors.GradientStart
-            )
-    )
 }
 
 

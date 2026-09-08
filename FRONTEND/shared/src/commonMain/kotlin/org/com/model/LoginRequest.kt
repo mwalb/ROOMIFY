@@ -18,6 +18,5 @@ data class LoginRequest(
     val email: String = "",
 
     @SerialName("password")
-    val password: String = "",
-    val role: String
+    val password: String = ""
 )

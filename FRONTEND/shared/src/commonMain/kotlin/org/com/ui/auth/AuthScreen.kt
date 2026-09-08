@@ -81,24 +81,23 @@ fun AuthScreen(
                 authState =
                     authState,
 
-                onLogin = { email, password, role ->
+                onLogin = { email, password ->
 
                     scope.launch {
 
                         authManager.login(
                             email = email,
-                            password = password,
-                            role = role
+                            password = password
                         )
                     }
                 },
 
-                onGoogleLogin = { idToken ->
+                onGoogleLogin = {
 
                     scope.launch {
 
                         authManager.googleLogin(
-                            idToken = idToken
+                            idToken = ""
                         )
                     }
                 },
