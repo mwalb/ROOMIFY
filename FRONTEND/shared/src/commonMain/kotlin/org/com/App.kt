@@ -43,6 +43,7 @@ import org.com.ui.DiscoveryDashboard
 import org.com.ui.auth.LoginScreen
 import org.com.ui.auth.RegisterScreen
 import org.com.viewmodel.MapViewModel
+import org.com.viewmodel.MapDetail
 import org.com.viewmodel.PostRoomViewModel
 
 import androidx.compose.material3.Typography
@@ -498,8 +499,10 @@ fun App() {
                         val user = (authState as AuthState.Authenticated).user
                         when (currentRoute) {
                                 "discovery" -> {
-                                    DiscoveryDashboard { type, area, price, status ->
-                                        viewModel.setFilters(type, area, price, status)
+                                    DiscoveryDashboard(
+                                        initialMapDetail = viewModel.mapDetail
+                                    ) { type, area, price, status, detail ->
+                                        viewModel.setFilters(type, area, price, status, detail)
                                         currentRoute = "map"
                                     }
                                 }
@@ -510,7 +513,11 @@ fun App() {
                                             selectedRoom = viewModel.selectedRoom,
                                             authState = authState,
                                             routingDestination = routingDestination,
+                                            mapDetail = viewModel.mapDetail,
+                                            currentStatusFilter = viewModel.filterStatus ?: "ALL",
                                             isRefreshing = viewModel.isLoading,
+                                            onMapDetailChange = { viewModel.mapDetail = it },
+                                            onStatusFilterChange = { viewModel.filterStatus = if (it == "ALL") null else it },
                                             activeFilters = if (viewModel.filterArea != null || viewModel.filterType != null || viewModel.filterMaxPrice != null) {
                                                 buildString {
                                                     viewModel.filterArea?.let { append(it) }
@@ -714,7 +721,11 @@ fun App() {
                                             selectedRoom = viewModel.selectedRoom,
                                             authState = authState,
                                             routingDestination = routingDestination,
+                                            mapDetail = viewModel.mapDetail,
+                                            currentStatusFilter = viewModel.filterStatus ?: "ALL",
                                             isRefreshing = viewModel.isLoading,
+                                            onMapDetailChange = { viewModel.mapDetail = it },
+                                            onStatusFilterChange = { viewModel.filterStatus = if (it == "ALL") null else it },
                                             activeFilters = if (viewModel.filterArea != null || viewModel.filterType != null || viewModel.filterMaxPrice != null) {
                                                 buildString {
                                                     viewModel.filterArea?.let { append(it) }
@@ -839,8 +850,10 @@ fun App() {
                                 )
                             }
                             "discovery" -> {
-                                DiscoveryDashboard { type, area, price, status ->
-                                    viewModel.setFilters(type, area, price, status)
+                                DiscoveryDashboard(
+                                    initialMapDetail = viewModel.mapDetail
+                                ) { type, area, price, status, detail ->
+                                    viewModel.setFilters(type, area, price, status, detail)
                                     currentRoute = "map"
                                 }
                             }
@@ -851,6 +864,10 @@ fun App() {
                                     selectedRoom = viewModel.selectedRoom,
                                     authState = authState,
                                     routingDestination = routingDestination,
+                                    mapDetail = viewModel.mapDetail,
+                                    currentStatusFilter = viewModel.filterStatus ?: "ALL",
+                                    onMapDetailChange = { viewModel.mapDetail = it },
+                                    onStatusFilterChange = { viewModel.filterStatus = if (it == "ALL") null else it },
                                     onClearRoute = {
                                         routingDestination = null
                                     },

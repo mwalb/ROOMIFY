@@ -70,6 +70,7 @@ import org.com.i18n.Language
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import org.com.model.*
+import org.com.viewmodel.MapDetail
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
@@ -479,6 +480,9 @@ actual fun MapContent(
     authState: org.com.auth.AuthState,
     routingDestination: Room?,
     mapDetailLevel: String,
+    currentStatusFilter: String,
+    onStatusFilterChange: (String) -> Unit,
+    onMapDetailChange: (MapDetail) -> Unit,
     onClearRoute: () -> Unit,
     onRoomSelected: (Room) -> Unit,
     onRoomCleared: () -> Unit,
@@ -685,13 +689,14 @@ actual fun MapContent(
                     isMyLocationEnabled =
                         false,
                         
-                    mapStyleOptions = when (mapDetailLevel) {
-                        "Minimal" -> com.google.android.gms.maps.model.MapStyleOptions(
+                    mapStyleOptions = when (mapDetailLevel.uppercase()) {
+                        "MINIMAL" -> com.google.android.gms.maps.model.MapStyleOptions(
                             "[{\"featureType\":\"poi\",\"elementType\":\"all\",\"stylers\":[{\"visibility\":\"off\"}]},{\"featureType\":\"transit\",\"elementType\":\"all\",\"stylers\":[{\"visibility\":\"off\"}]}]"
                         )
-                        "Standard" -> com.google.android.gms.maps.model.MapStyleOptions(
+                        "STANDARD" -> com.google.android.gms.maps.model.MapStyleOptions(
                             "[{\"featureType\":\"poi\",\"elementType\":\"labels\",\"stylers\":[{\"visibility\":\"off\"}]}]"
                         )
+                        "DETAILED" -> null // Default Android map is detailed
                         else -> null
                     }
                 ),
@@ -852,6 +857,14 @@ actual fun MapContent(
 
             searchQuery =
                 searchQuery,
+            
+            mapDetailLevel = mapDetailLevel,
+            
+            currentStatusFilter = currentStatusFilter,
+            
+            onMapDetailChange = onMapDetailChange,
+            
+            onStatusFilterChange = onStatusFilterChange,
 
             onMenuClick = {
 
@@ -980,6 +993,10 @@ actual fun MapContent(
 private fun MapHeader(
     menuOpen: Boolean,
     searchQuery: String,
+    mapDetailLevel: String,
+    currentStatusFilter: String,
+    onMapDetailChange: (MapDetail) -> Unit,
+    onStatusFilterChange: (String) -> Unit,
     onMenuClick: () -> Unit,
     onSearchChange: (String) -> Unit,
     onSearchClick: () -> Unit,
@@ -999,7 +1016,9 @@ private fun MapHeader(
                 ),
 
         verticalAlignment =
-            Alignment.CenterVertically
+            Alignment.CenterVertically,
+        
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
 
 
@@ -1289,6 +1308,107 @@ private fun MapHeader(
                                 )
                         )
                     }
+                }
+            }
+        }
+
+
+        /*
+         * ====================================================
+         * MAP DETAIL DROPDOWN (Android)
+         * ====================================================
+         */
+
+        var detailExpanded by remember { mutableStateOf(false) }
+
+        Box {
+            Surface(
+                modifier = Modifier
+                    .height(52.dp)
+                    .widthIn(min = 90.dp)
+                    .shadow(elevation = 8.dp, shape = RoundedCornerShape(18.dp))
+                    .clickable { detailExpanded = true },
+                shape = RoundedCornerShape(18.dp),
+                color = RoomifyWhite.copy(alpha = 0.96f),
+                border = BorderStroke(1.dp, Color(0xFFBDBDBD))
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = mapDetailLevel.uppercase(),
+                        color = RoomifyGradientStart,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Icon(Icons.Default.ArrowDropDown, null, tint = RoomifyGradientStart, modifier = Modifier.size(18.dp))
+                }
+            }
+
+            androidx.compose.material3.DropdownMenu(
+                expanded = detailExpanded,
+                onDismissRequest = { detailExpanded = false }
+            ) {
+                MapDetail.entries.forEach { level ->
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text(level.name.lowercase().replaceFirstChar { it.uppercase() }, fontWeight = FontWeight.Bold) },
+                        onClick = {
+                            onMapDetailChange(level)
+                            detailExpanded = false
+                        }
+                    )
+                }
+            }
+        }
+
+        /*
+         * ====================================================
+         * STATUS DROPDOWN (Android)
+         * ====================================================
+         */
+
+        var statusExpanded by remember { mutableStateOf(false) }
+
+        Box {
+            Surface(
+                modifier = Modifier
+                    .height(52.dp)
+                    .widthIn(min = 80.dp)
+                    .shadow(elevation = 8.dp, shape = RoundedCornerShape(18.dp))
+                    .clickable { statusExpanded = true },
+                shape = RoundedCornerShape(18.dp),
+                color = RoomifyWhite.copy(alpha = 0.96f),
+                border = BorderStroke(1.dp, Color(0xFFBDBDBD))
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = currentStatusFilter.uppercase(),
+                        color = RoomifyGradientStart,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Icon(Icons.Default.ArrowDropDown, null, tint = RoomifyGradientStart, modifier = Modifier.size(18.dp))
+                }
+            }
+
+            androidx.compose.material3.DropdownMenu(
+                expanded = statusExpanded,
+                onDismissRequest = { statusExpanded = false }
+            ) {
+                listOf("ALL", "AVAILABLE", "PENDING", "RENTED").forEach { status ->
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text(status, fontWeight = FontWeight.Bold) },
+                        onClick = {
+                            onStatusFilterChange(status)
+                            statusExpanded = false
+                        }
+                    )
                 }
             }
         }

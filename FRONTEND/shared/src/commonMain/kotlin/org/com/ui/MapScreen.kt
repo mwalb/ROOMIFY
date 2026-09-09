@@ -22,16 +22,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.com.model.Room
 
+import org.com.viewmodel.MapDetail
+
 @Composable
 fun MapScreen(
     rooms: List<Room>,
     selectedRoom: Room?,
     authState: org.com.auth.AuthState,
     routingDestination: Room?,
+    mapDetail: MapDetail = MapDetail.STANDARD,
+    currentStatusFilter: String = "ALL",
     isRefreshing: Boolean = false,
     activeFilters: String? = null,
     onRefresh: () -> Unit = {},
     onClearFilters: () -> Unit = {},
+    onMapDetailChange: (MapDetail) -> Unit = {},
+    onStatusFilterChange: (String) -> Unit = {},
     onClearRoute: () -> Unit,
     onRoomSelected: (Room) -> Unit,
     onClearSelection: () -> Unit,
@@ -39,14 +45,6 @@ fun MapScreen(
     modifier: Modifier = Modifier,
     onNavigate: (String) -> Unit
 ) {
-    var mapDetailLevel by remember { mutableStateOf("Standard") }
-
-    LaunchedEffect(selectedRoom?.id) {
-        println(
-            "MapScreen: selectedRoom = ${selectedRoom?.id}"
-        )
-    }
-
     Box(
         modifier = modifier.fillMaxSize()
     ) {
@@ -56,7 +54,10 @@ fun MapScreen(
             selectedRoom = selectedRoom,
             authState = authState,
             routingDestination = routingDestination,
-            mapDetailLevel = mapDetailLevel,
+            mapDetailLevel = mapDetail.name.lowercase().replaceFirstChar { it.uppercase() },
+            currentStatusFilter = currentStatusFilter,
+            onMapDetailChange = onMapDetailChange,
+            onStatusFilterChange = onStatusFilterChange,
             onClearRoute = onClearRoute,
             onRoomSelected = { room ->
 
@@ -126,40 +127,6 @@ fun MapScreen(
                     StatusLegendItem("Available", Color(0xFF2E7D32))
                     StatusLegendItem("Pending", Color(0xFFF9A825))
                     StatusLegendItem("Rented", Color(0xFFC62828))
-                }
-            }
-        }
-
-        // Map Detail Control (Bottom Right)
-        Surface(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp)
-                .padding(bottom = 20.dp),
-            color = Color.White.copy(alpha = 0.95f),
-            shape = RoundedCornerShape(16.dp),
-            shadowElevation = 4.dp
-        ) {
-            Column(Modifier.padding(12.dp), horizontalAlignment = Alignment.End) {
-                Text("MAP DETAILS", fontWeight = FontWeight.Black, fontSize = 10.sp, color = Color.Gray)
-                Spacer(Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    listOf("Minimal", "Standard", "Detailed").forEach { level ->
-                        val isSelected = mapDetailLevel == level
-                        Surface(
-                            modifier = Modifier.clickable { mapDetailLevel = level },
-                            color = if (isSelected) Color(0xFF1A237E) else Color.Transparent,
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text(
-                                level,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                color = if (isSelected) Color.White else Color.DarkGray,
-                                fontSize = 11.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                            )
-                        }
-                    }
                 }
             }
         }

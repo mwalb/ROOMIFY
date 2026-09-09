@@ -8,6 +8,12 @@ import kotlinx.coroutines.launch
 import org.com.model.Room
 import org.com.network.RoomApi
 
+enum class MapDetail {
+    MINIMAL,
+    STANDARD,
+    DETAILED
+}
+
 class MapViewModel(
     private val roomApi: RoomApi,
     private val scope: CoroutineScope
@@ -37,6 +43,7 @@ class MapViewModel(
     var filterArea by mutableStateOf<String?>(null)
     var filterMaxPrice by mutableStateOf<Double?>(null)
     var filterStatus by mutableStateOf<String?>(null)
+    var mapDetail by mutableStateOf(MapDetail.STANDARD)
 
     val filteredRooms: List<Room>
         get() {
@@ -66,11 +73,12 @@ class MapViewModel(
             }
         }
 
-    fun setFilters(type: String?, area: String?, maxPrice: Double?, status: String? = null) {
+    fun setFilters(type: String?, area: String?, maxPrice: Double?, status: String? = null, detail: MapDetail = MapDetail.STANDARD) {
         filterType = type
         filterArea = area
         filterMaxPrice = maxPrice
         filterStatus = status
+        mapDetail = detail
     }
 
     fun clearFilters() {
@@ -78,6 +86,7 @@ class MapViewModel(
         filterArea = null
         filterMaxPrice = null
         filterStatus = null
+        mapDetail = MapDetail.STANDARD
     }
 
 

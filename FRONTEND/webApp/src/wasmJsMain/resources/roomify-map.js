@@ -86,11 +86,23 @@
     window.roomifySetMapStyle = function(level) {
         if (!window.roomifyMap) return;
 
+        var normalized = level.toUpperCase();
         var styles = MAP_STYLE_STANDARD;
-        if (level === "Minimal") styles = MAP_STYLE_MINIMAL;
-        if (level === "Detailed") styles = MAP_STYLE_DETAILED;
+        if (normalized === "MINIMAL") styles = MAP_STYLE_MINIMAL;
+        if (normalized === "DETAILED") styles = MAP_STYLE_DETAILED;
 
         window.roomifyMap.setOptions({ styles: styles });
+
+        // Update label and active state
+        var label = document.getElementById("roomify-detail-label");
+        if (label) label.textContent = "Map: " + normalized;
+
+        var options = document.querySelectorAll("#roomify-detail-control .roomify-status-option");
+        options.forEach(function(opt) {
+            if (opt.textContent === normalized) opt.classList.add("active");
+            else opt.classList.remove("active");
+        });
+
         console.log("Roomify: Map style updated to " + level);
     };
 
@@ -305,6 +317,74 @@
             .roomify-menu-button:hover {
                 background: linear-gradient(135deg, #1A237E, #3949AB);
                 opacity: 0.92;
+            }
+
+            .roomify-top-right-controls {
+                display: flex;
+                gap: 10px;
+                margin-top: 14px;
+                margin-right: 12px;
+            }
+
+            .roomify-status-control {
+                background: rgba(255, 255, 255, 0.96);
+                border-radius: 13px;
+                box-shadow: 0 3px 12px rgba(0,0,0,0.15);
+                border: 1px solid #BDBDBD;
+                height: 46px;
+                padding: 0 10px;
+                display: flex;
+                align-items: center;
+                cursor: pointer;
+                font-family: Arial, sans-serif;
+                font-size: 14px;
+                font-weight: bold;
+                color: #1A237E;
+                position: relative;
+                min-width: 110px;
+            }
+
+            .roomify-status-dropdown {
+                position: absolute;
+                top: calc(100% + 8px);
+                right: 0;
+                background: white;
+                border-radius: 13px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                border: 1px solid #E0E0E0;
+                display: none;
+                flex-direction: column;
+                overflow: hidden;
+                z-index: 10001;
+                min-width: 140px;
+            }
+
+            .roomify-status-dropdown.show {
+                display: flex;
+            }
+
+            .roomify-status-option {
+                padding: 12px 16px;
+                cursor: pointer;
+                transition: background 0.15s;
+                border-bottom: 1px solid #F5F5F5;
+                white-space: nowrap;
+                color: #444;
+            }
+
+            .roomify-status-option:last-child {
+                border-bottom: 0;
+            }
+
+            .roomify-status-option:hover {
+                background: #F5F5F5;
+                color: #1A237E;
+            }
+
+            .roomify-status-option.active {
+                background: rgba(26, 35, 126, 0.08);
+                color: #1A237E;
+                font-weight: 800;
             }
 
 
@@ -1009,6 +1089,187 @@
 
     /*
      * ============================================================
+     * STATUS CONTROL
+     * ============================================================
+     */
+
+    window.roomifyCurrentStatusFilter = "ALL";
+
+    /*
+     * ============================================================
+     * TOP RIGHT CONTROLS
+     * ============================================================
+     */
+
+    function createTopRightControls() {
+        if (document.getElementById("roomify-top-right-controls")) {
+            return;
+        }
+
+        var wrapper = document.createElement("div");
+        wrapper.id = "roomify-top-right-controls";
+        wrapper.className = "roomify-top-right-controls";
+
+        wrapper.appendChild(createMapDetailControl());
+        wrapper.appendChild(createStatusControl());
+
+        return wrapper;
+    }
+
+    function createMapDetailControl() {
+        var wrapper = document.createElement("div");
+        wrapper.id = "roomify-detail-control";
+        wrapper.className = "roomify-status-control";
+
+        var label = document.createElement("span");
+        label.id = "roomify-detail-label";
+        label.textContent = "Map: STANDARD";
+        label.style.flex = "1";
+        wrapper.appendChild(label);
+
+        var arrow = document.createElement("span");
+        arrow.textContent = "▼";
+        arrow.style.marginLeft = "8px";
+        arrow.style.fontSize = "10px";
+        wrapper.appendChild(arrow);
+
+        var dropdown = document.createElement("div");
+        dropdown.className = "roomify-status-dropdown";
+
+        var options = ["MINIMAL", "STANDARD", "DETAILED"];
+        options.forEach(function(opt) {
+            var option = document.createElement("div");
+            option.className = "roomify-status-option";
+            if (opt === "STANDARD") option.classList.add("active");
+            option.textContent = opt;
+            option.onclick = function(e) {
+                e.stopPropagation();
+                window.roomifySetMapStyle(opt.charAt(0).toUpperCase() + opt.slice(1).toLowerCase());
+                dropdown.classList.remove("show");
+            };
+            dropdown.appendChild(option);
+        });
+
+        wrapper.appendChild(dropdown);
+
+        wrapper.onclick = function(e) {
+            e.stopPropagation();
+            dropdown.classList.toggle("show");
+            // Hide other dropdown if open
+            var statusDropdown = document.querySelector("#roomify-status-control .roomify-status-dropdown");
+            if (statusDropdown) statusDropdown.classList.remove("show");
+        };
+
+        return wrapper;
+    }
+
+    function createStatusControl() {
+        var wrapper = document.createElement("div");
+        wrapper.id = "roomify-status-control";
+        wrapper.className = "roomify-status-control";
+
+        var label = document.createElement("span");
+        label.id = "roomify-status-label";
+        label.textContent = "ALL";
+        label.style.flex = "1";
+        wrapper.appendChild(label);
+
+        var arrow = document.createElement("span");
+        arrow.textContent = "▼";
+        arrow.style.marginLeft = "8px";
+        arrow.style.fontSize = "10px";
+        wrapper.appendChild(arrow);
+
+        var dropdown = document.createElement("div");
+        dropdown.className = "roomify-status-dropdown";
+
+        var options = ["ALL", "AVAILABLE", "PENDING", "RENTED"];
+        options.forEach(function(opt) {
+            var option = document.createElement("div");
+            option.className = "roomify-status-option";
+            if (opt === "ALL") option.classList.add("active");
+            option.textContent = opt;
+            option.onclick = function(e) {
+                e.stopPropagation();
+                window.roomifyUpdateFilterStatus(opt);
+                dropdown.classList.remove("show");
+            };
+            dropdown.appendChild(option);
+        });
+
+        wrapper.appendChild(dropdown);
+
+        wrapper.onclick = function(e) {
+            e.stopPropagation();
+            dropdown.classList.toggle("show");
+            // Hide other dropdown if open
+            var detailDropdown = document.querySelector("#roomify-detail-control .roomify-status-dropdown");
+            if (detailDropdown) detailDropdown.classList.remove("show");
+        };
+
+        // Close dropdowns when clicking outside
+        document.addEventListener("click", function() {
+            var dropdowns = document.querySelectorAll(".roomify-status-dropdown");
+            dropdowns.forEach(function(d) { d.classList.remove("show"); });
+        });
+
+        return wrapper;
+    }
+
+    window.roomifyUpdateFilterStatus = function(status) {
+        window.roomifyCurrentStatusFilter = status;
+
+        // Update Label
+        var label = document.getElementById("roomify-status-label");
+        if (label) label.textContent = status;
+
+        // Update active class in dropdown
+        var options = document.querySelectorAll(".roomify-status-option");
+        options.forEach(function(opt) {
+            if (opt.textContent === status) opt.classList.add("active");
+            else opt.classList.remove("active");
+        });
+
+        applyMarkerVisibility();
+        console.log("Roomify: status filter updated to " + status);
+    };
+
+    window.roomifyResetStatusFilter = function() {
+        window.roomifyUpdateFilterStatus("ALL");
+    };
+
+    function applyMarkerVisibility() {
+        if (!Array.isArray(window.roomifyMarkers)) return;
+
+        var filter = window.roomifyCurrentStatusFilter;
+
+        window.roomifyMarkers.forEach(function(entry) {
+            if (!entry || !entry.marker || !entry.room) return;
+
+            var status = String(entry.room.status || "AVAILABLE").toUpperCase();
+            var visible = true;
+
+            if (filter === "AVAILABLE") {
+                // Show AVAILABLE + RENTED
+                visible = (status === "AVAILABLE" || status === "RENTED");
+            } else if (filter === "PENDING") {
+                // Show PENDING + RENTED
+                visible = (status === "PENDING" || status === "RENTED");
+            } else if (filter === "RENTED") {
+                // Show RENTED only
+                visible = (status === "RENTED");
+            } else {
+                // ALL
+                visible = true;
+            }
+
+            entry.marker.setVisible(visible);
+        });
+    }
+
+
+    /*
+     * ============================================================
      * LOCALIZATION
      * ============================================================
      */
@@ -1606,6 +1867,9 @@
         var menuControl =
             createMenuControl();
 
+        var topRightControls =
+            createTopRightControls();
+
 
         /*
          * TOP CENTER
@@ -1645,6 +1909,26 @@
             );
 
             window.roomifyMenuControlInstalled =
+                true;
+        }
+
+        /*
+         * TOP RIGHT
+         *
+         * Dropdowns are owned by Google Maps.
+         */
+        if (
+            topRightControls &&
+            !window.roomifyStatusControlInstalled
+        ) {
+
+            window.roomifyMap.controls[
+                google.maps.ControlPosition.TOP_RIGHT
+                ].push(
+                topRightControls
+            );
+
+            window.roomifyStatusControlInstalled =
                 true;
         }
     }
@@ -1852,6 +2136,9 @@
                 );
             }
         );
+
+        // Ensure status filter is applied to newly created markers
+        applyMarkerVisibility();
     }
 
 
@@ -3364,6 +3651,9 @@
             updateVisibleMarkers(
                 rooms
             );
+
+            // Re-apply status filter visibility
+            applyMarkerVisibility();
 
 
             console.log(

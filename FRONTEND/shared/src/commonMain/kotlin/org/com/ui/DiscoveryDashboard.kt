@@ -22,15 +22,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 
+import org.com.viewmodel.MapDetail
+
 @Composable
 fun DiscoveryDashboard(
-    onSearch: (type: String?, area: String?, maxPrice: Double?, status: String?) -> Unit
+    initialMapDetail: MapDetail = MapDetail.STANDARD,
+    onSearch: (type: String?, area: String?, maxPrice: Double?, status: String?, detail: MapDetail) -> Unit
 ) {
     // Discovery Dashboard for property filtering
     var areaQuery by remember { mutableStateOf("") }
     var priceQuery by remember { mutableStateOf("") }
     var selectedType by remember { mutableStateOf<String?>(null) }
     var selectedStatus by remember { mutableStateOf<String?>(null) }
+    var selectedMapDetail by remember { mutableStateOf(initialMapDetail) }
+    var detailMenuExpanded by remember { mutableStateOf(false) }
     
     val categories = listOf(
         DiscoveryCategory("Room", Icons.Default.Bed, "Room", Color(0xFFE91E63)),
@@ -183,10 +188,54 @@ fun DiscoveryDashboard(
                     }
 
                     Spacer(Modifier.height(24.dp))
+
+                    // Map Visibility Selection
+                    Text("MAP VISIBILITY", fontWeight = FontWeight.Bold, color = Color.Gray, fontSize = 12.sp)
+                    Spacer(Modifier.height(8.dp))
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        Surface(
+                            onClick = { detailMenuExpanded = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(14.dp),
+                            color = Color.White,
+                            border = BorderStroke(1.dp, Color.LightGray)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = selectedMapDetail.name.lowercase().replaceFirstChar { it.uppercase() },
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF1A237E)
+                                )
+                                Icon(Icons.Default.ArrowDropDown, null, tint = Color(0xFF1A237E))
+                            }
+                        }
+                        
+                        DropdownMenu(
+                            expanded = detailMenuExpanded,
+                            onDismissRequest = { detailMenuExpanded = false },
+                            modifier = Modifier.fillMaxWidth(0.8f).background(Color.White)
+                        ) {
+                            MapDetail.entries.forEach { detail ->
+                                DropdownMenuItem(
+                                    text = { Text(detail.name.lowercase().replaceFirstChar { it.uppercase() }, fontWeight = FontWeight.Bold) },
+                                    onClick = {
+                                        selectedMapDetail = detail
+                                        detailMenuExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(24.dp))
                     
                     Button(
                         onClick = { 
-                            onSearch(selectedType, areaQuery.ifBlank { null }, priceQuery.toDoubleOrNull(), selectedStatus) 
+                            onSearch(selectedType, areaQuery.ifBlank { null }, priceQuery.toDoubleOrNull(), selectedStatus, selectedMapDetail) 
                         },
                         modifier = Modifier.fillMaxWidth().height(56.dp),
                         shape = RoundedCornerShape(16.dp),
@@ -213,7 +262,7 @@ fun DiscoveryDashboard(
                                 .padding(end = 10.dp)
                                 .clickable { 
                                     areaQuery = area
-                                    onSearch(selectedType, area, priceQuery.toDoubleOrNull(), selectedStatus)
+                                    onSearch(selectedType, area, priceQuery.toDoubleOrNull(), selectedStatus, selectedMapDetail)
                                 },
                             color = Color.White.copy(alpha = 0.12f),
                             shape = RoundedCornerShape(20.dp),
@@ -240,7 +289,7 @@ fun DiscoveryDashboard(
                     areaQuery = ""
                     priceQuery = ""
                     selectedStatus = null
-                    onSearch(null, null, null, null) 
+                    onSearch(null, null, null, null, selectedMapDetail) 
                 },
                 modifier = Modifier.alpha(0.8f)
             ) {

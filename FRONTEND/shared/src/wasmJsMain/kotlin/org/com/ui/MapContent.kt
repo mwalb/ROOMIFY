@@ -13,6 +13,7 @@ import kotlin.js.ExperimentalWasmJsInterop
 import org.w3c.dom.events.Event
 import org.com.i18n.*
 import org.com.network.ApiClient
+import org.com.viewmodel.MapDetail
 
 
 /*
@@ -192,8 +193,16 @@ private fun registerGlobalNavigationListener(
  */
 
 @OptIn(ExperimentalWasmJsInterop::class)
+@JsFun("() => { if (typeof window.roomifyResetStatusFilter === 'function') { window.roomifyResetStatusFilter(); } }")
+private external fun resetStatusFilter()
+
+@OptIn(ExperimentalWasmJsInterop::class)
 @JsFun("(level) => { if (typeof window.roomifySetMapStyle === 'function') { window.roomifySetMapStyle(level); } }")
 private external fun setMapStyle(level: String)
+
+@OptIn(ExperimentalWasmJsInterop::class)
+@JsFun("(status) => { if (typeof window.roomifyUpdateFilterStatus === 'function') { window.roomifyUpdateFilterStatus(status); } }")
+private external fun updateStatusFilter(status: String)
 
 @Composable
 actual fun MapContent(
@@ -202,6 +211,9 @@ actual fun MapContent(
     authState: org.com.auth.AuthState,
     routingDestination: Room?,
     mapDetailLevel: String,
+    currentStatusFilter: String,
+    onStatusFilterChange: (String) -> Unit,
+    onMapDetailChange: (MapDetail) -> Unit,
     onClearRoute: () -> Unit,
     onRoomSelected: (Room) -> Unit,
     onRoomCleared: () -> Unit,
@@ -219,6 +231,16 @@ actual fun MapContent(
 
     LaunchedEffect(mapDetailLevel) {
         setMapStyle(mapDetailLevel)
+    }
+
+    /*
+     * ========================================================
+     * SYNC STATUS FILTER TO JS
+     * ========================================================
+     */
+
+    LaunchedEffect(currentStatusFilter) {
+        updateStatusFilter(currentStatusFilter)
     }
 
     /*
@@ -329,6 +351,7 @@ actual fun MapContent(
         println("Roomify: MapContent rendering - showing map")
         ensureMapContainer()
         showMapLayer()
+        resetStatusFilter()
         delay(100)
         triggerMapResize()
         println("Roomify: Map layer shown")
