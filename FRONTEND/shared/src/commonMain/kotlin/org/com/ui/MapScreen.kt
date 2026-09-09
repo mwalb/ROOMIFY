@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.*
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -38,6 +39,7 @@ fun MapScreen(
     modifier: Modifier = Modifier,
     onNavigate: (String) -> Unit
 ) {
+    var mapDetailLevel by remember { mutableStateOf("Standard") }
 
     LaunchedEffect(selectedRoom?.id) {
         println(
@@ -54,6 +56,7 @@ fun MapScreen(
             selectedRoom = selectedRoom,
             authState = authState,
             routingDestination = routingDestination,
+            mapDetailLevel = mapDetailLevel,
             onClearRoute = onClearRoute,
             onRoomSelected = { room ->
 
@@ -101,6 +104,62 @@ fun MapScreen(
                         fontWeight = FontWeight.Bold,
                         color = Color.DarkGray
                     )
+                }
+            }
+        }
+
+        // Status Legend (Bottom Left)
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(16.dp)
+                .padding(bottom = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Surface(
+                color = Color.White.copy(alpha = 0.95f),
+                shape = RoundedCornerShape(16.dp),
+                shadowElevation = 4.dp
+            ) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("PROPERTY STATUS", fontWeight = FontWeight.Black, fontSize = 10.sp, color = Color.Gray)
+                    StatusLegendItem("Available", Color(0xFF2E7D32))
+                    StatusLegendItem("Pending", Color(0xFFF9A825))
+                    StatusLegendItem("Rented", Color(0xFFC62828))
+                }
+            }
+        }
+
+        // Map Detail Control (Bottom Right)
+        Surface(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+                .padding(bottom = 20.dp),
+            color = Color.White.copy(alpha = 0.95f),
+            shape = RoundedCornerShape(16.dp),
+            shadowElevation = 4.dp
+        ) {
+            Column(Modifier.padding(12.dp), horizontalAlignment = Alignment.End) {
+                Text("MAP DETAILS", fontWeight = FontWeight.Black, fontSize = 10.sp, color = Color.Gray)
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    listOf("Minimal", "Standard", "Detailed").forEach { level ->
+                        val isSelected = mapDetailLevel == level
+                        Surface(
+                            modifier = Modifier.clickable { mapDetailLevel = level },
+                            color = if (isSelected) Color(0xFF1A237E) else Color.Transparent,
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                level,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                color = if (isSelected) Color.White else Color.DarkGray,
+                                fontSize = 11.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -158,5 +217,14 @@ fun MapScreen(
                 Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = Color(0xFF1A237E))
             }
         }
+    }
+}
+
+@Composable
+private fun StatusLegendItem(label: String, color: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(8.dp).background(color, CircleShape))
+        Spacer(Modifier.width(8.dp))
+        Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.DarkGray)
     }
 }

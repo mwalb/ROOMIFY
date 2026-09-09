@@ -36,39 +36,48 @@ class MapViewModel(
     var filterType by mutableStateOf<String?>(null)
     var filterArea by mutableStateOf<String?>(null)
     var filterMaxPrice by mutableStateOf<Double?>(null)
+    var filterStatus by mutableStateOf<String?>(null)
 
     val filteredRooms: List<Room>
         get() {
-            var filtered = rooms
-            
-            filterType?.let { type ->
-                filtered = filtered.filter { it.propertyType?.uppercase() == type.uppercase() }
-            }
-            
-            filterArea?.let { area ->
-                filtered = filtered.filter { 
-                    it.address?.contains(area, ignoreCase = true) == true || 
-                    it.title?.contains(area, ignoreCase = true) == true 
+            return rooms.filter { room ->
+                val matchesType = filterType == null || room.propertyType?.uppercase() == filterType?.uppercase()
+                
+                val matchesArea = filterArea == null || 
+                    room.address?.contains(filterArea!!, ignoreCase = true) == true || 
+                    room.title?.contains(filterArea!!, ignoreCase = true) == true
+                
+                val matchesPrice = filterMaxPrice == null || room.price <= filterMaxPrice!!
+                
+                // Status filtering logic:
+                // If filterStatus is null (All), show everything.
+                // If filterStatus is "AVAILABLE", show AVAILABLE + RENTED.
+                // If filterStatus is "PENDING", show PENDING + RENTED.
+                // If filterStatus is "RENTED", show RENTED.
+                // Rented properties are ALWAYS visible if they match other criteria.
+                val matchesStatus = when (filterStatus?.uppercase()) {
+                    "AVAILABLE" -> room.status.uppercase() == "AVAILABLE" || room.status.uppercase() == "RENTED"
+                    "PENDING" -> room.status.uppercase() == "PENDING" || room.status.uppercase() == "RENTED"
+                    "RENTED" -> room.status.uppercase() == "RENTED"
+                    else -> true // ALL
                 }
+                
+                matchesType && matchesArea && matchesPrice && matchesStatus
             }
-            
-            filterMaxPrice?.let { max ->
-                filtered = filtered.filter { it.price <= max }
-            }
-            
-            return filtered
         }
 
-    fun setFilters(type: String?, area: String?, maxPrice: Double?) {
+    fun setFilters(type: String?, area: String?, maxPrice: Double?, status: String? = null) {
         filterType = type
         filterArea = area
         filterMaxPrice = maxPrice
+        filterStatus = status
     }
 
     fun clearFilters() {
         filterType = null
         filterArea = null
         filterMaxPrice = null
+        filterStatus = null
     }
 
 
@@ -98,8 +107,8 @@ class MapViewModel(
                 val result =
                     roomApi.getAllRooms()
 
-                // Filter out rented rooms for the map
-                rooms = result.filter { it.status.uppercase() != "RENTED" }
+                // Keep all rooms including RENTED
+                rooms = result
 
                 println(
                     "MapViewModel: received ${result.size} rooms"

@@ -51,7 +51,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.sp
-import org.com.ui.DiscoveryDashboard
 
 @Composable
 fun App() {
@@ -346,6 +345,7 @@ fun App() {
                 currentRoute = "login"
             }
             "map", "explore" -> {
+                viewModel.clearFilters()
                 currentRoute = "map"
             }
             "discovery", "filters" -> {
@@ -498,12 +498,10 @@ fun App() {
                         val user = (authState as AuthState.Authenticated).user
                         when (currentRoute) {
                                 "discovery" -> {
-                                    DiscoveryDashboard(
-                                        onSearch = { type, area, price ->
-                                            viewModel.setFilters(type, area, price)
-                                            currentRoute = "map"
-                                        }
-                                    )
+                                    DiscoveryDashboard { type, area, price, status ->
+                                        viewModel.setFilters(type, area, price, status)
+                                        currentRoute = "map"
+                                    }
                                 }
                                 "map" -> {
                                     Box(modifier = Modifier.fillMaxSize()) {
@@ -747,9 +745,8 @@ fun App() {
                                 }
                             }
                         }
-                    }
 
-                    is AuthState.Error -> {
+                    authState is AuthState.Error -> {
                         // Show error state with login/register
                         if (currentRoute == "register") {
                             RegisterScreen(
@@ -842,12 +839,10 @@ fun App() {
                                 )
                             }
                             "discovery" -> {
-                                DiscoveryDashboard(
-                                    onSearch = { type, area, price ->
-                                        viewModel.setFilters(type, area, price)
-                                        currentRoute = "map"
-                                    }
-                                )
+                                DiscoveryDashboard { type, area, price, status ->
+                                    viewModel.setFilters(type, area, price, status)
+                                    currentRoute = "map"
+                                }
                             }
                             else -> {
                                 // Public map

@@ -48,6 +48,55 @@
 
     /*
      * ============================================================
+     * MAP STYLES
+     * ============================================================
+     */
+
+    var MAP_STYLE_MINIMAL = [
+        { "featureType": "all", "elementType": "labels.text.fill", "stylers": [{ "color": "#757575" }] },
+        { "featureType": "all", "elementType": "labels.text.stroke", "stylers": [{ "visibility": "off" }] },
+        { "featureType": "administrative", "elementType": "labels", "stylers": [{ "visibility": "off" }] },
+        { "featureType": "landscape", "elementType": "all", "stylers": [{ "color": "#f5f5f5" }] },
+        { "featureType": "poi", "elementType": "all", "stylers": [{ "visibility": "off" }] },
+        { "featureType": "road", "elementType": "all", "stylers": [{ "saturation": -100 }, { "lightness": 45 }] },
+        { "featureType": "road", "elementType": "labels", "stylers": [{ "visibility": "off" }] },
+        { "featureType": "road.highway", "elementType": "all", "stylers": [{ "visibility": "simplified" }] },
+        { "featureType": "road.arterial", "elementType": "labels.icon", "stylers": [{ "visibility": "off" }] },
+        { "featureType": "transit", "elementType": "all", "stylers": [{ "visibility": "off" }] },
+        { "featureType": "water", "elementType": "all", "stylers": [{ "color": "#e9e9e9" }, { "visibility": "on" }] }
+    ];
+
+    var MAP_STYLE_STANDARD = [
+        { "featureType": "all", "elementType": "labels.text.fill", "stylers": [{ "color": "#757575" }] },
+        { "featureType": "landscape", "elementType": "all", "stylers": [{ "color": "#f5f5f5" }] },
+        { "featureType": "poi", "elementType": "labels.icon", "stylers": [{ "saturation": -100 }, { "lightness": 10 }] },
+        { "featureType": "poi", "elementType": "labels.text.fill", "stylers": [{ "color": "#757575" }] },
+        { "featureType": "road", "elementType": "all", "stylers": [{ "saturation": -100 }] },
+        { "featureType": "transit", "elementType": "all", "stylers": [{ "visibility": "simplified" }] },
+        { "featureType": "water", "elementType": "all", "stylers": [{ "color": "#e9e9e9" }] }
+    ];
+
+    var MAP_STYLE_DETAILED = [
+        { "featureType": "all", "elementType": "labels.text.fill", "stylers": [{ "color": "#616161" }] },
+        { "featureType": "poi", "elementType": "labels.icon", "stylers": [{ "saturation": -100 }, { "lightness": 10 }] },
+        { "featureType": "poi", "elementType": "labels.text.fill", "stylers": [{ "color": "#616161" }] },
+        { "featureType": "road", "elementType": "all", "stylers": [{ "saturation": -50 }] }
+    ];
+
+    window.roomifySetMapStyle = function(level) {
+        if (!window.roomifyMap) return;
+
+        var styles = MAP_STYLE_STANDARD;
+        if (level === "Minimal") styles = MAP_STYLE_MINIMAL;
+        if (level === "Detailed") styles = MAP_STYLE_DETAILED;
+
+        window.roomifyMap.setOptions({ styles: styles });
+        console.log("Roomify: Map style updated to " + level);
+    };
+
+
+    /*
+     * ============================================================
      * SHOW MAP
      * ============================================================
      */
@@ -1331,15 +1380,8 @@
                 </button>
             `;
         } else {
+            // Guest Mode - Remove Saved Rooms and My Searches as per requirement
             bodyHtml += `
-                <button class="roomify-sidebar-item" data-roomify-menu="saved">
-                    <span>${loc.savedRooms}</span>
-                    <span class="roomify-sidebar-item-arrow">→</span>
-                </button>
-                <button class="roomify-sidebar-item" data-roomify-menu="searches">
-                    <span>${loc.mySearches}</span>
-                    <span class="roomify-sidebar-item-arrow">→</span>
-                </button>
             `;
         }
 
@@ -1985,7 +2027,10 @@
                             false,
 
                         tilt:
-                            0
+                            0,
+
+                        styles:
+                            MAP_STYLE_STANDARD
                     }
                 );
 
@@ -2465,6 +2510,10 @@
             featuresHtml += '</div>';
         }
 
+        var isRented = status === "RENTED";
+        var buttonText = isRented ? "RENTED - View Details" : "View Property Details";
+        var buttonStyle = isRented ? 'style="opacity:0.8; background:#E0E0E0; color:#757575;"' : "";
+
         // FIX: Wrap everything in a container that stops propagation
         return (
             '<div class="roomify-popup-container-wrapper" ' +
@@ -2473,6 +2522,7 @@
             'onmouseup="event.stopPropagation();">' +
 
             '<div class="roomify-popup">' +
+            (isRented ? '<div style="position:absolute; top:10px; left:10px; background:rgba(198,40,40,0.9); color:white; padding:2px 8px; border-radius:10px; font-size:9px; font-weight:bold; z-index:10;">RENTED</div>' : '') +
 
             '<div class="roomify-popup-header">' +
 
@@ -2520,10 +2570,10 @@
 
             featuresHtml +
 
-            '<button class="roomify-popup-button" data-roomify-view-details="' +
+            '<button class="roomify-popup-button" ' + buttonStyle + ' data-roomify-view-details="' +
             escapeHtml(room.id) +
             '">' +
-            'View Property Details' +
+            buttonText +
             '</button>' +
 
             '</div>' +

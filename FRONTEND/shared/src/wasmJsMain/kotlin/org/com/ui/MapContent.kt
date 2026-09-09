@@ -191,12 +191,17 @@ private fun registerGlobalNavigationListener(
  * ============================================================
  */
 
+@OptIn(ExperimentalWasmJsInterop::class)
+@JsFun("(level) => { if (typeof window.roomifySetMapStyle === 'function') { window.roomifySetMapStyle(level); } }")
+private external fun setMapStyle(level: String)
+
 @Composable
 actual fun MapContent(
     rooms: List<Room>,
     selectedRoom: Room?,
     authState: org.com.auth.AuthState,
     routingDestination: Room?,
+    mapDetailLevel: String,
     onClearRoute: () -> Unit,
     onRoomSelected: (Room) -> Unit,
     onRoomCleared: () -> Unit,
@@ -205,6 +210,16 @@ actual fun MapContent(
 ) {
     val strings = LocalRoomifyStrings.current
     val localizationManager = LocalLocalizationManager.current
+
+    /*
+     * ========================================================
+     * SYNC MAP DETAIL LEVEL TO JS
+     * ========================================================
+     */
+
+    LaunchedEffect(mapDetailLevel) {
+        setMapStyle(mapDetailLevel)
+    }
 
     /*
      * ========================================================

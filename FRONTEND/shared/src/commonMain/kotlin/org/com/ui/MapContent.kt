@@ -9,6 +9,7 @@ expect fun MapContent(
     selectedRoom: Room?,
     authState: org.com.auth.AuthState,
     routingDestination: Room?,
+    mapDetailLevel: String = "Standard",
     onClearRoute: () -> Unit,
     onRoomSelected: (Room) -> Unit,
     onRoomCleared: () -> Unit,

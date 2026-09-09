@@ -24,16 +24,25 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun DiscoveryDashboard(
-    onSearch: (type: String?, area: String?, maxPrice: Double?) -> Unit
+    onSearch: (type: String?, area: String?, maxPrice: Double?, status: String?) -> Unit
 ) {
+    // Discovery Dashboard for property filtering
     var areaQuery by remember { mutableStateOf("") }
     var priceQuery by remember { mutableStateOf("") }
     var selectedType by remember { mutableStateOf<String?>(null) }
+    var selectedStatus by remember { mutableStateOf<String?>(null) }
     
     val categories = listOf(
         DiscoveryCategory("Room", Icons.Default.Bed, "Room", Color(0xFFE91E63)),
         DiscoveryCategory("Apartment", Icons.Default.Apartment, "Apartment", Color(0xFF2196F3)),
         DiscoveryCategory("Studio", Icons.Default.HomeWork, "Studio", Color(0xFF4CAF50))
+    )
+
+    val statuses = listOf(
+        StatusOption("All", null, Color.Gray),
+        StatusOption("Available", "AVAILABLE", Color(0xFF2E7D32)),
+        StatusOption("Pending", "PENDING", Color(0xFFF9A825)),
+        StatusOption("Rented", "RENTED", Color(0xFFC62828))
     )
 
     var visible by remember { mutableStateOf(false) }
@@ -124,10 +133,35 @@ fun DiscoveryDashboard(
                         )
                     )
                     
+                    Spacer(Modifier.height(14.dp))
+
+                    // Status Selection
+                    Text("PROPERTY STATUS", fontWeight = FontWeight.Black, color = Color.Gray, fontSize = 12.sp)
+                    Spacer(Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        statuses.forEach { option ->
+                            val isSelected = selectedStatus == option.value
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { selectedStatus = option.value },
+                                label = { Text(option.label, fontWeight = FontWeight.Bold, fontSize = 11.sp) },
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier.weight(1f),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = option.color.copy(alpha = 0.2f),
+                                    selectedLabelColor = option.color
+                                )
+                            )
+                        }
+                    }
+
                     Spacer(Modifier.height(24.dp))
                     
                     // Category Selection inside the card for clarity
-                    Text("Property Type", fontWeight = FontWeight.Bold, color = Color.Gray, fontSize = 12.sp)
+                    Text("PROPERTY TYPE", fontWeight = FontWeight.Bold, color = Color.Gray, fontSize = 12.sp)
                     Spacer(Modifier.height(8.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         categories.forEach { category ->
@@ -152,7 +186,7 @@ fun DiscoveryDashboard(
                     
                     Button(
                         onClick = { 
-                            onSearch(selectedType, areaQuery.ifBlank { null }, priceQuery.toDoubleOrNull()) 
+                            onSearch(selectedType, areaQuery.ifBlank { null }, priceQuery.toDoubleOrNull(), selectedStatus) 
                         },
                         modifier = Modifier.fillMaxWidth().height(56.dp),
                         shape = RoundedCornerShape(16.dp),
@@ -179,7 +213,7 @@ fun DiscoveryDashboard(
                                 .padding(end = 10.dp)
                                 .clickable { 
                                     areaQuery = area
-                                    onSearch(selectedType, area, priceQuery.toDoubleOrNull())
+                                    onSearch(selectedType, area, priceQuery.toDoubleOrNull(), selectedStatus)
                                 },
                             color = Color.White.copy(alpha = 0.12f),
                             shape = RoundedCornerShape(20.dp),
@@ -205,13 +239,14 @@ fun DiscoveryDashboard(
                     selectedType = null
                     areaQuery = ""
                     priceQuery = ""
-                    onSearch(null, null, null) 
+                    selectedStatus = null
+                    onSearch(null, null, null, null) 
                 },
                 modifier = Modifier.alpha(0.8f)
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Skip to Map", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Text("View all available properties", color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp)
+                    Text("View All Properties", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("View all properties on the map", color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp)
                 }
             }
             
@@ -219,6 +254,12 @@ fun DiscoveryDashboard(
         }
     }
 }
+
+private data class StatusOption(
+    val label: String,
+    val value: String?,
+    val color: Color
+)
 
 private data class DiscoveryCategory(
     val name: String,

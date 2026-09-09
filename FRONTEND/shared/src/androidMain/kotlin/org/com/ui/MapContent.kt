@@ -478,6 +478,7 @@ actual fun MapContent(
     selectedRoom: Room?,
     authState: org.com.auth.AuthState,
     routingDestination: Room?,
+    mapDetailLevel: String,
     onClearRoute: () -> Unit,
     onRoomSelected: (Room) -> Unit,
     onRoomCleared: () -> Unit,
@@ -682,7 +683,17 @@ actual fun MapContent(
                         false,
 
                     isMyLocationEnabled =
-                        false
+                        false,
+                        
+                    mapStyleOptions = when (mapDetailLevel) {
+                        "Minimal" -> com.google.android.gms.maps.model.MapStyleOptions(
+                            "[{\"featureType\":\"poi\",\"elementType\":\"all\",\"stylers\":[{\"visibility\":\"off\"}]},{\"featureType\":\"transit\",\"elementType\":\"all\",\"stylers\":[{\"visibility\":\"off\"}]}]"
+                        )
+                        "Standard" -> com.google.android.gms.maps.model.MapStyleOptions(
+                            "[{\"featureType\":\"poi\",\"elementType\":\"labels\",\"stylers\":[{\"visibility\":\"off\"}]}]"
+                        )
+                        else -> null
+                    }
                 ),
 
             uiSettings =
@@ -1550,19 +1561,19 @@ private fun RoomifySideBar(
                         onClick = { onNavigate("messages") }
                     )
                 } else if (user == null) {
-                    // Guest Specific
-                    SidebarItem(
-                        title = strings.savedRooms,
-                        subtitle = "Properties you've bookmarked",
-                        selected = false,
-                        onClick = onSavedProperties
-                    )
-                    SidebarItem(
-                        title = strings.mySearches,
-                        subtitle = "View your search history",
-                        selected = false,
-                        onClick = onMySearches
-                    )
+                    // Guest Specific - Hide Saved Rooms and My Searches as per requirement
+                    // SidebarItem(
+                    //    title = strings.savedRooms,
+                    //    subtitle = "Properties you've bookmarked",
+                    //    selected = false,
+                    //    onClick = onSavedProperties
+                    // )
+                    // SidebarItem(
+                    //    title = strings.mySearches,
+                    //    subtitle = "View your search history",
+                    //    selected = false,
+                    //    onClick = onMySearches
+                    // )
                 } else if (user != null && user.isOwner()) {
                     // Owner Specific
                     SidebarItem(
