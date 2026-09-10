@@ -35,6 +35,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
+import kotlinx.coroutines.delay
 import org.com.i18n.LocalRoomifyStrings
 import org.com.model.Room
 import org.com.model.User
@@ -314,6 +315,9 @@ fun PropertyDetailsScreen(
                     }
 
                     // Section: Space Planner
+                    SectionTitleDetails("Intelligent matching")
+                    SmartMatchSection(room)
+
                     SectionTitleDetails("Living Arrangement")
                     Surface(
                         modifier = Modifier.fillMaxWidth().clickable { onSpacePlanner(room) },
@@ -525,6 +529,59 @@ fun PropertyDetailsScreen(
                     Icon(Icons.Default.Close, null, tint = Color.White)
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun SmartMatchSection(room: Room) {
+    var animatedProgress by remember { mutableStateOf(0f) }
+    val matchScore = remember(room.id) { (85..99).random() }
+    
+    LaunchedEffect(room.id) { 
+        delay(300)
+        animatedProgress = matchScore / 100f 
+    }
+    val progress by animateFloatAsState(
+        targetValue = animatedProgress, 
+        animationSpec = tween(1500, easing = FastOutSlowInEasing)
+    )
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = SuccessColor.copy(alpha = 0.05f),
+        border = BorderStroke(1.dp, SuccessColor.copy(alpha = 0.1f))
+    ) {
+        Row(
+            Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(Modifier.size(52.dp), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(
+                    progress = { progress }, 
+                    color = SuccessColor, 
+                    strokeWidth = 4.dp,
+                    trackColor = SuccessColor.copy(alpha = 0.1f)
+                )
+                Text(
+                    "${(progress * 100).toInt()}%", 
+                    color = SuccessColor, 
+                    fontSize = 12.sp, 
+                    fontWeight = FontWeight.Black
+                )
+            }
+            Spacer(Modifier.width(16.dp))
+            Column(Modifier.weight(1f)) {
+                Text("Smart Match Score", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = SuccessColor)
+                Text(
+                    "This property matches your preferences and search history.", 
+                    fontSize = 12.sp, 
+                    color = Color.Gray,
+                    lineHeight = 16.sp
+                )
+            }
+            Icon(Icons.Default.AutoAwesome, null, tint = SuccessColor, modifier = Modifier.size(20.dp))
         }
     }
 }

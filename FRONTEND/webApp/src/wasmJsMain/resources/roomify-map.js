@@ -52,59 +52,12 @@
      * ============================================================
      */
 
-    var MAP_STYLE_MINIMAL = [
-        { "featureType": "all", "elementType": "labels.text.fill", "stylers": [{ "color": "#757575" }] },
-        { "featureType": "all", "elementType": "labels.text.stroke", "stylers": [{ "visibility": "off" }] },
-        { "featureType": "administrative", "elementType": "labels", "stylers": [{ "visibility": "off" }] },
-        { "featureType": "landscape", "elementType": "all", "stylers": [{ "color": "#f5f5f5" }] },
-        { "featureType": "poi", "elementType": "all", "stylers": [{ "visibility": "off" }] },
-        { "featureType": "road", "elementType": "all", "stylers": [{ "saturation": -100 }, { "lightness": 45 }] },
-        { "featureType": "road", "elementType": "labels", "stylers": [{ "visibility": "off" }] },
-        { "featureType": "road.highway", "elementType": "all", "stylers": [{ "visibility": "simplified" }] },
-        { "featureType": "road.arterial", "elementType": "labels.icon", "stylers": [{ "visibility": "off" }] },
-        { "featureType": "transit", "elementType": "all", "stylers": [{ "visibility": "off" }] },
-        { "featureType": "water", "elementType": "all", "stylers": [{ "color": "#e9e9e9" }, { "visibility": "on" }] }
-    ];
-
-    var MAP_STYLE_STANDARD = [
-        { "featureType": "all", "elementType": "labels.text.fill", "stylers": [{ "color": "#757575" }] },
-        { "featureType": "landscape", "elementType": "all", "stylers": [{ "color": "#f5f5f5" }] },
-        { "featureType": "poi", "elementType": "labels.icon", "stylers": [{ "saturation": -100 }, { "lightness": 10 }] },
-        { "featureType": "poi", "elementType": "labels.text.fill", "stylers": [{ "color": "#757575" }] },
-        { "featureType": "road", "elementType": "all", "stylers": [{ "saturation": -100 }] },
-        { "featureType": "transit", "elementType": "all", "stylers": [{ "visibility": "simplified" }] },
-        { "featureType": "water", "elementType": "all", "stylers": [{ "color": "#e9e9e9" }] }
-    ];
-
     var MAP_STYLE_DETAILED = [
         { "featureType": "all", "elementType": "labels.text.fill", "stylers": [{ "color": "#616161" }] },
         { "featureType": "poi", "elementType": "labels.icon", "stylers": [{ "saturation": -100 }, { "lightness": 10 }] },
         { "featureType": "poi", "elementType": "labels.text.fill", "stylers": [{ "color": "#616161" }] },
         { "featureType": "road", "elementType": "all", "stylers": [{ "saturation": -50 }] }
     ];
-
-    window.roomifySetMapStyle = function(level) {
-        if (!window.roomifyMap) return;
-
-        var normalized = level.toUpperCase();
-        var styles = MAP_STYLE_STANDARD;
-        if (normalized === "MINIMAL") styles = MAP_STYLE_MINIMAL;
-        if (normalized === "DETAILED") styles = MAP_STYLE_DETAILED;
-
-        window.roomifyMap.setOptions({ styles: styles });
-
-        // Update label and active state
-        var label = document.getElementById("roomify-detail-label");
-        if (label) label.textContent = "Map: " + normalized;
-
-        var options = document.querySelectorAll("#roomify-detail-control .roomify-status-option");
-        options.forEach(function(opt) {
-            if (opt.textContent === normalized) opt.classList.add("active");
-            else opt.classList.remove("active");
-        });
-
-        console.log("Roomify: Map style updated to " + level);
-    };
 
 
     /*
@@ -320,8 +273,6 @@
             }
 
             .roomify-top-right-controls {
-                display: flex;
-                gap: 10px;
                 margin-top: 14px;
                 margin-right: 12px;
             }
@@ -1110,55 +1061,7 @@
         wrapper.id = "roomify-top-right-controls";
         wrapper.className = "roomify-top-right-controls";
 
-        wrapper.appendChild(createMapDetailControl());
         wrapper.appendChild(createStatusControl());
-
-        return wrapper;
-    }
-
-    function createMapDetailControl() {
-        var wrapper = document.createElement("div");
-        wrapper.id = "roomify-detail-control";
-        wrapper.className = "roomify-status-control";
-
-        var label = document.createElement("span");
-        label.id = "roomify-detail-label";
-        label.textContent = "Map: STANDARD";
-        label.style.flex = "1";
-        wrapper.appendChild(label);
-
-        var arrow = document.createElement("span");
-        arrow.textContent = "▼";
-        arrow.style.marginLeft = "8px";
-        arrow.style.fontSize = "10px";
-        wrapper.appendChild(arrow);
-
-        var dropdown = document.createElement("div");
-        dropdown.className = "roomify-status-dropdown";
-
-        var options = ["MINIMAL", "STANDARD", "DETAILED"];
-        options.forEach(function(opt) {
-            var option = document.createElement("div");
-            option.className = "roomify-status-option";
-            if (opt === "STANDARD") option.classList.add("active");
-            option.textContent = opt;
-            option.onclick = function(e) {
-                e.stopPropagation();
-                window.roomifySetMapStyle(opt.charAt(0).toUpperCase() + opt.slice(1).toLowerCase());
-                dropdown.classList.remove("show");
-            };
-            dropdown.appendChild(option);
-        });
-
-        wrapper.appendChild(dropdown);
-
-        wrapper.onclick = function(e) {
-            e.stopPropagation();
-            dropdown.classList.toggle("show");
-            // Hide other dropdown if open
-            var statusDropdown = document.querySelector("#roomify-status-control .roomify-status-dropdown");
-            if (statusDropdown) statusDropdown.classList.remove("show");
-        };
 
         return wrapper;
     }
@@ -1202,9 +1105,6 @@
         wrapper.onclick = function(e) {
             e.stopPropagation();
             dropdown.classList.toggle("show");
-            // Hide other dropdown if open
-            var detailDropdown = document.querySelector("#roomify-detail-control .roomify-status-dropdown");
-            if (detailDropdown) detailDropdown.classList.remove("show");
         };
 
         // Close dropdowns when clicking outside
@@ -1600,6 +1500,10 @@
             bodyHtml += `
                 <button class="roomify-sidebar-item" data-roomify-menu="tenant">
                     <span>${loc.dashboard}</span>
+                    <span class="roomify-sidebar-item-arrow">→</span>
+                </button>
+                <button class="roomify-sidebar-item" data-roomify-menu="filters">
+                    <span>${loc.filters}</span>
                     <span class="roomify-sidebar-item-arrow">→</span>
                 </button>
                 <button class="roomify-sidebar-item" data-roomify-menu="saved">
@@ -2317,7 +2221,7 @@
                             0,
 
                         styles:
-                            MAP_STYLE_STANDARD
+                            MAP_STYLE_DETAILED
                     }
                 );
 
@@ -2365,6 +2269,46 @@
                 "Roomify: Google Map created successfully"
             );
         };
+
+
+    window.roomifyFitMapToRooms = function(roomsJson) {
+        if (!window.roomifyMap || !window.google || !window.google.maps) return;
+
+        var rooms = [];
+        try {
+            rooms = JSON.parse(roomsJson);
+        } catch (e) {
+            console.error("Roomify: Failed to parse rooms for fitBounds", e);
+            return;
+        }
+
+        if (rooms.length === 0) return;
+
+        var bounds = new google.maps.LatLngBounds();
+        var validCount = 0;
+
+        rooms.forEach(function(room) {
+            var lat = Number(room.latitude !== undefined ? room.latitude : room.lat);
+            var lng = Number(room.longitude !== undefined ? room.longitude : room.lng);
+
+            if (isFinite(lat) && isFinite(lng) && lat !== 0 && lng !== 0) {
+                bounds.extend(new google.maps.LatLng(lat, lng));
+                validCount++;
+            }
+        });
+
+        if (validCount > 0) {
+            console.log("Roomify: Fitting map to " + validCount + " markers");
+            window.roomifyMap.fitBounds(bounds);
+
+            // If only one room, fitBounds might zoom in too much or too little depending on implementation.
+            // Usually Google Maps handles it well, but if zoom is too high, we can cap it.
+            var listener = google.maps.event.addListener(window.roomifyMap, "idle", function() {
+                if (window.roomifyMap.getZoom() > 16) window.roomifyMap.setZoom(16);
+                google.maps.event.removeListener(listener);
+            });
+        }
+    };
 
 
     /*

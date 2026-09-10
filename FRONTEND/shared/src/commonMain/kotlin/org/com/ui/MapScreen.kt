@@ -22,22 +22,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.com.model.Room
 
-import org.com.viewmodel.MapDetail
-
 @Composable
 fun MapScreen(
     rooms: List<Room>,
     selectedRoom: Room?,
     authState: org.com.auth.AuthState,
     routingDestination: Room?,
-    mapDetail: MapDetail = MapDetail.STANDARD,
     currentStatusFilter: String = "ALL",
+    shouldFitBounds: Boolean = false,
     isRefreshing: Boolean = false,
     activeFilters: String? = null,
     onRefresh: () -> Unit = {},
     onClearFilters: () -> Unit = {},
-    onMapDetailChange: (MapDetail) -> Unit = {},
     onStatusFilterChange: (String) -> Unit = {},
+    onFitBoundsHandled: () -> Unit = {},
     onClearRoute: () -> Unit,
     onRoomSelected: (Room) -> Unit,
     onClearSelection: () -> Unit,
@@ -54,10 +52,10 @@ fun MapScreen(
             selectedRoom = selectedRoom,
             authState = authState,
             routingDestination = routingDestination,
-            mapDetailLevel = mapDetail.name.lowercase().replaceFirstChar { it.uppercase() },
             currentStatusFilter = currentStatusFilter,
-            onMapDetailChange = onMapDetailChange,
+            shouldFitBounds = shouldFitBounds,
             onStatusFilterChange = onStatusFilterChange,
+            onFitBoundsHandled = onFitBoundsHandled,
             onClearRoute = onClearRoute,
             onRoomSelected = { room ->
 

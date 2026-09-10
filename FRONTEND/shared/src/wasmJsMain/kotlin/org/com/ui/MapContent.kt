@@ -13,7 +13,6 @@ import kotlin.js.ExperimentalWasmJsInterop
 import org.w3c.dom.events.Event
 import org.com.i18n.*
 import org.com.network.ApiClient
-import org.com.viewmodel.MapDetail
 
 
 /*
@@ -139,6 +138,133 @@ private external fun clearRoute()
 
 /*
  * ============================================================
+ * HELPERS
+ * ============================================================
+ */
+
+private fun List<Room>.toJsonString(): String {
+    return this.joinToString(
+        separator = ",",
+        prefix = "[",
+        postfix = "]"
+    ) { room ->
+
+        val title =
+            (
+                    room.title
+                        ?: "Room"
+                    )
+                .replace(
+                    "\\",
+                    "\\\\"
+                )
+                .replace(
+                    "\"",
+                    "\\\""
+                )
+                .replace(
+                    "\n",
+                    "\\n"
+                )
+                .replace(
+                    "\r",
+                    "\\r"
+                )
+
+        val status =
+            room.status
+                .replace(
+                    "\\",
+                    "\\\\"
+                )
+                .replace(
+                    "\"",
+                    "\\\""
+                )
+                .replace(
+                    "\n",
+                    "\\n"
+                )
+                .replace(
+                    "\r",
+                    "\\r"
+                )
+
+        val address =
+            (
+                    room.address
+                        ?: ""
+                    )
+                .replace(
+                    "\\",
+                    "\\\\"
+                )
+                .replace(
+                    "\"",
+                    "\\\""
+                )
+                .replace(
+                    "\n",
+                    "\\n"
+                )
+                .replace(
+                    "\r",
+                    "\\r"
+                )
+
+        val propertyType =
+            (
+                    room.propertyType
+                        ?: ""
+                    )
+                .replace(
+                    "\\",
+                    "\\\\"
+                )
+                .replace(
+                    "\"",
+                    "\\\""
+                )
+                .replace(
+                    "\n",
+                    "\\n"
+                )
+                .replace(
+                    "\r",
+                    "\\r"
+                )
+
+        val roomsCount =
+            room.roomsCount
+
+        val bathroomsCount =
+            room.bathroomsCount
+
+        val area =
+            room.area
+
+        """
+        {
+            "id":"${room.id}",
+            "lat":${room.latitude},
+            "lng":${room.longitude},
+            "title":"$title",
+            "status":"$status",
+            "price":${room.price},
+            "address":"$address",
+            "propertyType":"$propertyType",
+            "roomsCount":$roomsCount,
+            "bathroomsCount":$bathroomsCount,
+            "area":$area,
+            "image":"${room.firstImageUrl ?: ""}"
+        }
+        """.trimIndent()
+    }
+}
+
+
+/*
+ * ============================================================
  * GLOBAL NAVIGATION LISTENER
  * ============================================================
  */
@@ -197,12 +323,12 @@ private fun registerGlobalNavigationListener(
 private external fun resetStatusFilter()
 
 @OptIn(ExperimentalWasmJsInterop::class)
-@JsFun("(level) => { if (typeof window.roomifySetMapStyle === 'function') { window.roomifySetMapStyle(level); } }")
-private external fun setMapStyle(level: String)
-
-@OptIn(ExperimentalWasmJsInterop::class)
 @JsFun("(status) => { if (typeof window.roomifyUpdateFilterStatus === 'function') { window.roomifyUpdateFilterStatus(status); } }")
 private external fun updateStatusFilter(status: String)
+
+@OptIn(ExperimentalWasmJsInterop::class)
+@JsFun("(roomsJson) => { if (typeof window.roomifyFitMapToRooms === 'function') { window.roomifyFitMapToRooms(roomsJson); } }")
+private external fun fitMapToRooms(roomsJson: String)
 
 @Composable
 actual fun MapContent(
@@ -210,10 +336,10 @@ actual fun MapContent(
     selectedRoom: Room?,
     authState: org.com.auth.AuthState,
     routingDestination: Room?,
-    mapDetailLevel: String,
     currentStatusFilter: String,
+    shouldFitBounds: Boolean,
     onStatusFilterChange: (String) -> Unit,
-    onMapDetailChange: (MapDetail) -> Unit,
+    onFitBoundsHandled: () -> Unit,
     onClearRoute: () -> Unit,
     onRoomSelected: (Room) -> Unit,
     onRoomCleared: () -> Unit,
@@ -225,12 +351,25 @@ actual fun MapContent(
 
     /*
      * ========================================================
-     * SYNC MAP DETAIL LEVEL TO JS
+     * AUTOMATIC FIT BOUNDS
      * ========================================================
      */
 
-    LaunchedEffect(mapDetailLevel) {
-        setMapStyle(mapDetailLevel)
+    LaunchedEffect(rooms, shouldFitBounds) {
+        if (shouldFitBounds && rooms.isNotEmpty()) {
+            println("Roomify: Fitting map to ${rooms.size} rooms")
+            
+            // Check if map is ready
+            repeat(20) {
+                if (roomifyMapReady()) {
+                    val roomsJson = rooms.toJsonString()
+                    fitMapToRooms(roomsJson)
+                    onFitBoundsHandled()
+                    return@LaunchedEffect
+                }
+                delay(200)
+            }
+        }
     }
 
     /*
@@ -457,124 +596,7 @@ actual fun MapContent(
 
             } else {
 
-                val roomsJson =
-                    rooms.joinToString(
-                        separator = ",",
-                        prefix = "[",
-                        postfix = "]"
-                    ) { room ->
-
-                        val title =
-                            (
-                                    room.title
-                                        ?: "Room"
-                                    )
-                                .replace(
-                                    "\\",
-                                    "\\\\"
-                                )
-                                .replace(
-                                    "\"",
-                                    "\\\""
-                                )
-                                .replace(
-                                    "\n",
-                                    "\\n"
-                                )
-                                .replace(
-                                    "\r",
-                                    "\\r"
-                                )
-
-                        val status =
-                            room.status
-                                .replace(
-                                    "\\",
-                                    "\\\\"
-                                )
-                                .replace(
-                                    "\"",
-                                    "\\\""
-                                )
-                                .replace(
-                                    "\n",
-                                    "\\n"
-                                )
-                                .replace(
-                                    "\r",
-                                    "\\r"
-                                )
-
-                        val address =
-                            (
-                                    room.address
-                                        ?: ""
-                                    )
-                                .replace(
-                                    "\\",
-                                    "\\\\"
-                                )
-                                .replace(
-                                    "\"",
-                                    "\\\""
-                                )
-                                .replace(
-                                    "\n",
-                                    "\\n"
-                                )
-                                .replace(
-                                    "\r",
-                                    "\\r"
-                                )
-
-                        val propertyType =
-                            (
-                                    room.propertyType
-                                        ?: ""
-                                    )
-                                .replace(
-                                    "\\",
-                                    "\\\\"
-                                )
-                                .replace(
-                                    "\"",
-                                    "\\\""
-                                )
-                                .replace(
-                                    "\n",
-                                    "\\n"
-                                )
-                                .replace(
-                                    "\r",
-                                    "\\r"
-                                )
-
-                        val roomsCount =
-                            room.roomsCount
-
-                        val bathroomsCount =
-                            room.bathroomsCount
-
-                        val area =
-                            room.area
-
-                        """
-                        {
-                            "id":"${room.id}",
-                            "lat":${room.latitude},
-                            "lng":${room.longitude},
-                            "title":"$title",
-                            "status":"$status",
-                            "price":${room.price},
-                            "address":"$address",
-                            "propertyType":"$propertyType",
-                            "roomsCount":$roomsCount,
-                            "bathroomsCount":$bathroomsCount,
-                            "area":$area,
-                            "image":"${room.firstImageUrl ?: ""}"
-                        }
-                        """.trimIndent()
-                    }
+                val roomsJson = rooms.toJsonString()
 
                 println("Roomify: sending ${rooms.size} rooms to map")
 

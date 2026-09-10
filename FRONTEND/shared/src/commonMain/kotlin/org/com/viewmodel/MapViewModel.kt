@@ -8,12 +8,6 @@ import kotlinx.coroutines.launch
 import org.com.model.Room
 import org.com.network.RoomApi
 
-enum class MapDetail {
-    MINIMAL,
-    STANDARD,
-    DETAILED
-}
-
 class MapViewModel(
     private val roomApi: RoomApi,
     private val scope: CoroutineScope
@@ -43,7 +37,8 @@ class MapViewModel(
     var filterArea by mutableStateOf<String?>(null)
     var filterMaxPrice by mutableStateOf<Double?>(null)
     var filterStatus by mutableStateOf<String?>(null)
-    var mapDetail by mutableStateOf(MapDetail.STANDARD)
+
+    var shouldFitBounds by mutableStateOf(false)
 
     val filteredRooms: List<Room>
         get() {
@@ -73,12 +68,20 @@ class MapViewModel(
             }
         }
 
-    fun setFilters(type: String?, area: String?, maxPrice: Double?, status: String? = null, detail: MapDetail = MapDetail.STANDARD) {
+    fun setFilters(type: String?, area: String?, maxPrice: Double?, status: String? = null) {
         filterType = type
         filterArea = area
         filterMaxPrice = maxPrice
         filterStatus = status
-        mapDetail = detail
+        
+        // Trigger automatic zoom if area is specified
+        if (!area.isNullOrBlank()) {
+            shouldFitBounds = true
+        }
+    }
+
+    fun clearFitBounds() {
+        shouldFitBounds = false
     }
 
     fun clearFilters() {
@@ -86,7 +89,7 @@ class MapViewModel(
         filterArea = null
         filterMaxPrice = null
         filterStatus = null
-        mapDetail = MapDetail.STANDARD
+        shouldFitBounds = false
     }
 
 

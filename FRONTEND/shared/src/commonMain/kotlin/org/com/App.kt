@@ -10,9 +10,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -43,7 +45,6 @@ import org.com.ui.DiscoveryDashboard
 import org.com.ui.auth.LoginScreen
 import org.com.ui.auth.RegisterScreen
 import org.com.viewmodel.MapViewModel
-import org.com.viewmodel.MapDetail
 import org.com.viewmodel.PostRoomViewModel
 
 import androidx.compose.material3.Typography
@@ -210,6 +211,10 @@ fun App() {
         mutableStateOf<Room?>(null)
     }
 
+    val recentlyViewedRooms: SnapshotStateList<Room> = remember { mutableStateListOf<Room>() }
+
+    var discoveryQuery by remember { mutableStateOf<String?>(null) }
+
     var showSpacePlanner by remember {
         mutableStateOf(false)
     }
@@ -351,6 +356,7 @@ fun App() {
             }
             "discovery", "filters" -> {
                 viewModel.clearFilters()
+                discoveryQuery = null
                 currentRoute = "discovery"
             }
             "logout" -> {
@@ -376,6 +382,28 @@ fun App() {
 
     fun viewProperty(room: Room) {
         println("App: viewProperty -> ${room.id}")
+        
+        val roomId: Long? = room.id
+        if (roomId != null) {
+            var foundIndex = -1
+            for (i in 0 until recentlyViewedRooms.size) {
+                if (recentlyViewedRooms[i].id == roomId) {
+                    foundIndex = i
+                    break
+                }
+            }
+            
+            if (foundIndex != -1) {
+                val existing = recentlyViewedRooms.removeAt(foundIndex)
+                recentlyViewedRooms.add(0, existing)
+            } else {
+                recentlyViewedRooms.add(0, room)
+                if (recentlyViewedRooms.size > 10) {
+                    recentlyViewedRooms.removeAt(recentlyViewedRooms.size - 1)
+                }
+            }
+        }
+        
         pendingRoom = room
         currentRoute = "details"
     }
@@ -499,10 +527,9 @@ fun App() {
                         val user = (authState as AuthState.Authenticated).user
                         when (currentRoute) {
                                 "discovery" -> {
-                                    DiscoveryDashboard(
-                                        initialMapDetail = viewModel.mapDetail
-                                    ) { type, area, price, status, detail ->
-                                        viewModel.setFilters(type, area, price, status, detail)
+                                    DiscoveryDashboard(initialArea = discoveryQuery) { type, area, price, status ->
+                                        viewModel.setFilters(type, area, price, status)
+                                        discoveryQuery = null
                                         currentRoute = "map"
                                     }
                                 }
@@ -513,10 +540,8 @@ fun App() {
                                             selectedRoom = viewModel.selectedRoom,
                                             authState = authState,
                                             routingDestination = routingDestination,
-                                            mapDetail = viewModel.mapDetail,
                                             currentStatusFilter = viewModel.filterStatus ?: "ALL",
                                             isRefreshing = viewModel.isLoading,
-                                            onMapDetailChange = { viewModel.mapDetail = it },
                                             onStatusFilterChange = { viewModel.filterStatus = if (it == "ALL") null else it },
                                             activeFilters = if (viewModel.filterArea != null || viewModel.filterType != null || viewModel.filterMaxPrice != null) {
                                                 buildString {
@@ -697,9 +722,10 @@ fun App() {
                                         profileImage = user.profileImage,
                                         bookings = tenantBookings,
                                         allRooms = viewModel.rooms,
+                                        recentlyViewed = recentlyViewedRooms,
                                         isRefreshing = viewModel.isLoading,
                                         onExploreRooms = {
-                                            currentRoute = "map"
+                                            navigateTo("map")
                                         },
                                         onLogout = {
                                             scope.launch {
@@ -709,6 +735,15 @@ fun App() {
                                         },
                                         onViewProperty = { room ->
                                             viewProperty(room)
+                                        },
+                                        onSearchQuery = { query ->
+                                            discoveryQuery = query
+                                            currentRoute = "discovery"
+                                        },
+                                        onViewAll = {
+                                            viewModel.clearFilters()
+                                            discoveryQuery = null
+                                            currentRoute = "map"
                                         },
                                         onNavigate = { route -> navigateTo(route) }
                                     )
@@ -721,10 +756,8 @@ fun App() {
                                             selectedRoom = viewModel.selectedRoom,
                                             authState = authState,
                                             routingDestination = routingDestination,
-                                            mapDetail = viewModel.mapDetail,
                                             currentStatusFilter = viewModel.filterStatus ?: "ALL",
                                             isRefreshing = viewModel.isLoading,
-                                            onMapDetailChange = { viewModel.mapDetail = it },
                                             onStatusFilterChange = { viewModel.filterStatus = if (it == "ALL") null else it },
                                             activeFilters = if (viewModel.filterArea != null || viewModel.filterType != null || viewModel.filterMaxPrice != null) {
                                                 buildString {
@@ -850,10 +883,8 @@ fun App() {
                                 )
                             }
                             "discovery" -> {
-                                DiscoveryDashboard(
-                                    initialMapDetail = viewModel.mapDetail
-                                ) { type, area, price, status, detail ->
-                                    viewModel.setFilters(type, area, price, status, detail)
+                                DiscoveryDashboard { type, area, price, status ->
+                                    viewModel.setFilters(type, area, price, status)
                                     currentRoute = "map"
                                 }
                             }
@@ -864,10 +895,10 @@ fun App() {
                                     selectedRoom = viewModel.selectedRoom,
                                     authState = authState,
                                     routingDestination = routingDestination,
-                                    mapDetail = viewModel.mapDetail,
                                     currentStatusFilter = viewModel.filterStatus ?: "ALL",
-                                    onMapDetailChange = { viewModel.mapDetail = it },
+                                    shouldFitBounds = viewModel.shouldFitBounds,
                                     onStatusFilterChange = { viewModel.filterStatus = if (it == "ALL") null else it },
+                                    onFitBoundsHandled = { viewModel.clearFitBounds() },
                                     onClearRoute = {
                                         routingDestination = null
                                     },
