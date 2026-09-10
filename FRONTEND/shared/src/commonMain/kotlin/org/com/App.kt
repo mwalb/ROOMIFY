@@ -1,11 +1,25 @@
 package org.com
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -17,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineScope
@@ -27,7 +42,6 @@ import org.com.auth.AuthManager
 import org.com.auth.AuthState
 import org.com.model.Room
 import org.com.network.RoomApi
-import org.com.ui.MapScreen
 import org.com.ui.OwnerDashboardScreen
 import org.com.ui.PostRoom
 import org.com.ui.ProfileScreen
@@ -42,6 +56,10 @@ import org.com.ui.AnalyticsScreen
 import org.com.ui.SplashScreen
 import org.com.ui.TenantScreen
 import org.com.ui.DiscoveryDashboard
+import org.com.ui.MessagesScreen
+import org.com.ui.MyBookingsScreen
+import org.com.ui.SavedRoomsScreen
+import org.com.ui.MapContent
 import org.com.ui.auth.LoginScreen
 import org.com.ui.auth.RegisterScreen
 import org.com.viewmodel.MapViewModel
@@ -148,6 +166,7 @@ fun App() {
 
     var ownerBookings by remember { mutableStateOf<List<org.com.model.Booking>>(emptyList()) }
     var tenantBookings by remember { mutableStateOf<List<org.com.model.Booking>>(emptyList()) }
+    var tenantFavorites by remember { mutableStateOf<List<Room>>(emptyList()) }
 
     fun loadOwnerBookings() {
         val user = (authState as? AuthState.Authenticated)?.user
@@ -163,6 +182,10 @@ fun App() {
         if (user != null && user.role == "TENANT") {
             scope.launch {
                 tenantBookings = bookingApi.getUserBookings(user.id)
+                val favResponse = RoomifyApi.getUserFavorites(user.id)
+                if (favResponse.success) {
+                    tenantFavorites = favResponse.data ?: emptyList()
+                }
             }
         }
     }
@@ -534,42 +557,14 @@ fun App() {
                                     }
                                 }
                                 "map" -> {
-                                    Box(modifier = Modifier.fillMaxSize()) {
-                                        MapScreen(
-                                            rooms = viewModel.filteredRooms,
-                                            selectedRoom = viewModel.selectedRoom,
-                                            authState = authState,
-                                            routingDestination = routingDestination,
-                                            currentStatusFilter = viewModel.filterStatus ?: "ALL",
-                                            isRefreshing = viewModel.isLoading,
-                                            onStatusFilterChange = { viewModel.filterStatus = if (it == "ALL") null else it },
-                                            activeFilters = if (viewModel.filterArea != null || viewModel.filterType != null || viewModel.filterMaxPrice != null) {
-                                                buildString {
-                                                    viewModel.filterArea?.let { append(it) }
-                                                    viewModel.filterType?.let { if (isNotEmpty()) append(" • "); append(it) }
-                                                    viewModel.filterMaxPrice?.let { if (isNotEmpty()) append(" • "); append("<${it.toInt() / 1000}k") }
-                                                }
-                                            } else null,
-                                            onRefresh = viewModel::loadRooms,
-                                            onClearFilters = viewModel::clearFilters,
-                                            onClearRoute = {
-                                                routingDestination = null
-                                            },
-                                            onRoomSelected = { room ->
-                                                viewModel.selectRoom(room)
-                                            },
-                                            onClearSelection = {
-                                                viewModel.clearSelectedRoom()
-                                            },
-                                            onViewProperty = { room ->
-                                                viewProperty(room)
-                                            },
-                                            onNavigate = { route ->
-                                                navigateTo(route)
-                                            },
-                                            modifier = Modifier
-                                        )
-                                    }
+                                    AppMapContainer(
+                                        viewModel = viewModel,
+                                        authState = authState,
+                                        routingDestination = routingDestination,
+                                        onClearRoute = { routingDestination = null },
+                                        onViewProperty = ::viewProperty,
+                                        onNavigate = ::navigateTo
+                                    )
                                 }
                                 "ownerdashboard" -> {
                                     val user = (authState as AuthState.Authenticated).user
@@ -723,6 +718,7 @@ fun App() {
                                         bookings = tenantBookings,
                                         allRooms = viewModel.rooms,
                                         recentlyViewed = recentlyViewedRooms,
+                                        savedRooms = tenantFavorites,
                                         isRefreshing = viewModel.isLoading,
                                         onExploreRooms = {
                                             navigateTo("map")
@@ -748,44 +744,37 @@ fun App() {
                                         onNavigate = { route -> navigateTo(route) }
                                     )
                                 }
-                                else -> {
-                                    // Default - show map
-                                    Box(modifier = Modifier.fillMaxSize()) {
-                                        MapScreen(
-                                            rooms = viewModel.filteredRooms,
-                                            selectedRoom = viewModel.selectedRoom,
-                                            authState = authState,
-                                            routingDestination = routingDestination,
-                                            currentStatusFilter = viewModel.filterStatus ?: "ALL",
-                                            isRefreshing = viewModel.isLoading,
-                                            onStatusFilterChange = { viewModel.filterStatus = if (it == "ALL") null else it },
-                                            activeFilters = if (viewModel.filterArea != null || viewModel.filterType != null || viewModel.filterMaxPrice != null) {
-                                                buildString {
-                                                    viewModel.filterArea?.let { append(it) }
-                                                    viewModel.filterType?.let { if (isNotEmpty()) append(" • "); append(it) }
-                                                    viewModel.filterMaxPrice?.let { if (isNotEmpty()) append(" • "); append("<${it.toInt() / 1000}k") }
-                                                }
-                                            } else null,
-                                            onRefresh = viewModel::loadRooms,
-                                            onClearFilters = viewModel::clearFilters,
-                                            onClearRoute = {
-                                                routingDestination = null
-                                            },
-                                            onRoomSelected = { room ->
-                                                viewModel.selectRoom(room)
-                                            },
-                                            onClearSelection = {
-                                                viewModel.clearSelectedRoom()
-                                            },
-                                            onViewProperty = { room ->
-                                                viewProperty(room)
-                                            },
-                                            onNavigate = { route ->
-                                                navigateTo(route)
-                                            },
-                                            modifier = Modifier
-                                        )
-                                    }
+                                "messages" -> {
+                                    MessagesScreen(
+                                        conversations = emptyList(),
+                                        onBack = { currentRoute = "tenant" },
+                                        onConversationClick = { /* Handle chat */ }
+                                    )
+                                }
+                                "bookings" -> {
+                                    MyBookingsScreen(
+                                        bookings = tenantBookings,
+                                        allRooms = viewModel.rooms,
+                                        onBack = { currentRoute = "tenant" },
+                                        onViewProperty = { viewProperty(it) }
+                                    )
+                                }
+                                "saved_rooms" -> {
+                                    SavedRoomsScreen(
+                                        savedRooms = tenantFavorites,
+                                        onBack = { currentRoute = "tenant" },
+                                        onViewProperty = { viewProperty(it) }
+                                    )
+                                }
+                                "map" -> {
+                                    AppMapContainer(
+                                        viewModel = viewModel,
+                                        authState = authState,
+                                        routingDestination = routingDestination,
+                                        onClearRoute = { routingDestination = null },
+                                        onViewProperty = ::viewProperty,
+                                        onNavigate = ::navigateTo
+                                    )
                                 }
                             }
                         }
@@ -890,23 +879,13 @@ fun App() {
                             }
                             else -> {
                                 // Public map
-                                MapScreen(
-                                    rooms = viewModel.filteredRooms,
-                                    selectedRoom = viewModel.selectedRoom,
+                                AppMapContainer(
+                                    viewModel = viewModel,
                                     authState = authState,
                                     routingDestination = routingDestination,
-                                    currentStatusFilter = viewModel.filterStatus ?: "ALL",
-                                    shouldFitBounds = viewModel.shouldFitBounds,
-                                    onStatusFilterChange = { viewModel.filterStatus = if (it == "ALL") null else it },
-                                    onFitBoundsHandled = { viewModel.clearFitBounds() },
-                                    onClearRoute = {
-                                        routingDestination = null
-                                    },
-                                    onRoomSelected = viewModel::selectRoom,
-                                    onClearSelection = viewModel::clearSelectedRoom,
+                                    onClearRoute = { routingDestination = null },
                                     onViewProperty = ::viewProperty,
-                                    onNavigate = ::navigateTo,
-                                    modifier = Modifier.fillMaxSize()
+                                    onNavigate = ::navigateTo
                                 )
                             }
                         }
@@ -917,3 +896,67 @@ fun App() {
     }
 }
 
+
+@Composable
+private fun AppMapContainer(
+    viewModel: MapViewModel,
+    authState: AuthState,
+    routingDestination: Room?,
+    onClearRoute: () -> Unit,
+    onViewProperty: (Room) -> Unit,
+    onNavigate: (String) -> Unit
+) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        MapContent(
+            rooms = viewModel.filteredRooms,
+            selectedRoom = viewModel.selectedRoom,
+            authState = authState,
+            routingDestination = routingDestination,
+            currentStatusFilter = viewModel.filterStatus ?: "ALL",
+            shouldFitBounds = viewModel.shouldFitBounds,
+            onStatusFilterChange = { viewModel.filterStatus = if (it == "ALL") null else it },
+            onFitBoundsHandled = { viewModel.clearFitBounds() },
+            onClearRoute = onClearRoute,
+            onRoomSelected = { room ->
+                viewModel.selectRoom(room)
+            },
+            onRoomCleared = {
+                viewModel.clearSelectedRoom()
+            },
+            onViewProperty = onViewProperty,
+            onNavigate = onNavigate
+        )
+
+        // Status Legend (Bottom Left)
+        Surface(
+            modifier = Modifier.align(Alignment.BottomStart).padding(16.dp).padding(bottom = 24.dp),
+            color = Color.White.copy(alpha = 0.95f),
+            shape = RoundedCornerShape(16.dp),
+            shadowElevation = 4.dp
+        ) {
+            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("PROPERTY STATUS", fontWeight = FontWeight.Black, fontSize = 10.sp, color = Color.Gray)
+                MapLegendItem("Available", Color(0xFF2E7D32))
+                MapLegendItem("Pending", Color(0xFFF9A825))
+                MapLegendItem("Rented", Color(0xFFC62828))
+            }
+        }
+
+        // Floating Back Button
+        IconButton(
+            onClick = { onNavigate("discovery") },
+            modifier = Modifier.padding(16.dp).align(Alignment.TopStart).size(44.dp).background(Color.White, CircleShape).shadow(4.dp, CircleShape)
+        ) {
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color(0xFF1A237E))
+        }
+    }
+}
+
+@Composable
+private fun MapLegendItem(label: String, color: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(8.dp).background(color, CircleShape))
+        Spacer(Modifier.width(8.dp))
+        Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.DarkGray)
+    }
+}

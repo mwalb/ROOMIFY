@@ -856,8 +856,6 @@ actual fun MapContent(
          * ========================================================
          *
          * The header is positioned above the map.
-         *
-         * It does NOT belong to MapScreen.
          */
 
         MapHeader(
