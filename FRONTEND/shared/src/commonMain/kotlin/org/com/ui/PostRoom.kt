@@ -700,15 +700,22 @@ private fun StepMediaAndContact(
                     LazyRow(Modifier.padding(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(state.existingImages) { url ->
                             Box(Modifier.size(64.dp).clip(RoundedCornerShape(8.dp))) {
-                                val fullUrl = if (url.startsWith("http")) url 
-                                              else if (url.startsWith("/")) "${ApiClient.MEDIA_BASE_URL}$url"
-                                              else "${ApiClient.MEDIA_BASE_URL}/$url"
+                                val fullUrl = ApiClient.resolveUrl(url)
                                 KamelImage(
                                     resource = { asyncPainterResource(fullUrl) },
                                     contentDescription = null,
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier.fillMaxSize(),
-                                    onLoading = { _: Float -> Box(Modifier.fillMaxSize().background(Color(0xFFF0F2F5))) }
+                                    onLoading = { _: Float -> 
+                                        Box(Modifier.fillMaxSize().background(Color(0xFFF0F2F5)), contentAlignment = Alignment.Center) {
+                                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = PrimaryColor)
+                                        }
+                                    },
+                                    onFailure = {
+                                        Box(Modifier.fillMaxSize().background(Color(0xFFF0F2F5)), contentAlignment = Alignment.Center) {
+                                            Icon(Icons.Default.BrokenImage, null, tint = Color.LightGray, modifier = Modifier.size(20.dp))
+                                        }
+                                    }
                                 )
                             }
                         }

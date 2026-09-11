@@ -143,13 +143,7 @@ fun DalaliDashboardScreen(
                             }
                             
                             if (!user.profileImage.isNullOrBlank()) {
-                                val profileImg = user.profileImage!!
-                                val fullUrl = if (profileImg.startsWith("http")) profileImg 
-                                              else "${ApiClient.MEDIA_BASE_URL}${if (profileImg.startsWith("/")) "" else "/"}$profileImg"
-                                
-                                // Cache buster
-                                val finalUrl = if (fullUrl.contains("?")) "$fullUrl&cb=${currentTimeMillis()}"
-                                               else "$fullUrl?cb=${currentTimeMillis()}"
+                                val fullUrl = ApiClient.resolveUrl(user.profileImage!!)
 
                                 Box(
                                     modifier = Modifier
@@ -159,7 +153,7 @@ fun DalaliDashboardScreen(
                                         .clickable { onNavigate("profile") }
                                 ) {
                                     KamelImage(
-                                        resource = { asyncPainterResource(finalUrl) },
+                                        resource = { asyncPainterResource(fullUrl) },
                                         contentDescription = "Profile",
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier.fillMaxSize(),

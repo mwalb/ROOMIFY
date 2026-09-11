@@ -175,13 +175,14 @@ fun PropertyDetailsScreen(
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Icon(
-                                    Icons.Default.Image,
+                                    Icons.Default.PhotoLibrary,
                                     null,
                                     tint = Color.LightGray,
-                                    modifier = Modifier.size(48.dp)
+                                    modifier = Modifier.size(56.dp)
                                 )
-                                Spacer(Modifier.height(8.dp))
-                                Text("No images available", color = Color.Gray, fontSize = 12.sp)
+                                Spacer(Modifier.height(12.dp))
+                                Text(strings.noPropertyImages, color = Color.Gray, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                Text("The owner hasn't uploaded photos yet", color = Color.LightGray, fontSize = 11.sp)
                             }
                         }
                     }
@@ -663,7 +664,14 @@ private fun RelatedPropertyCard(room: Room, onClick: () -> Unit) {
                     .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
                 contentScale = ContentScale.Crop,
                 onLoading = { _: Float ->
-                    Box(Modifier.fillMaxSize().background(Color(0xFFF0F2F5)))
+                    Box(Modifier.fillMaxSize().background(Color(0xFFF0F2F5)), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = PrimaryColor)
+                    }
+                },
+                onFailure = {
+                    Box(Modifier.fillMaxSize().background(Color(0xFFF0F2F5)), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.BrokenImage, null, tint = Color.LightGray, modifier = Modifier.size(24.dp))
+                    }
                 }
             )
             @Suppress("DEPRECATION")
@@ -779,6 +787,14 @@ private fun PriceValueBadge() {
 
 @Composable
 private fun PropertyImage(url: String, modifier: Modifier = Modifier) {
+    val strings = LocalRoomifyStrings.current
+    // Audit Logging: Trace the image URL being requested
+    LaunchedEffect(url) {
+        if (url.isNotBlank()) {
+            println("PropertyDetails: Requesting image -> $url")
+        }
+    }
+
     KamelImage(
         resource = { asyncPainterResource(url) },
         contentDescription = "Property Image",
@@ -790,6 +806,9 @@ private fun PropertyImage(url: String, modifier: Modifier = Modifier) {
             }
         },
         onFailure = { throwable: Throwable ->
+            // Explicit error logging
+            println("PropertyDetails: Image load FAILED -> $url -> Error: ${throwable.message}")
+            
             Box(Modifier.fillMaxSize().background(Color(0xFFF0F2F5)), contentAlignment = Alignment.Center) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -798,22 +817,21 @@ private fun PropertyImage(url: String, modifier: Modifier = Modifier) {
                     Icon(Icons.Default.BrokenImage, null, tint = Color.LightGray, modifier = Modifier.size(32.dp))
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = "Image failed to load",
-                        fontSize = 10.sp,
+                        text = strings.imageUnavailable, // Explicit error text
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
                         color = Color.Gray,
                         textAlign = TextAlign.Center
                     )
-                    // Add URL for debugging context
-                    if (url.isNotBlank()) {
-                        Text(
-                            text = url.takeLast(40), 
-                            fontSize = 8.sp,
-                            color = Color.LightGray,
-                            textAlign = TextAlign.Center,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
+                    // URL context for developers (hidden but present in UI for easier debugging)
+                    Text(
+                        text = url.takeLast(50), 
+                        fontSize = 8.sp,
+                        color = Color.LightGray.copy(alpha = 0.5f),
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
         }

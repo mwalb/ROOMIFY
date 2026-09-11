@@ -1177,7 +1177,7 @@
     window.roomifyLocalization = {
         explore: "Explore",
         dashboard: "Dashboard",
-        savedRooms: "Saved Rooms",
+        savedRooms: "Favourites",
         myBookings: "My Bookings",
         messages: "Messages",
         ownerDashboard: "Owner Dashboard",
@@ -1507,7 +1507,7 @@
                     <span class="roomify-sidebar-item-arrow">→</span>
                 </button>
                 <button class="roomify-sidebar-item" data-roomify-menu="saved">
-                    <span>${loc.savedRooms}</span>
+                    <span>Favourites</span>
                     <span class="roomify-sidebar-item-arrow">→</span>
                 </button>
                 <button class="roomify-sidebar-item" data-roomify-menu="bookings">

@@ -10,8 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,7 +30,7 @@ private val PrimaryColor = Color(0xFF1A237E)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SavedRoomsScreen(
+fun FavouriteScreen(
     savedRooms: List<Room> = emptyList(),
     onBack: () -> Unit,
     onViewProperty: (Room) -> Unit
@@ -39,7 +38,7 @@ fun SavedRoomsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Saved Rooms", fontWeight = FontWeight.Bold) },
+                title = { Text("My Favourites", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -60,7 +59,7 @@ fun SavedRoomsScreen(
                 .background(Color(0xFFF8F9FA))
         ) {
             if (savedRooms.isEmpty()) {
-                EmptySavedState()
+                EmptySavedState(onBack)
             } else {
                 LazyVerticalGrid(
                     columns = GridCells.Adaptive(minSize = 300.dp),
@@ -94,7 +93,16 @@ private fun SavedRoomCard(room: Room, onClick: () -> Unit) {
                     contentDescription = null,
                     modifier = Modifier.fillMaxWidth().height(180.dp),
                     contentScale = ContentScale.Crop,
-                    onLoading = { Box(Modifier.fillMaxSize().background(Color(0xFFF5F5F5))) }
+                    onLoading = { _: Float ->
+                        Box(Modifier.fillMaxSize().background(Color(0xFFF5F5F5)), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp, color = PrimaryColor)
+                        }
+                    },
+                    onFailure = {
+                        Box(Modifier.fillMaxSize().background(Color(0xFFF5F5F5)), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.Warning, null, tint = Color.LightGray, modifier = Modifier.size(32.dp))
+                        }
+                    }
                 )
                 
                 Surface(
@@ -174,7 +182,7 @@ private fun SavedRoomCard(room: Room, onClick: () -> Unit) {
 }
 
 @Composable
-private fun EmptySavedState() {
+private fun EmptySavedState(onBack: () -> Unit) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -190,15 +198,23 @@ private fun EmptySavedState() {
                 }
             }
             Spacer(Modifier.height(24.dp))
-            Text("No saved rooms yet", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF111111))
+            Text("No favourite properties yet", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF111111))
             Spacer(Modifier.height(8.dp))
             Text(
-                "Save properties you like and they will appear here for quick access.",
+                "Tap the heart icon on any property to add it to your favourites for quick access.",
                 fontSize = 14.sp,
                 color = Color.Gray,
                 modifier = Modifier.padding(horizontal = 40.dp),
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
+            Spacer(Modifier.height(32.dp))
+            Button(
+                onClick = onBack,
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+            ) {
+                Text("EXPLORE PROPERTIES", fontWeight = FontWeight.Bold)
+            }
         }
     }
 }

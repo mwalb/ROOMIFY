@@ -171,12 +171,7 @@ fun OwnerDashboardScreen(
                             }
                             
                             if (!profileImage.isNullOrBlank()) {
-                                val fullUrl = if (profileImage.startsWith("http")) profileImage 
-                                              else "${ApiClient.MEDIA_BASE_URL}${if (profileImage.startsWith("/")) "" else "/"}$profileImage"
-                                
-                                // Cache buster to ensure refresh
-                                val finalUrl = if (fullUrl.contains("?")) "$fullUrl&cb=${currentTimeMillis()}"
-                                               else "$fullUrl?cb=${currentTimeMillis()}"
+                                val fullUrl = ApiClient.resolveUrl(profileImage)
 
                                 Box(
                                     modifier = Modifier
@@ -186,7 +181,7 @@ fun OwnerDashboardScreen(
                                         .clickable { onNavigate("profile") }
                                 ) {
                                     KamelImage(
-                                        resource = { asyncPainterResource(finalUrl) },
+                                        resource = { asyncPainterResource(fullUrl) },
                                         contentDescription = "Profile",
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier.fillMaxSize(),

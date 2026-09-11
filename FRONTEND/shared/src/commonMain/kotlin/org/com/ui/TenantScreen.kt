@@ -15,13 +15,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.ListAlt
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -34,14 +31,12 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import org.com.currentTimeMillis
 import org.com.model.Room
 import org.com.model.Booking
@@ -62,9 +57,7 @@ fun TenantScreen(
     savedRooms: List<Room> = emptyList(),
     isRefreshing: Boolean = false,
     onExploreRooms: () -> Unit, 
-    onLogout: () -> Unit,
     onViewProperty: (Room) -> Unit = {},
-    onSearchQuery: (String) -> Unit = {},
     onViewAll: () -> Unit = {},
     onNavigate: (String) -> Unit = {}
 ) {
@@ -80,7 +73,7 @@ fun TenantScreen(
                 .fillMaxSize()
                 .verticalScroll(scrollState)
         ) {
-            // HEADER & SEARCH BOX (Immersive Blue Area)
+            // HEADER (Blue Background)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -97,7 +90,7 @@ fun TenantScreen(
                         .widthIn(max = 800.dp)
                         .fillMaxWidth()
                         .padding(horizontal = 24.dp)
-                        .padding(top = 48.dp, bottom = 32.dp),
+                        .padding(top = 48.dp, bottom = 48.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
                     // Top row with Profile info
@@ -109,7 +102,7 @@ fun TenantScreen(
                         Column {
                             @Suppress("DEPRECATION")
                             Text(
-                                "Good morning, $tenantName 👋", 
+                                "$tenantName 👋", 
                                 color = Color.White, 
                                 fontSize = 24.sp, 
                                 fontWeight = FontWeight.Black
@@ -123,14 +116,13 @@ fun TenantScreen(
                         }
 
                         if (!profileImage.isNullOrBlank() && !profileImage.contains("profile/image")) {
-                            val fullUrl = if (profileImage.startsWith("http")) profileImage 
-                                          else "${ApiClient.MEDIA_BASE_URL}${if (profileImage.startsWith("/")) "" else "/"}$profileImage"
+                            val fullUrl = ApiClient.resolveUrl(profileImage)
                             
                             Box(
                                 modifier = Modifier
-                                    .size(44.dp)
+                                    .size(52.dp)
                                     .clip(CircleShape)
-                                    .border(1.5.dp, Color.White.copy(alpha = 0.5f), CircleShape)
+                                    .border(2.dp, Color.White.copy(alpha = 0.5f), CircleShape)
                                     .clickable { onNavigate("profile") }
                             ) {
                                 KamelImage(
@@ -142,55 +134,16 @@ fun TenantScreen(
                             }
                         } else {
                             Surface(
-                                modifier = Modifier.size(44.dp).clickable { onNavigate("profile") },
+                                modifier = Modifier.size(52.dp).clickable { onNavigate("profile") },
                                 shape = CircleShape,
                                 color = Color.White.copy(alpha = 0.2f),
                                 border = BorderStroke(1.dp, Color.White.copy(alpha = 0.3f))
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
                                     @Suppress("DEPRECATION")
-                                    Text(tenantName.take(1).uppercase(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                                    Text(tenantName.take(1).uppercase(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
                                 }
                             }
-                        }
-                    }
-
-                    // Search Field
-                    var dashboardSearchQuery by remember { mutableStateOf("") }
-                    Surface(
-                        modifier = Modifier.fillMaxWidth().height(60.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        color = Color.White,
-                        shadowElevation = 8.dp
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 20.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Default.Search, null, tint = PrimaryColor, modifier = Modifier.size(24.dp))
-                            Spacer(Modifier.width(12.dp))
-                            TextField(
-                                value = dashboardSearchQuery,
-                                onValueChange = { dashboardSearchQuery = it },
-                                placeholder = { Text("Search area, location, property...", color = Color.Gray.copy(alpha = 0.5f), fontSize = 14.sp) },
-                                modifier = Modifier.weight(1f),
-                                colors = TextFieldDefaults.colors(
-                                    focusedContainerColor = Color.Transparent,
-                                    unfocusedContainerColor = Color.Transparent,
-                                    disabledContainerColor = Color.Transparent,
-                                    focusedIndicatorColor = Color.Transparent,
-                                    unfocusedIndicatorColor = Color.Transparent
-                                ),
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                                keyboardActions = KeyboardActions(
-                                    onSearch = {
-                                        if (dashboardSearchQuery.isNotBlank()) {
-                                            onSearchQuery(dashboardSearchQuery)
-                                        }
-                                    }
-                                )
-                            )
                         }
                     }
                 }
@@ -225,12 +178,12 @@ fun TenantScreen(
                             ) { onNavigate("discovery") }
                         }
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                            QuickActionItem(
-                                title = "Saved Rooms", 
-                                icon = Icons.Default.Favorite, 
-                                color = Color(0xFFE91E63),
-                                modifier = Modifier.weight(1f)
-                            ) { onNavigate("saved_rooms") }
+                                QuickActionItem(
+                                    title = "Favourites", 
+                                    icon = Icons.Default.Favorite, 
+                                    color = Color(0xFFE91E63),
+                                    modifier = Modifier.weight(1f)
+                                ) { onNavigate("saved") }
                             
                             QuickActionItem(
                                 title = "My Bookings", 
@@ -277,14 +230,14 @@ fun TenantScreen(
                         )
                     }
 
-                    // SAVED ROOMS PREVIEW
+                    // FAVOURITES PREVIEW
                     DashboardSectionWithAction(
-                        title = "Saved Rooms", 
+                        title = "Favourites", 
                         actionLabel = "View All", 
-                        onActionClick = { onNavigate("saved_rooms") },
+                        onActionClick = { onNavigate("saved") },
                         content = {
                             Surface(
-                                modifier = Modifier.fillMaxWidth().clickable { onNavigate("saved_rooms") },
+                                modifier = Modifier.fillMaxWidth().clickable { onNavigate("saved") },
                                 shape = RoundedCornerShape(20.dp),
                                 color = Color(0xFFFFF1F0),
                                 border = BorderStroke(1.dp, Color(0xFFFFCDD2).copy(alpha = 0.5f))
@@ -302,10 +255,10 @@ fun TenantScreen(
                                     Spacer(Modifier.width(16.dp))
                                     @Suppress("DEPRECATION")
                                     Column(Modifier.weight(1f)) {
-                                        Text("My Favorites", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFFD32F2F))
+                                        Text("My Favourites", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFFD32F2F))
                                         Text(
                                             if (savedRooms.isEmpty()) "Access your bookmarked properties" 
-                                            else "${savedRooms.size} saved properties",
+                                            else "${savedRooms.size} favourite properties",
                                             fontSize = 12.sp, 
                                             color = Color.Gray
                                         )
@@ -420,28 +373,6 @@ fun TenantScreen(
                         }
                     }
 
-                    // ACCOUNT SECTION
-                    DashboardSectionWithAction(
-                        title = "Account", 
-                        actionLabel = null,
-                        content = {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(20.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color.White),
-                                border = BorderStroke(1.dp, Color(0xFFEEEEEE))
-                            ) {
-                                Column {
-                                    AccountActionRowItem("Profile", Icons.Default.Person) { onNavigate("profile") }
-                                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = Color(0xFFF5F5F5))
-                                    AccountActionRowItem("Settings", Icons.Default.Settings) { onNavigate("profile") }
-                                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = Color(0xFFF5F5F5))
-                                    AccountActionRowItem("Logout", Icons.AutoMirrored.Filled.Logout, color = Color.Red) { onLogout() }
-                                }
-                            }
-                        }
-                    )
-
                     Spacer(Modifier.height(40.dp))
                 }
             }
@@ -491,7 +422,16 @@ private fun TenantPropertyCard(room: Room, onClick: () -> Unit) {
                     contentDescription = null,
                     modifier = Modifier.fillMaxWidth().height(130.dp),
                     contentScale = ContentScale.Crop,
-                    onLoading = { Box(Modifier.fillMaxSize().background(Color(0xFFF5F5F5))) }
+                    onLoading = { _: Float ->
+                        Box(Modifier.fillMaxSize().background(Color(0xFFF5F5F5)), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = PrimaryColor)
+                        }
+                    },
+                    onFailure = {
+                        Box(Modifier.fillMaxSize().background(Color(0xFFF5F5F5)), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.BrokenImage, null, tint = Color.LightGray, modifier = Modifier.size(24.dp))
+                        }
+                    }
                 )
                 Surface(
                     modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
@@ -514,11 +454,9 @@ private fun TenantPropertyCard(room: Room, onClick: () -> Unit) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
                     Icon(Icons.Default.LocationOn, null, tint = Color.Gray, modifier = Modifier.size(12.dp))
                     Spacer(Modifier.width(4.dp))
-                    @Suppress("DEPRECATION")
                     Text(room.address ?: "", fontSize = 11.sp, color = Color.Gray, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 Spacer(Modifier.height(8.dp))
-                @Suppress("DEPRECATION")
                 Text(room.formattedPrice, fontSize = 15.sp, color = PrimaryColor, fontWeight = FontWeight.Black)
             }
         }
@@ -547,24 +485,6 @@ private fun DashboardSectionWithAction(title: String, actionLabel: String?, onAc
 }
 
 @Composable
-private fun AccountActionRowItem(label: String, icon: ImageVector, color: Color = PrimaryColor, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(icon, null, tint = color.copy(alpha = 0.7f), modifier = Modifier.size(20.dp))
-        Spacer(Modifier.width(16.dp))
-        @Suppress("DEPRECATION")
-        Text(label, color = if (color == Color.Red) color else Color(0xFF333333), fontSize = 15.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.weight(1f))
-        Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = Color.LightGray, modifier = Modifier.size(16.dp))
-    }
-}
-
-@Composable
 private fun BookingStatusCardCompactPreview(booking: Booking, room: Room?, onClick: () -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
@@ -578,7 +498,17 @@ private fun BookingStatusCardCompactPreview(booking: Booking, room: Room?, onCli
                     resource = { asyncPainterResource(room?.firstImageUrl ?: "") },
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Crop,
+                    onLoading = { _: Float ->
+                        Box(Modifier.fillMaxSize().background(Color(0xFFF5F5F5)), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 2.dp, color = PrimaryColor)
+                        }
+                    },
+                    onFailure = {
+                        Box(Modifier.fillMaxSize().background(Color(0xFFF5F5F5)), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.BrokenImage, null, tint = Color.LightGray, modifier = Modifier.size(16.dp))
+                        }
+                    }
                 )
             }
             Spacer(Modifier.width(12.dp))

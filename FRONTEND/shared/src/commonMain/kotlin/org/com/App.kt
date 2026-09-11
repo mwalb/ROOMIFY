@@ -58,7 +58,7 @@ import org.com.ui.TenantScreen
 import org.com.ui.DiscoveryDashboard
 import org.com.ui.MessagesScreen
 import org.com.ui.MyBookingsScreen
-import org.com.ui.SavedRoomsScreen
+import org.com.ui.FavouriteScreen
 import org.com.ui.MapContent
 import org.com.ui.auth.LoginScreen
 import org.com.ui.auth.RegisterScreen
@@ -723,18 +723,8 @@ fun App() {
                                         onExploreRooms = {
                                             navigateTo("map")
                                         },
-                                        onLogout = {
-                                            scope.launch {
-                                                authManager.logout()
-                                                currentRoute = "map"
-                                            }
-                                        },
                                         onViewProperty = { room ->
                                             viewProperty(room)
-                                        },
-                                        onSearchQuery = { query ->
-                                            discoveryQuery = query
-                                            currentRoute = "discovery"
                                         },
                                         onViewAll = {
                                             viewModel.clearFilters()
@@ -759,8 +749,8 @@ fun App() {
                                         onViewProperty = { viewProperty(it) }
                                     )
                                 }
-                                "saved_rooms" -> {
-                                    SavedRoomsScreen(
+                                "saved" -> {
+                                    FavouriteScreen(
                                         savedRooms = tenantFavorites,
                                         onBack = { currentRoute = "tenant" },
                                         onViewProperty = { viewProperty(it) }

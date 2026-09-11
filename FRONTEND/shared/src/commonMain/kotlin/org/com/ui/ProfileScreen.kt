@@ -173,15 +173,10 @@ fun ProfileScreen(
                                     CircularProgressIndicator(modifier = Modifier.size(30.dp), strokeWidth = 3.dp, color = PrimaryColor)
                                 }
                             } else if (!user.profileImage.isNullOrBlank()) {
-                                val fullUrl = if (user.profileImage.startsWith("http")) user.profileImage 
-                                              else "${ApiClient.MEDIA_BASE_URL}${if (user.profileImage.startsWith("/")) "" else "/"}${user.profileImage}"
-                                
-                                // Cache buster
-                                val finalUrl = if (fullUrl.contains("?")) "$fullUrl&cb=${currentTimeMillis()}"
-                                               else "$fullUrl?cb=${currentTimeMillis()}"
+                                val fullUrl = ApiClient.resolveUrl(user.profileImage)
                                 
                                 KamelImage(
-                                    resource = { asyncPainterResource(finalUrl) },
+                                    resource = { asyncPainterResource(fullUrl) },
                                     contentDescription = "Profile Picture",
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier.fillMaxSize(),
@@ -289,7 +284,7 @@ fun ProfileScreen(
                         }
                     )
 
-                    SectionHeader("Security & Support")
+                    SectionHeader("Security & Settings")
 
                     ProfileOptionItem(
                         icon = Icons.Default.Lock,

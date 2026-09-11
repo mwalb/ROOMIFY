@@ -41,9 +41,36 @@ object ApiClient {
      * http://localhost:8080/api/rooms
      */
 
-    const val MEDIA_BASE_URL = "http://localhost:8080"
-    private const val BASE_URL = "$MEDIA_BASE_URL/api/"
+    val MEDIA_BASE_URL = "http://${getPlatformHost()}:8080"
+    private val BASE_URL = "$MEDIA_BASE_URL/api/"
     private var token: String? = null
+
+    /**
+     * Resolves a potentially relative path from the backend into a full URL.
+     * Handles local/remote hosts, dynamic platform IPs, and relative paths.
+     */
+    fun resolveUrl(path: String?): String {
+        if (path.isNullOrBlank()) return ""
+        
+        // 1. Clean path - Remove any hardcoded or stale hostnames
+        val cleanPath = path
+            .replace("http://localhost:8080", "")
+            .replace("https://localhost:8080", "")
+            .replace("localhost:8080", "")
+            .replace("http://10.0.2.2:8080", "")
+            .replace("10.0.2.2:8080", "")
+
+        // 2. Determine full URL
+        val fullUrl = when {
+            cleanPath.startsWith("http") -> cleanPath
+            cleanPath.startsWith("/") -> "$MEDIA_BASE_URL$cleanPath"
+            else -> "$MEDIA_BASE_URL/$cleanPath"
+        }
+        
+        // 3. Add Cache Buster to ensure fresh images
+        val separator = if (fullUrl.contains("?")) "&" else "?"
+        return "$fullUrl${separator}v=${org.com.currentTimeMillis()}"
+    }
 
     fun setToken(newToken: String?) {
         token = newToken

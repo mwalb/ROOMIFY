@@ -443,9 +443,7 @@ actual fun MapContent(
     LaunchedEffect(authState) {
         val user = (authState as? org.com.auth.AuthState.Authenticated)?.user
         if (user != null) {
-            val profileImg = if (user.profileImage.isNullOrBlank()) null 
-                             else if (user.profileImage!!.startsWith("http")) user.profileImage 
-                             else "${ApiClient.MEDIA_BASE_URL}${if (user.profileImage!!.startsWith("/")) "" else "/"}${user.profileImage}"
+            val profileImg = ApiClient.resolveUrl(user.profileImage)
             
             updateSidebarUser(
                 role = user.role.uppercase(),

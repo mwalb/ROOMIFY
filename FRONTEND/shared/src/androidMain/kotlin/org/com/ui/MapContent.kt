@@ -1621,7 +1621,7 @@ private fun RoomifySideBar(
                         onClick = onFilters
                     )
                     SidebarItem(
-                        title = "Saved Rooms",
+                        title = "Favourites",
                         subtitle = "Rooms you liked",
                         selected = false,
                         onClick = { onNavigate("saved") }

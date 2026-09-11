@@ -63,13 +63,15 @@ interface RoomifyStrings {
     val emailAddressOptional: String
     val postingYourProperty: String
     val mySearches: String
+    val imageUnavailable: String
+    val noPropertyImages: String
 }
 
 object EnStrings : RoomifyStrings {
     override val appName = "ROOMIFY"
     override val explore = "Explore"
     override val dashboard = "Dashboard"
-    override val savedRooms = "Saved Rooms"
+    override val savedRooms = "Favourites"
     override val myBookings = "My Bookings"
     override val messages = "Messages"
     override val ownerDashboard = "Owner Dashboard"
@@ -128,6 +130,8 @@ object EnStrings : RoomifyStrings {
     override val emailAddressOptional = "Email address (optional)"
     override val postingYourProperty = "Posting your property…"
     override val mySearches = "My Searches"
+    override val imageUnavailable = "Image unavailable"
+    override val noPropertyImages = "No property images available"
 }
 
 object SwStrings : RoomifyStrings {
@@ -193,4 +197,6 @@ object SwStrings : RoomifyStrings {
     override val emailAddressOptional = "Anwani ya barua pepe (hiari)"
     override val postingYourProperty = "Inaweka nyumba yako…"
     override val mySearches = "Utafutaji Wangu"
+    override val imageUnavailable = "Picha haipatikani"
+    override val noPropertyImages = "Hakuna picha za nyumba zinazopatikana"
 }
