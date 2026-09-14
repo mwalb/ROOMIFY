@@ -16,8 +16,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @Query("SELECT b FROM Booking b WHERE b.user.id = :userId AND b.room.id = :roomId")
     List<Booking> findByUserIdAndRoomId(@Param("userId") Long userId, @Param("roomId") Long roomId);
 
-    @Query("SELECT b FROM Booking b WHERE b.room.postedBy = :ownerId")
-    List<Booking> findByRoomPostedBy(@Param("ownerId") Long ownerId);
+    @Query("SELECT b FROM Booking b WHERE b.room.postedBy = :ownerId OR b.room.dalaliId = :ownerId")
+    List<Booking> findByOwnerOrDalali(@Param("ownerId") Long ownerId);
 
     List<Booking> findByRoomId(Long roomId);
 
@@ -25,6 +25,9 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     @Query("SELECT COUNT(b) > 0 FROM Booking b WHERE b.room.id = :roomId")
     boolean existsAnyBookingByRoomId(@Param("roomId") Long roomId);
+
+    @Query("SELECT COUNT(b) > 0 FROM Booking b WHERE b.room.id = :roomId AND (b.status = 'PENDING' OR b.status = 'ACCEPTED' OR b.status = 'CONFIRMED')")
+    boolean existsBlockingBookingByRoomId(@Param("roomId") Long roomId);
 
     @Query("SELECT COUNT(b) > 0 FROM Booking b WHERE b.room.id = :roomId AND (b.status = 'ACCEPTED' OR b.status = 'CONFIRMED')")
     boolean existsActiveBookingByRoomId(@Param("roomId") Long roomId);
@@ -51,7 +54,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             "COUNT(b.id), AVG(r.price) " +
             "FROM bookings b " +
             "JOIN rooms r ON b.room_id = r.id " +
-            "WHERE b.status IN ('APPROVED', 'ACCEPTED', 'CONFIRMED') " +
+            "WHERE b.status IN ('ACCEPTED', 'CONFIRMED') " +
             "GROUP BY price_range " +
             "ORDER BY COUNT(b.id) DESC",
             nativeQuery = true)
@@ -60,10 +63,10 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @Query(value = "SELECT " +
             "SUBSTRING_INDEX(r.address, ',', 1) as area, " +
             "COUNT(b.id), AVG(r.price), " +
-            "(COUNT(b.id) * 100.0 / (SELECT COUNT(*) FROM bookings WHERE status IN ('APPROVED', 'ACCEPTED', 'CONFIRMED'))) " +
+            "(COUNT(b.id) * 100.0 / (SELECT COUNT(*) FROM bookings WHERE status IN ('ACCEPTED', 'CONFIRMED'))) " +
             "FROM bookings b " +
             "JOIN rooms r ON b.room_id = r.id " +
-            "WHERE b.status IN ('APPROVED', 'ACCEPTED', 'CONFIRMED') " +
+            "WHERE b.status IN ('ACCEPTED', 'CONFIRMED') " +
             "AND r.address IS NOT NULL AND r.address != '' " +
             "GROUP BY area " +
             "ORDER BY COUNT(b.id) DESC",
@@ -75,7 +78,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             "COUNT(b.id), SUM(r.price) " +
             "FROM bookings b " +
             "JOIN rooms r ON b.room_id = r.id " +
-            "WHERE b.status IN ('APPROVED', 'ACCEPTED', 'CONFIRMED') " +
+            "WHERE b.status IN ('ACCEPTED', 'CONFIRMED') " +
             "AND b.created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH) " +
             "GROUP BY DATE_FORMAT(b.created_at, '%Y-%m') " +
             "ORDER BY month DESC",
@@ -86,7 +89,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             "r.price, COUNT(b.id) " +
             "FROM bookings b " +
             "JOIN rooms r ON b.room_id = r.id " +
-            "WHERE b.status IN ('APPROVED', 'ACCEPTED', 'CONFIRMED') " +
+            "WHERE b.status IN ('ACCEPTED', 'CONFIRMED') " +
             "GROUP BY r.price " +
             "ORDER BY COUNT(b.id) DESC " +
             "LIMIT 10",
@@ -97,7 +100,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             "r.title, r.id, COUNT(b.id), SUM(r.price) " +
             "FROM bookings b " +
             "JOIN rooms r ON b.room_id = r.id " +
-            "WHERE b.status IN ('APPROVED', 'ACCEPTED', 'CONFIRMED') " +
+            "WHERE b.status IN ('ACCEPTED', 'CONFIRMED') " +
             "GROUP BY r.id " +
             "ORDER BY SUM(r.price) DESC " +
             "LIMIT 10",
@@ -109,7 +112,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             "SUM(r.price) " +
             "FROM bookings b " +
             "JOIN rooms r ON b.room_id = r.id " +
-            "WHERE b.status IN ('APPROVED', 'ACCEPTED', 'CONFIRMED') " +
+            "WHERE b.status IN ('ACCEPTED', 'CONFIRMED') " +
             "AND YEAR(b.created_at) = YEAR(CURDATE()) " +
             "GROUP BY MONTH(b.created_at) " +
             "ORDER BY MONTH(b.created_at)",
@@ -126,7 +129,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @Query(value = "SELECT " +
             "AVG(TIMESTAMPDIFF(HOUR, b.created_at, b.updated_at)) " +
             "FROM bookings b " +
-            "WHERE b.status IN ('APPROVED', 'ACCEPTED', 'CONFIRMED')",
+            "WHERE b.status IN ('ACCEPTED', 'CONFIRMED')",
             nativeQuery = true)
     Double getAverageApprovalTimeHours();
 
@@ -134,7 +137,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             "u.name, u.email, COUNT(b.id) " +
             "FROM bookings b " +
             "JOIN users u ON b.user_id = u.id " +
-            "WHERE b.status IN ('APPROVED', 'ACCEPTED', 'CONFIRMED') " +
+            "WHERE b.status IN ('ACCEPTED', 'CONFIRMED') " +
             "GROUP BY u.id " +
             "ORDER BY COUNT(b.id) DESC " +
             "LIMIT 5",
@@ -145,7 +148,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             "DAYNAME(b.created_at) as day_of_week, " +
             "COUNT(b.id) " +
             "FROM bookings b " +
-            "WHERE b.status IN ('APPROVED', 'ACCEPTED', 'CONFIRMED') " +
+            "WHERE b.status IN ('ACCEPTED', 'CONFIRMED') " +
             "GROUP BY DAYOFWEEK(b.created_at) " +
             "ORDER BY COUNT(b.id) DESC",
             nativeQuery = true)
@@ -162,7 +165,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             "AVG(r.price), COUNT(b.id) " +
             "FROM bookings b " +
             "JOIN rooms r ON b.room_id = r.id " +
-            "WHERE b.status IN ('APPROVED', 'ACCEPTED', 'CONFIRMED') " +
+            "WHERE b.status IN ('ACCEPTED', 'CONFIRMED') " +
             "AND r.address IS NOT NULL AND r.address != '' " +
             "GROUP BY area " +
             "ORDER BY AVG(r.price) DESC",

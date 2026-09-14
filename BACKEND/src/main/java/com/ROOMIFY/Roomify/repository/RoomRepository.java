@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 @Repository
@@ -133,6 +134,11 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END FROM Room r " +
             "WHERE r.id = :roomId AND r.status = 'AVAILABLE'")
     boolean isRoomAvailableForBooking(@Param("roomId") Long roomId);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Room r WHERE r.postedBy IS NULL")
+    void deleteRoomsWithNoOwner();
 
     // Check if room belongs to dalali
     @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END FROM Room r " +

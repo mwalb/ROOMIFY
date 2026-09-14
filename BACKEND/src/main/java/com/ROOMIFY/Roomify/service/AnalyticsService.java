@@ -247,7 +247,7 @@ public class AnalyticsService {
         // Count pending bookings using existing repository methods
         List<Booking> allBookings = bookingRepository.findAll();
         return allBookings.stream()
-                .filter(b -> b.getStatus().equals(BookingStatus.PENDING))
+                .filter(b -> "PENDING".equals(b.getStatus()))
                 .count();
     }
 
@@ -256,7 +256,7 @@ public class AnalyticsService {
         List<Object[]> statusDistribution = bookingRepository.getBookingStatusDistribution();
         for (Object[] status : statusDistribution) {
             String statusName = (String) status[0];
-            if ("APPROVED".equals(statusName) || "ACCEPTED".equals(statusName) || "CONFIRMED".equals(statusName)) {
+            if ("ACCEPTED".equals(statusName) || "CONFIRMED".equals(statusName)) {
                 return ((Number) status[1]).longValue();
             }
         }

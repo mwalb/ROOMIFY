@@ -34,6 +34,9 @@ data class BookingResponse(
     @SerialName("roomTitle")
     val roomTitle: String = "",
 
+    @SerialName("roomImageUrl")
+    val roomImageUrl: String? = null,
+
     @SerialName("tenantName")
     val tenantName: String = "",
 

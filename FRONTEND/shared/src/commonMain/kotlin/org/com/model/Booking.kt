@@ -10,6 +10,7 @@ data class Booking(
     val userEmail: String? = null,
     val roomId: Long? = null,
     val roomTitle: String? = null,
+    val roomImageUrl: String? = null,
     val status: String = "PENDING",
     val totalPrice: Double = 0.0,
     val startDate: String = "",

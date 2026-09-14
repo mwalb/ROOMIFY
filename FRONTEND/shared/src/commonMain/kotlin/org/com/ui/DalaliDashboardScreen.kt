@@ -49,11 +49,14 @@ private val PrimaryLight = Color(0xFF3949AB)
 fun DalaliDashboardScreen(
     user: User,
     properties: List<Room>,
+    bookings: List<org.com.model.Booking> = emptyList(),
     isRefreshing: Boolean = false,
     onAddProperty: () -> Unit,
     onLogout: () -> Unit,
     onViewProperty: (Room) -> Unit,
     onViewAnalytics: () -> Unit = {},
+    onAcceptBooking: (org.com.model.Booking) -> Unit = {},
+    onRejectBooking: (org.com.model.Booking) -> Unit = {},
     onNavigate: (String) -> Unit = {},
     onBack: () -> Unit
 ) {
@@ -216,6 +219,30 @@ fun DalaliDashboardScreen(
                                 }
                             }
                         }
+
+                        // Pending Requests
+                        Column {
+                            Text("Pending Requests", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Color.Gray)
+                            Spacer(Modifier.height(12.dp))
+                            val pendingBookings = bookings.filter { it.status == "PENDING" }
+                            if (pendingBookings.isEmpty()) {
+                                Surface(Modifier.fillMaxWidth().height(100.dp), color = Color.White, shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, Color(0xFFEEEEEE))) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text("No pending requests", color = Color.LightGray, fontSize = 13.sp)
+                                    }
+                                }
+                            } else {
+                                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    pendingBookings.forEach { booking ->
+                                        DalaliBookingRequestCard(
+                                            booking = booking,
+                                            onAccept = { onAcceptBooking(booking) },
+                                            onReject = { onRejectBooking(booking) }
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -273,26 +300,38 @@ private fun ActionItem(title: String, icon: ImageVector, color: Color, modifier:
 
 @Composable
 private fun DalaliPropertyCard(room: Room, onClick: () -> Unit) {
+    // ...
+}
+
+@Composable
+private fun DalaliBookingRequestCard(booking: org.com.model.Booking, onAccept: () -> Unit, onReject: () -> Unit) {
     Surface(
-        modifier = Modifier.fillMaxWidth().clickable { onClick() },
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         color = Color.White,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
-        Row(Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            KamelImage(
-                resource = { asyncPainterResource(room.firstImageUrl ?: "") },
-                contentDescription = null,
-                modifier = Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)),
-                contentScale = ContentScale.Crop,
-                onLoading = { _: Float -> Box(Modifier.fillMaxSize().background(Color(0xFFF0F2F5))) }
-            )
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
-                Text(room.title ?: "Property", fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1, color = Color(0xFF1A1A1A))
-                Text(room.formattedPrice, fontSize = 13.sp, color = PrimaryColor, fontWeight = FontWeight.ExtraBold)
+        Column(Modifier.padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(40.dp).clip(CircleShape).background(PrimaryColor.copy(alpha = 0.1f)), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.Person, null, tint = PrimaryColor, modifier = Modifier.size(20.dp))
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(booking.userName ?: "Guest", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text(booking.roomTitle ?: "Property", fontSize = 11.sp, color = Color.Gray, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                Text("TZS ${booking.totalPrice.toInt()}", fontWeight = FontWeight.Black, fontSize = 13.sp, color = PrimaryColor)
             }
-            Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = Color.LightGray, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = onAccept, modifier = Modifier.weight(1f).height(36.dp), shape = RoundedCornerShape(8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))) {
+                    Text("Accept", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+                OutlinedButton(onClick = onReject, modifier = Modifier.weight(1f).height(36.dp), shape = RoundedCornerShape(8.dp), border = BorderStroke(1.dp, Color.Red)) {
+                    Text("Reject", fontSize = 12.sp, color = Color.Red, fontWeight = FontWeight.Bold)
+                }
+            }
         }
     }
 }

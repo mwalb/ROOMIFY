@@ -1,11 +1,10 @@
 package org.com.model
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
 
 @Serializable
 data class BookingRequest(
@@ -174,8 +173,8 @@ data class BookingRequest(
 
         private fun currentDate(): String {
             return try {
-                Clock.System.now()
-                    .toLocalDateTime(TimeZone.currentSystemDefault())
+                kotlinx.datetime.Instant.fromEpochMilliseconds(org.com.currentTimeMillis())
+                    .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault())
                     .date
                     .toString()
             } catch (e: Exception) {

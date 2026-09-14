@@ -670,7 +670,7 @@ private fun RelatedPropertyCard(room: Room, onClick: () -> Unit) {
                 },
                 onFailure = {
                     Box(Modifier.fillMaxSize().background(Color(0xFFF0F2F5)), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.BrokenImage, null, tint = Color.LightGray, modifier = Modifier.size(24.dp))
+                        Icon(Icons.Default.Error, null, tint = Color.LightGray, modifier = Modifier.size(24.dp))
                     }
                 }
             )
@@ -814,7 +814,7 @@ private fun PropertyImage(url: String, modifier: Modifier = Modifier) {
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.padding(16.dp)
                 ) {
-                    Icon(Icons.Default.BrokenImage, null, tint = Color.LightGray, modifier = Modifier.size(32.dp))
+                    Icon(Icons.Default.Error, null, tint = Color.LightGray, modifier = Modifier.size(32.dp))
                     Spacer(Modifier.height(4.dp))
                     Text(
                         text = strings.imageUnavailable, // Explicit error text

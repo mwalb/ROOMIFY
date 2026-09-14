@@ -100,7 +100,7 @@ private fun SavedRoomCard(room: Room, onClick: () -> Unit) {
                     },
                     onFailure = {
                         Box(Modifier.fillMaxSize().background(Color(0xFFF5F5F5)), contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.Warning, null, tint = Color.LightGray, modifier = Modifier.size(32.dp))
+                            Icon(Icons.Default.Error, null, tint = Color.LightGray, modifier = Modifier.size(32.dp))
                         }
                     }
                 )

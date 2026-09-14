@@ -429,7 +429,7 @@ private fun TenantPropertyCard(room: Room, onClick: () -> Unit) {
                     },
                     onFailure = {
                         Box(Modifier.fillMaxSize().background(Color(0xFFF5F5F5)), contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.BrokenImage, null, tint = Color.LightGray, modifier = Modifier.size(24.dp))
+                            Icon(Icons.Default.Error, null, tint = Color.LightGray, modifier = Modifier.size(24.dp))
                         }
                     }
                 )
@@ -506,7 +506,7 @@ private fun BookingStatusCardCompactPreview(booking: Booking, room: Room?, onCli
                     },
                     onFailure = {
                         Box(Modifier.fillMaxSize().background(Color(0xFFF5F5F5)), contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.BrokenImage, null, tint = Color.LightGray, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Error, null, tint = Color.LightGray, modifier = Modifier.size(16.dp))
                         }
                     }
                 )

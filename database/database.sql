@@ -280,16 +280,6 @@ COPY public.room_rules (room_id, rule) FROM stdin;
 --
 
 COPY public.rooms (id, address, approved_at, area, bathrooms_count, bookings_count, commission, commission_rate, contact_email, contact_phone, contract_url, created_at, dalali_id, dalali_name, description, featured, has_contract, has_video, image_count, interested_count, is_available, latitude, longitude, owner_name, posted_by, price, promoted, property_type, rejection_reason, rented_at, rooms_count, status, title, updated_at, video_url, view_count) FROM stdin;
-1	Mikocheni, Dar es Salaam	\N	25	1	0	\N	\N	\N	\N	\N	2026-08-17 08:16:42.771045	\N	\N	Furnished single room in a convenient residential area.	t	f	f	0	12	t	-6.755	39.245	\N	\N	350000	t	SINGLE_ROOM	\N	\N	1	AVAILABLE	Modern Single Room - Mikocheni	2026-08-17 08:16:42.771045	\N	45
-2	Sakina, Arusha	\N	65	2	2	\N	\N	\N	\N	\N	2026-08-17 08:16:42.771045	\N	\N	Spacious apartment suitable for a small family.	f	t	f	0	8	f	-3.35	36.68	\N	\N	750000	f	APARTMENT	\N	\N	2	PENDING	Two Bedroom Apartment - Sakina	2026-08-17 08:16:42.771045	\N	31
-3	Nyamagana, Mwanza	\N	28	1	1	\N	\N	\N	\N	\N	2026-08-17 08:16:42.771045	\N	\N	Comfortable room close to the city centre.	f	t	f	0	20	f	-2.5167	32.9	\N	\N	300000	f	SINGLE_ROOM	\N	\N	1	RENTED	Lake View Room - Nyamagana	2026-08-17 08:16:42.771045	\N	72
-4	Area C, Dodoma	\N	32	1	0	\N	\N	\N	\N	\N	2026-08-17 08:16:42.771045	\N	\N	Modern room located close to major government offices and services.	t	f	f	0	15	t	-6.1722	35.7395	\N	\N	450000	f	EXECUTIVE_ROOM	\N	\N	1	AVAILABLE	Executive Room - Area C	2026-08-17 08:16:42.771045	\N	58
-5	Mbeya City, Mbeya	\N	95	2	1	\N	\N	\N	\N	\N	2026-08-17 08:16:42.771045	\N	\N	Spacious family property in a quiet residential neighbourhood.	f	f	t	0	6	f	-8.9	33.45	\N	\N	900000	f	HOUSE	\N	\N	3	PENDING	Family House - Mbeya City	2026-08-17 08:16:42.771045	\N	24
-6	Mikocheni, Dar es Salaam	\N	25	1	0	\N	\N	\N	\N	\N	2026-08-17 08:17:32.34386	\N	\N	Furnished single room in a convenient residential area.	t	f	f	0	12	t	-6.755	39.245	\N	\N	350000	t	SINGLE_ROOM	\N	\N	1	AVAILABLE	Modern Single Room - Mikocheni	2026-08-17 08:17:32.34386	\N	45
-7	Sakina, Arusha	\N	65	2	2	\N	\N	\N	\N	\N	2026-08-17 08:17:32.34386	\N	\N	Spacious apartment suitable for a small family.	f	t	f	0	8	f	-3.35	36.68	\N	\N	750000	f	APARTMENT	\N	\N	2	PENDING	Two Bedroom Apartment - Sakina	2026-08-17 08:17:32.34386	\N	31
-8	Nyamagana, Mwanza	\N	28	1	1	\N	\N	\N	\N	\N	2026-08-17 08:17:32.34386	\N	\N	Comfortable room close to the city centre.	f	t	f	0	20	f	-2.5167	32.9	\N	\N	300000	f	SINGLE_ROOM	\N	\N	1	RENTED	Lake View Room - Nyamagana	2026-08-17 08:17:32.34386	\N	72
-9	Area C, Dodoma	\N	32	1	0	\N	\N	\N	\N	\N	2026-08-17 08:17:32.34386	\N	\N	Modern room located close to major government offices and services.	t	f	f	0	15	t	-6.1722	35.7395	\N	\N	450000	f	EXECUTIVE_ROOM	\N	\N	1	AVAILABLE	Executive Room - Area C	2026-08-17 08:17:32.34386	\N	58
-10	Mbeya City, Mbeya	\N	95	2	1	\N	\N	\N	\N	\N	2026-08-17 08:17:32.34386	\N	\N	Spacious family property in a quiet residential neighbourhood.	f	f	t	0	6	f	-8.9	33.45	\N	\N	900000	f	HOUSE	\N	\N	3	PENDING	Family House - Mbeya City	2026-08-17 08:17:32.34386	\N	24
 \.
 
 

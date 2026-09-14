@@ -5,5 +5,6 @@ public enum UserRole {
     OWNER,
     DALALI,      // NEW - Verified housing agent
     GUEST,
-    USER
+    USER,
+    ADMIN
 }

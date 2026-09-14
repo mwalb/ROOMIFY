@@ -17,6 +17,7 @@ public class BookingResponseDTO {
     private LocalDateTime createdAt;
     private Integer numberOfGuests;
     private String specialRequests;
+    private String roomImageUrl;
 
     // Getters and setters for ALL fields
     public Long getId() { return id; }
@@ -57,4 +58,7 @@ public class BookingResponseDTO {
 
     public String getSpecialRequests() { return specialRequests; }
     public void setSpecialRequests(String specialRequests) { this.specialRequests = specialRequests; }
+
+    public String getRoomImageUrl() { return roomImageUrl; }
+    public void setRoomImageUrl(String roomImageUrl) { this.roomImageUrl = roomImageUrl; }
 }

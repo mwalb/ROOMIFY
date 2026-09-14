@@ -71,6 +71,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.CompositionLocalProvider
+// KamelConfig imports removed to fix build issues after Kamel upgrade. 
+// The default configuration will be used automatically.
 
 @Composable
 fun App() {
@@ -247,6 +250,13 @@ fun App() {
     val uriHandler = LocalUriHandler.current
 
     val platformContext = LocalPlatformContext.current
+
+    LaunchedEffect(currentRoute) {
+        when (currentRoute) {
+            "ownerdashboard", "dalalidashboard" -> loadOwnerBookings()
+            "tenant", "bookings" -> loadTenantBookings()
+        }
+    }
 
     fun withAuth(destination: String, action: () -> Unit) {
         if (isLoggedIn) {
@@ -436,7 +446,7 @@ fun App() {
     // ============================================================
 
     RoomifyLocalization {
-        MaterialTheme(typography = roomifyTypography) {
+            MaterialTheme(typography = roomifyTypography) {
             Surface(
                 modifier = Modifier.fillMaxSize(),
                 color = Color.Transparent,
@@ -527,8 +537,12 @@ fun App() {
                             room = pendingRoom!!,
                             onBack = { currentRoute = "details" },
                             onConfirmBooking = { booking ->
-                                scope.launch {
-                                    bookingApi.createBooking(booking.copy(userId = auth.user.id))
+                                val response = bookingApi.createBooking(booking.copy(userId = auth.user.id))
+                                if (response?.success == true) {
+                                    loadTenantBookings()
+                                    true
+                                } else {
+                                    false
                                 }
                             }
                         )
@@ -614,6 +628,7 @@ fun App() {
                                     DalaliDashboardScreen(
                                         user = user,
                                         properties = viewModel.rooms.filter { it.dalaliName == user.name || it.postedBy == user.id },
+                                        bookings = ownerBookings,
                                         isRefreshing = viewModel.isLoading,
                                         onAddProperty = { currentRoute = "postroom" },
                                         onViewAnalytics = {
@@ -627,6 +642,20 @@ fun App() {
                                             }
                                         },
                                         onViewProperty = { room -> viewProperty(room) },
+                                        onAcceptBooking = { booking ->
+                                            scope.launch {
+                                                if (booking.id != null && bookingApi.acceptBooking(booking.id)) {
+                                                    loadOwnerBookings()
+                                                }
+                                            }
+                                        },
+                                        onRejectBooking = { booking ->
+                                            scope.launch {
+                                                if (booking.id != null && bookingApi.rejectBooking(booking.id)) {
+                                                    loadOwnerBookings()
+                                                }
+                                            }
+                                        },
                                         onNavigate = { route -> navigateTo(route) },
                                         onBack = { currentRoute = "map" }
                                     )

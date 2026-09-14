@@ -713,7 +713,7 @@ private fun StepMediaAndContact(
                                     },
                                     onFailure = {
                                         Box(Modifier.fillMaxSize().background(Color(0xFFF0F2F5)), contentAlignment = Alignment.Center) {
-                                            Icon(Icons.Default.BrokenImage, null, tint = Color.LightGray, modifier = Modifier.size(20.dp))
+                                            Icon(Icons.Default.Error, null, tint = Color.LightGray, modifier = Modifier.size(20.dp))
                                         }
                                     }
                                 )

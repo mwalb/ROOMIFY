@@ -40,10 +40,22 @@ public class BookingController {
     @PostMapping
     public ResponseEntity<ApiResponse<BookingResponseDTO>> createBooking(@RequestBody BookingRequestDto bookingRequest) {
         try {
-            // FIRST: Check if room already has an ACTIVE booking
-            if (bookingRepository.existsActiveBookingByRoomId(bookingRequest.getRoomId())) {
+            // FIRST: Check if room is available in Room entity
+            Room room = roomRepository.findById(bookingRequest.getRoomId())
+                    .orElseThrow(() -> new RuntimeException("Room not found with id: " + bookingRequest.getRoomId()));
+
+            if (!room.isAvailable() || !"AVAILABLE".equalsIgnoreCase(room.getStatus())) {
                 return ResponseEntity.status(HttpStatus.CONFLICT)
-                        .body(new ApiResponse<>(false, null, "Room already has an active booking"));
+                        .body(new ApiResponse<>(false, null, "Room is currently not available for booking"));
+            }
+
+            // SECOND: Check if room already has an ACTIVE or PENDING booking
+            boolean exists = bookingRepository.existsBlockingBookingByRoomId(bookingRequest.getRoomId());
+            System.out.println("Checking for blocking bookings for room " + bookingRequest.getRoomId() + ": " + exists);
+            
+            if (exists) {
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                        .body(new ApiResponse<>(false, null, "Room already has a pending or active booking request"));
             }
 
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -52,9 +64,6 @@ public class BookingController {
 
             LocalDateTime startDate = startLocalDate.atStartOfDay();
             LocalDateTime endDate = endLocalDate.atStartOfDay();
-
-            Room room = roomRepository.findById(bookingRequest.getRoomId())
-                    .orElseThrow(() -> new RuntimeException("Room not found with id: " + bookingRequest.getRoomId()));
 
             User user = userRepository.findById(bookingRequest.getUserId())
                     .orElseThrow(() -> new RuntimeException("User not found with id: " + bookingRequest.getUserId()));
@@ -103,20 +112,12 @@ public class BookingController {
     @GetMapping("/owner/{ownerId}")
     public ResponseEntity<ApiResponse<List<BookingResponseDTO>>> getOwnerBookings(@PathVariable Long ownerId) {
         try {
-            List<Room> rooms = roomRepository.findByPostedBy(ownerId);
+            List<Booking> bookings = bookingRepository.findByOwnerOrDalali(ownerId);
+            List<BookingResponseDTO> dtos = bookings.stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
 
-            List<BookingResponseDTO> allBookings = new ArrayList<>();
-
-            if (rooms != null && !rooms.isEmpty()) {
-                for (Room room : rooms) {
-                    List<Booking> roomBookings = bookingRepository.findByRoomId(room.getId());
-                    for (Booking booking : roomBookings) {
-                        allBookings.add(convertToDTO(booking));
-                    }
-                }
-            }
-
-            return ResponseEntity.ok(new ApiResponse<>(true, allBookings, "Bookings retrieved successfully"));
+            return ResponseEntity.ok(new ApiResponse<>(true, dtos, "Bookings retrieved successfully"));
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -234,13 +235,35 @@ public class BookingController {
         try {
             Booking booking = bookingRepository.findById(bookingId)
                     .orElseThrow(() -> new RuntimeException("Booking not found with id: " + bookingId));
+            
+            // Mark booking as accepted
             booking.setStatus("ACCEPTED");
             booking.setUpdatedAt(LocalDateTime.now());
             Booking savedBooking = bookingRepository.save(booking);
 
+            // Sync Room status to RENTED
+            Room room = booking.getRoom();
+            if (room != null) {
+                room.setStatus("RENTED");
+                room.setAvailable(false);
+                room.setRentedAt(LocalDateTime.now());
+                room.setUpdatedAt(LocalDateTime.now());
+                roomRepository.save(room);
+                
+                // Automatically reject other PENDING bookings for this room
+                List<Booking> otherBookings = bookingRepository.findByRoomId(room.getId());
+                for (Booking other : otherBookings) {
+                    if (!other.getId().equals(bookingId) && "PENDING".equals(other.getStatus())) {
+                        other.setStatus("REJECTED");
+                        other.setUpdatedAt(LocalDateTime.now());
+                        bookingRepository.save(other);
+                    }
+                }
+            }
+
             BookingResponseDTO responseDTO = convertToDTO(savedBooking);
 
-            return ResponseEntity.ok(new ApiResponse<>(true, responseDTO, "Booking accepted successfully"));
+            return ResponseEntity.ok(new ApiResponse<>(true, responseDTO, "Booking accepted and room marked as rented"));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ApiResponse<>(false, null, "Failed to accept booking: " + e.getMessage()));
@@ -256,6 +279,15 @@ public class BookingController {
             booking.setUpdatedAt(LocalDateTime.now());
             Booking savedBooking = bookingRepository.save(booking);
 
+            // Ensure room is AVAILABLE if it was pending
+            Room room = booking.getRoom();
+            if (room != null && "PENDING".equals(room.getStatus())) {
+                room.setStatus("AVAILABLE");
+                room.setAvailable(true);
+                room.setUpdatedAt(LocalDateTime.now());
+                roomRepository.save(room);
+            }
+
             BookingResponseDTO responseDTO = convertToDTO(savedBooking);
 
             return ResponseEntity.ok(new ApiResponse<>(true, responseDTO, "Booking rejected successfully"));
@@ -270,9 +302,22 @@ public class BookingController {
         try {
             Booking booking = bookingRepository.findById(bookingId)
                     .orElseThrow(() -> new RuntimeException("Booking not found with id: " + bookingId));
+            
+            String oldStatus = booking.getStatus();
             booking.setStatus("CANCELLED");
             booking.setUpdatedAt(LocalDateTime.now());
             Booking savedBooking = bookingRepository.save(booking);
+
+            // If an ACCEPTED/CONFIRMED booking is cancelled, room becomes AVAILABLE again
+            if ("ACCEPTED".equals(oldStatus) || "CONFIRMED".equals(oldStatus)) {
+                Room room = booking.getRoom();
+                if (room != null) {
+                    room.setStatus("AVAILABLE");
+                    room.setAvailable(true);
+                    room.setUpdatedAt(LocalDateTime.now());
+                    roomRepository.save(room);
+                }
+            }
 
             BookingResponseDTO responseDTO = convertToDTO(savedBooking);
 
@@ -291,6 +336,17 @@ public class BookingController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ApiResponse<>(false, null, "Failed to delete booking: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/debug/all")
+    public ResponseEntity<ApiResponse<List<Booking>>> getAllBookingsDebug() {
+        try {
+            List<Booking> bookings = bookingRepository.findAll();
+            return ResponseEntity.ok(new ApiResponse<>(true, bookings, "Retrieved all " + bookings.size() + " bookings"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>(false, null, e.getMessage()));
         }
     }
 
@@ -317,6 +373,7 @@ public class BookingController {
         if (room != null) {
             dto.setRoomId(room.getId());
             dto.setRoomTitle(room.getTitle());
+            dto.setRoomImageUrl(room.getFirstImageUrl());
         }
 
         return dto;

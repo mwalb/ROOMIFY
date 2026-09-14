@@ -79,9 +79,9 @@ kotlin {
 
             implementation("com.mohamedrejeb.calf:calf-file-picker:0.5.3")
             implementation("com.mohamedrejeb.calf:calf-io:0.5.3")
-            implementation("com.google.code.gson:gson:2.10.1")
 
             implementation(libs.kamel.image)
+            implementation("media.kamel:kamel-image-default:1.0.9")
             implementation(compose.materialIconsExtended)
             implementation(libs.kotlinx.serialization.json)
             implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
@@ -162,6 +162,8 @@ kotlin {
         // =========================
         wasmJsMain.dependencies {
             implementation("org.jetbrains.kotlinx:kotlinx-browser:0.3")
+            implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
+            implementation(npm("@js-joda/timezone", "2.22.0"))
 
             // No MapLibre
         }
