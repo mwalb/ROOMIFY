@@ -6,5 +6,6 @@ public enum UserRole {
     DALALI,      // NEW - Verified housing agent
     GUEST,
     USER,
-    ADMIN
+    ADMIN,
+    SUPER_ADMIN
 }

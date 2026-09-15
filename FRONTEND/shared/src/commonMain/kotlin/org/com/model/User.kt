@@ -53,7 +53,7 @@ data class User(
 
 /** Roles a User can have. */
 enum class UserRole {
-    TENANT, OWNER, DALALI, ADMIN, UNKNOWN
+    TENANT, OWNER, DALALI, ADMIN, SUPER_ADMIN, UNKNOWN
 }
 
 enum class VerificationStatus {
@@ -68,6 +68,7 @@ val User.userRole: UserRole
         role.equals("owner", ignoreCase = true) -> UserRole.OWNER
         role.equals("dalali", ignoreCase = true) -> UserRole.DALALI
         role.equals("admin", ignoreCase = true) -> UserRole.ADMIN
+        role.equals("super_admin", ignoreCase = true) -> UserRole.SUPER_ADMIN
         else -> UserRole.UNKNOWN
     }
 
@@ -75,6 +76,7 @@ fun User.isTenant(): Boolean = userRole == UserRole.TENANT
 fun User.isOwner(): Boolean = userRole == UserRole.OWNER
 fun User.isDalali(): Boolean = userRole == UserRole.DALALI
 fun User.isAdmin(): Boolean = userRole == UserRole.ADMIN
+fun User.isSuperAdmin(): Boolean = userRole == UserRole.SUPER_ADMIN
 
 val User.verification: VerificationStatus
     get() = when {

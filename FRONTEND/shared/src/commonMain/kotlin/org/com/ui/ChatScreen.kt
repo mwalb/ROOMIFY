@@ -22,18 +22,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.serialization.Serializable
+import org.com.model.ChatMessage
 import org.com.model.User
 
 private val PrimaryColor = Color(0xFF1A237E)
 private val PrimaryLight = Color(0xFF3949AB)
 
-@Serializable
-data class Message(
-    val id: String,
-    val senderId: Long,
-    val content: String,
-    val timestamp: Long
-)
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,8 +40,8 @@ fun ChatScreen(
     var messageText by remember { mutableStateOf("") }
     val messages = remember {
         mutableStateListOf(
-            Message("1", 0L, "Hi, is this room still available?", 0L),
-            Message("2", currentUser.id, "Yes, it is! Would you like to schedule a viewing?", 0L)
+            ChatMessage(1L, 0L, "Hi, is this room still available?", "0", false),
+            ChatMessage(2L, currentUser.id, "Yes, it is! Would you like to schedule a viewing?", "0", true)
         )
     }
     val listState = rememberLazyListState()
@@ -167,7 +162,7 @@ fun ChatScreen(
                     IconButton(
                         onClick = {
                             if (messageText.isNotBlank()) {
-                                messages.add(Message(messages.size.toString(), currentUser.id, messageText, 0L))
+                                messages.add(ChatMessage(messages.size.toLong() + 1, currentUser.id, messageText, "now", false))
                                 messageText = ""
                             }
                         },

@@ -22,6 +22,7 @@ data class Room(
     val area: Double = 0.0,
     val status: String = "AVAILABLE",
     val isAvailable: Boolean = true,
+    val maxGuests: Int = 1,
     val bookingsCount: Int = 0,
     val viewCount: Int = 0,
     val images: List<String> = emptyList(),

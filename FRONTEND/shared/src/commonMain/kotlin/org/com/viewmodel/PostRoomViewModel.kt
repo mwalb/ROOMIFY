@@ -50,6 +50,7 @@ class PostRoomViewModel(
             rooms = room.roomsCount.toString(),
             bathrooms = room.bathroomsCount.toString(),
             area = room.area.toString(),
+            maxGuests = room.maxGuests.toString(),
             selectedAmenities = room.amenities.toSet(),
             rules = room.rules.firstOrNull() ?: "",
             contactPhone = room.contactPhone ?: "",
@@ -108,6 +109,10 @@ class PostRoomViewModel(
 
     fun onAreaChange(area: String) {
         _uiState.value = _uiState.value.copy(area = area)
+    }
+
+    fun onMaxGuestsChange(maxGuests: String) {
+        _uiState.value = _uiState.value.copy(maxGuests = maxGuests)
     }
 
     fun onToggleAmenity(amenity: String) {
@@ -205,6 +210,7 @@ class PostRoomViewModel(
                     roomsCount = state.rooms.toIntOrNull() ?: 1,
                     bathroomsCount = state.bathrooms.toIntOrNull() ?: 1,
                     area = state.area.toDoubleOrNull() ?: 0.0,
+                    maxGuests = state.maxGuests.toIntOrNull() ?: 1,
                     amenities = state.selectedAmenities.toList(),
                     rules = listOf(state.rules),
                     images = state.existingImages,

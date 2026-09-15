@@ -44,7 +44,7 @@ private val PrimaryLight = Color(0xFF3949AB)
 fun BookingScreen(
     room: Room,
     onBack: () -> Unit,
-    onConfirmBooking: suspend (Booking) -> Boolean
+    onConfirmBooking: suspend (Booking) -> String?
 ) {
     val scope = rememberCoroutineScope()
     val today = kotlinx.datetime.Instant.fromEpochMilliseconds(org.com.currentTimeMillis()).toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
@@ -55,12 +55,13 @@ fun BookingScreen(
     var specialRequests by remember { mutableStateOf("") }
     var isSubmitting by remember { mutableStateOf(false) }
     var showSuccess by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
     
     var showStartDatePicker by remember { mutableStateOf(false) }
     var showEndDatePicker by remember { mutableStateOf(false) }
     var showGuestDropdown by remember { mutableStateOf(false) }
 
-    val maxGuests = if (room.roomsCount > 0) room.roomsCount * 2 else 10
+    val maxGuests = if (room.maxGuests > 0) room.maxGuests else 1
 
     // Smart Date Calculation
     fun updateEndDateByDuration(duration: String) {
@@ -271,15 +272,20 @@ fun BookingScreen(
                                 isSubmitting = true
                                 val booking = Booking(
                                     roomId = room.id,
+                                    roomTitle = room.title,
+                                    roomImageUrl = room.images.firstOrNull(),
                                     startDate = startDate.toString(),
                                     endDate = endDate.toString(),
                                     numberOfGuests = guests,
                                     specialRequests = specialRequests,
                                     totalPrice = room.price
                                 )
-                                val success = onConfirmBooking(booking)
-                                if (success) {
+                                errorMessage = null
+                                val error = onConfirmBooking(booking)
+                                if (error == null) {
                                     showSuccess = true
+                                } else {
+                                    errorMessage = error
                                 }
                                 isSubmitting = false
                             }
@@ -293,6 +299,10 @@ fun BookingScreen(
                         else Text("SEND BOOKING REQUEST", fontWeight = FontWeight.Black, fontSize = 15.sp)
                     }
                     
+                    if (errorMessage != null) {
+                        Text(errorMessage!!, color = Color.Red, fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 8.dp))
+                    }
+
                     if (endDate <= startDate) {
                         Text("Check-out must be after check-in", color = Color.Red, fontSize = 11.sp, modifier = Modifier.padding(top = 8.dp))
                     }

@@ -1496,7 +1496,9 @@
                 </button>
         `;
 
-        if (role === "TENANT") {
+        const upperRole = (role || "").toUpperCase();
+
+        if (upperRole === "TENANT") {
             bodyHtml += `
                 <button class="roomify-sidebar-item" data-roomify-menu="tenant">
                     <span>${loc.dashboard}</span>
@@ -1519,7 +1521,7 @@
                     <span class="roomify-sidebar-item-arrow">→</span>
                 </button>
             `;
-        } else if (role === "OWNER") {
+        } else if (upperRole === "OWNER") {
             bodyHtml += `
                 <button class="roomify-sidebar-item" data-roomify-menu="ownerdashboard">
                     <span>${loc.ownerDashboard}</span>
@@ -1530,14 +1532,14 @@
                     <span class="roomify-sidebar-item-arrow">→</span>
                 </button>
             `;
-        } else if (role === "DALALI") {
+        } else if (upperRole === "DALALI") {
             bodyHtml += `
                 <button class="roomify-sidebar-item" data-roomify-menu="dalalidashboard">
                     <span>Dalali Dashboard</span>
                     <span class="roomify-sidebar-item-arrow">→</span>
                 </button>
             `;
-        } else if (role === "ADMIN") {
+        } else if (upperRole === "ADMIN" || upperRole === "SUPER_ADMIN") {
              bodyHtml += `
                 <button class="roomify-sidebar-item" data-roomify-menu="admindashboard">
                     <span>${loc.adminPanel}</span>

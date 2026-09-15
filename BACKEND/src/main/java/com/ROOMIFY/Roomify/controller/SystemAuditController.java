@@ -113,6 +113,6 @@ public class SystemAuditController {
 
     private boolean isValidOwnerRole(UserRole role) {
         if (role == null) return false;
-        return role == UserRole.OWNER || role == UserRole.DALALI || role == UserRole.ADMIN;
+        return role == UserRole.OWNER || role == UserRole.DALALI || role == UserRole.ADMIN || role == UserRole.SUPER_ADMIN;
     }
 }

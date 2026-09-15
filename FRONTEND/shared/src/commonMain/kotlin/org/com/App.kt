@@ -64,6 +64,7 @@ import org.com.ui.MessagesScreen
 import org.com.ui.MyBookingsScreen
 import org.com.ui.FavouriteScreen
 import org.com.ui.MapContent
+import org.com.ui.AdminDashboardScreen
 import org.com.ui.auth.LoginScreen
 import org.com.ui.auth.RegisterScreen
 import org.com.viewmodel.MapViewModel
@@ -178,10 +179,11 @@ fun App() {
     var furnitureList by remember { mutableStateOf(emptyList<Furniture>()) }
     var pendingFurniture by remember { mutableStateOf<Furniture?>(null) }
     var showFantasticBubble by remember { mutableStateOf(false) }
+    var activeConversation by remember { mutableStateOf<org.com.model.Conversation?>(null) }
 
     fun loadOwnerBookings() {
         val user = (authState as? AuthState.Authenticated)?.user
-        if (user != null && (user.role == "OWNER" || user.role == "DALALI")) {
+        if (user != null && (user.role.equals("OWNER", ignoreCase = true) || user.role.equals("DALALI", ignoreCase = true))) {
             scope.launch {
                 ownerBookings = bookingApi.getOwnerBookings(user.id)
             }
@@ -190,7 +192,7 @@ fun App() {
 
     fun loadTenantBookings() {
         val user = (authState as? AuthState.Authenticated)?.user
-        if (user != null && user.role == "TENANT") {
+        if (user != null && user.role.equals("TENANT", ignoreCase = true)) {
             scope.launch {
                 tenantBookings = bookingApi.getUserBookings(user.id)
                 val favResponse = RoomifyApi.getUserFavorites(user.id)
@@ -373,7 +375,7 @@ fun App() {
                     currentRoute = "tenant"
                     postLoginDestination = null
                 }
-                authenticatedState.user.role.equals("ADMIN", ignoreCase = true) -> {
+                authenticatedState.user.role.equals("ADMIN", ignoreCase = true) || authenticatedState.user.role.equals("SUPER_ADMIN", ignoreCase = true) -> {
                     println("App: ⚡ Admin logged in - Navigating to Admin Dashboard")
                     currentRoute = "admindashboard"
                     postLoginDestination = null
@@ -417,8 +419,9 @@ fun App() {
             "analytics" -> {
                 val user = (authState as? AuthState.Authenticated)?.user
                 postLoginDestination = when {
-                    user?.role == "TENANT" -> "tenant"
-                    user?.role == "OWNER" || user?.role == "DALALI" -> "ownerdashboard"
+                    user?.role?.equals("TENANT", ignoreCase = true) == true -> "tenant"
+                    user?.role?.equals("OWNER", ignoreCase = true) == true || user?.role?.equals("DALALI", ignoreCase = true) == true -> "ownerdashboard"
+                    user?.role?.equals("ADMIN", ignoreCase = true) == true || user?.role?.equals("SUPER_ADMIN", ignoreCase = true) == true -> "admindashboard"
                     else -> "map"
                 }
                 currentRoute = "analytics"
@@ -615,20 +618,27 @@ fun App() {
                                 val response = bookingApi.createBooking(booking.copy(userId = auth.user.id))
                                 if (response?.success == true) {
                                     loadTenantBookings()
-                                    true
+                                    null
                                 } else {
-                                    false
+                                    response?.message ?: "Failed to send booking request"
                                 }
                             }
                         )
                     }
 
-                    currentRoute == "chat" && pendingRoom != null && authState is AuthState.Authenticated -> {
+                    currentRoute == "chat" && (pendingRoom != null || activeConversation != null) && authState is AuthState.Authenticated -> {
                         val auth = authState as AuthState.Authenticated
                         ChatScreen(
                             currentUser = auth.user,
-                            otherUserName = pendingRoom?.ownerName ?: "Owner",
-                            onBack = { currentRoute = "details" }
+                            otherUserName = activeConversation?.otherPartyName ?: pendingRoom?.ownerName ?: "Owner",
+                            onBack = { 
+                                if (activeConversation != null) {
+                                    activeConversation = null
+                                    currentRoute = "messages"
+                                } else {
+                                    currentRoute = "details"
+                                }
+                            }
                         )
                     }
 
@@ -759,6 +769,7 @@ fun App() {
                                         onRoomsChange = postRoomViewModel::onRoomsChange,
                                         onBathroomsChange = postRoomViewModel::onBathroomsChange,
                                         onAreaChange = postRoomViewModel::onAreaChange,
+                                        onMaxGuestsChange = postRoomViewModel::onMaxGuestsChange,
                                         onToggleAmenity = postRoomViewModel::onToggleAmenity,
                                         onRulesChange = postRoomViewModel::onRulesChange,
                                         onContactPhoneChange = postRoomViewModel::onContactPhoneChange,
@@ -842,7 +853,10 @@ fun App() {
                                     MessagesScreen(
                                         conversations = emptyList(),
                                         onBack = { currentRoute = "tenant" },
-                                        onConversationClick = { /* Handle chat */ }
+                                        onConversationClick = { conv -> 
+                                            activeConversation = conv
+                                            currentRoute = "chat"
+                                        }
                                     )
                                 }
                                 "bookings" -> {
@@ -868,6 +882,19 @@ fun App() {
                                         onClearRoute = { routingDestination = null },
                                         onViewProperty = ::viewProperty,
                                         onNavigate = ::navigateTo
+                                    )
+                                }
+                                "admindashboard" -> {
+                                    AdminDashboardScreen(
+                                        user = user,
+                                        onLogout = {
+                                            scope.launch {
+                                                authManager.logout()
+                                                currentRoute = "map"
+                                            }
+                                        },
+                                        onNavigate = { route -> navigateTo(route) },
+                                        onBack = { currentRoute = "map" }
                                     )
                                 }
                             }

@@ -68,6 +68,7 @@ data class PropertyFormState(
     val rooms: String = "",
     val bathrooms: String = "",
     val area: String = "",
+    val maxGuests: String = "1",
     val selectedAmenities: Set<String> = emptySet(),
     val rules: String = "",
     val contactPhone: String = "",
@@ -103,6 +104,7 @@ fun PostRoom(
     onRoomsChange: (String) -> Unit,
     onBathroomsChange: (String) -> Unit,
     onAreaChange: (String) -> Unit,
+    onMaxGuestsChange: (String) -> Unit,
     onToggleAmenity: (String) -> Unit,
     onRulesChange: (String) -> Unit,
     onContactPhoneChange: (String) -> Unit,
@@ -245,7 +247,7 @@ fun PostRoom(
                     ) { step ->
                         when (step) {
                             1 -> StepBasicInfo(state, onTitleChange, onDescriptionChange, onPriceChange, onPropertyTypeChange)
-                            2 -> StepDetails(state, onRoomsChange, onBathroomsChange, onAreaChange, onToggleAmenity)
+                            2 -> StepDetails(state, onRoomsChange, onBathroomsChange, onAreaChange, onMaxGuestsChange, onToggleAmenity)
                             3 -> StepLocation(
                             state, 
                             onLocationModeChange, 
@@ -377,7 +379,7 @@ private fun StepBasicInfo(state: PropertyFormState, onTitleChange: (String) -> U
 }
 
 @Composable
-private fun StepDetails(state: PropertyFormState, onRoomsChange: (String) -> Unit, onBathroomsChange: (String) -> Unit, onAreaChange: (String) -> Unit, onToggleAmenity: (String) -> Unit) {
+private fun StepDetails(state: PropertyFormState, onRoomsChange: (String) -> Unit, onBathroomsChange: (String) -> Unit, onAreaChange: (String) -> Unit, onMaxGuestsChange: (String) -> Unit, onToggleAmenity: (String) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
         SectionTitle("Property Details")
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -385,6 +387,8 @@ private fun StepDetails(state: PropertyFormState, onRoomsChange: (String) -> Uni
             ProfessionalTextField(value = state.bathrooms, onValueChange = onBathroomsChange, label = "Baths", modifier = Modifier.weight(1f), placeholder = "0")
             ProfessionalTextField(value = state.area, onValueChange = onAreaChange, label = "Area (m²)", modifier = Modifier.weight(1f), placeholder = "0")
         }
+        
+        ProfessionalTextField(value = state.maxGuests, onValueChange = onMaxGuestsChange, label = "Max Guests Allowed", placeholder = "1")
         
         Column {
             Text("Amenities", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.Gray, modifier = Modifier.padding(bottom = 12.dp))
