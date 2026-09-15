@@ -145,6 +145,40 @@ object RoomifyApi {
         return ApiClient.get("users/$id")  // ✅ Fixed
     }
 
+    // ============================================================
+    // FURNITURE
+    // ============================================================
+
+    suspend fun getAllFurniture(): ApiResponse<List<Furniture>> {
+        return ApiClient.get("furniture")
+    }
+
+    suspend fun createFurniture(furniture: Furniture): ApiResponse<Furniture> {
+        return ApiClient.post("furniture", furniture)
+    }
+
+    suspend fun uploadFurnitureImages(furnitureId: Long, imageBytes: List<ByteArray>): ApiResponse<List<String>> {
+        return try {
+            val response = ApiClient.client.post("furniture/$furnitureId/images") {
+                setBody(
+                    MultiPartFormDataContent(
+                        formData {
+                            imageBytes.forEachIndexed { index, bytes ->
+                                append("images", bytes, Headers.build {
+                                    append(HttpHeaders.ContentType, "image/jpeg")
+                                    append(HttpHeaders.ContentDisposition, "filename=\"furniture_$index.jpg\"")
+                                })
+                            }
+                        }
+                    )
+                )
+            }
+            response.body()
+        } catch (e: Exception) {
+            ApiResponse(success = false, message = e.message ?: "Upload failed")
+        }
+    }
+
     suspend fun uploadProfileImage(imageBytes: ByteArray): ApiResponse<String> {
         return try {
             val response = ApiClient.client.post("users/profile/image") {

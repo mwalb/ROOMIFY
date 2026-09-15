@@ -563,7 +563,7 @@ private fun StepLocation(
     }
 
     if (showMapModal) {
-        LocationPickerModal(
+        org.com.ui.components.LocationPickerModal(
             currentLat = state.latitude,
             currentLng = state.longitude,
             initialSearch = state.manualAddress,
@@ -576,97 +576,6 @@ private fun StepLocation(
             },
             onDismiss = { showMapModal = false }
         )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun LocationPickerModal(
-    currentLat: String?,
-    currentLng: String?,
-    initialSearch: String? = null,
-    onConfirmed: (AddressResult) -> Unit,
-    onDismiss: () -> Unit
-) {
-    var tempResult by remember { mutableStateOf<AddressResult?>(null) }
-
-    // PLATFORM-SPECIFIC MODAL HANDLING
-    // On Web, the PlatformLocationMap will trigger a full-screen DOM overlay.
-    // We still show the Compose AlertDialog but it will be covered on Web.
-    // We need to listen for the confirmation from the DOM.
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        modifier = Modifier.fillMaxWidth().fillMaxHeight(),
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Card(
-            shape = RoundedCornerShape(0.dp), // Full screen feel
-            colors = CardDefaults.cardColors(containerColor = Color.White)
-        ) {
-            Column(Modifier.fillMaxSize()) {
-                // Header
-                Surface(tonalElevation = 4.dp, shadowElevation = 4.dp, color = Color.White) {
-                    Row(
-                        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Select Property Location", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                        IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, null) }
-                    }
-                }
-
-                // Map Area
-                Box(Modifier.weight(1f).fillMaxWidth()) {
-                    PlatformLocationMap(
-                        latitude = if (!currentLat.isNullOrBlank()) currentLat else null, 
-                        longitude = if (!currentLng.isNullOrBlank()) currentLng else null,
-                        modifier = Modifier.fillMaxSize(),
-                        initialSearch = initialSearch,
-                        onLocationSelected = { result ->
-                            tempResult = result
-                        },
-                        onLocationConfirmed = { result ->
-                            tempResult = result
-                            onConfirmed(result)
-                        },
-                        onDismiss = onDismiss
-                    )
-                }
-
-                // Footer
-                Surface(tonalElevation = 8.dp, shadowElevation = 12.dp, color = Color.White) {
-                    Column(Modifier.fillMaxWidth().padding(20.dp)) {
-                        Text("Selected location:", fontSize = 12.sp, color = Color.Gray)
-                        Text(
-                            text = tempResult?.address ?: "Click on the map to select the exact house",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Black,
-                            color = PrimaryColor,
-                            maxLines = 1
-                        )
-                        Text(
-                            text = tempResult?.formattedAddress ?: "",
-                            fontSize = 12.sp,
-                            color = Color.Gray,
-                            maxLines = 1
-                        )
-                        
-                        Spacer(Modifier.height(16.dp))
-                        Button(
-                            onClick = { tempResult?.let { onConfirmed(it) } },
-                            enabled = tempResult != null,
-                            modifier = Modifier.fillMaxWidth().height(48.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
-                        ) {
-                            Text("CONFIRM LOCATION", fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            }
-        }
     }
 }
 

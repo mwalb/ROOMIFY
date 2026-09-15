@@ -46,7 +46,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // Skip authentication for public endpoints
         String requestPath = request.getServletPath();
         if (requestPath.startsWith("/api/auth/") ||
-                requestPath.startsWith("/api/public/")) {
+                requestPath.startsWith("/api/public/") ||
+                requestPath.startsWith("/api/furniture/")) {
             logger.info("Skipping authentication for public endpoint: {}", requestPath);
             filterChain.doFilter(request, response);
             return;

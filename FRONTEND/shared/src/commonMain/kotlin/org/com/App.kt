@@ -37,14 +37,18 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.com.auth.AuthManager
 import org.com.auth.AuthState
+import org.com.model.Booking
+import org.com.model.Furniture
 import org.com.model.Room
 import org.com.network.RoomApi
 import org.com.ui.OwnerDashboardScreen
 import org.com.ui.PostRoom
 import org.com.ui.ProfileScreen
+import com.mohamedrejeb.calf.io.readByteArray
 import org.com.ui.PropertyDetailsScreen
 import org.com.ui.BookingScreen
 import org.com.ui.ChatScreen
@@ -170,6 +174,10 @@ fun App() {
     var ownerBookings by remember { mutableStateOf<List<org.com.model.Booking>>(emptyList()) }
     var tenantBookings by remember { mutableStateOf<List<org.com.model.Booking>>(emptyList()) }
     var tenantFavorites by remember { mutableStateOf<List<Room>>(emptyList()) }
+    
+    var furnitureList by remember { mutableStateOf(emptyList<Furniture>()) }
+    var pendingFurniture by remember { mutableStateOf<Furniture?>(null) }
+    var showFantasticBubble by remember { mutableStateOf(false) }
 
     fun loadOwnerBookings() {
         val user = (authState as? AuthState.Authenticated)?.user
@@ -208,6 +216,14 @@ fun App() {
     LaunchedEffect(Unit) {
         println("Roomify: Loading rooms...")
         viewModel.loadRooms()
+        
+        // Load real furniture data
+        scope.launch {
+            val response = RoomifyApi.getAllFurniture()
+            if (response.success && response.data != null) {
+                furnitureList = response.data!!
+            }
+        }
     }
 
     // ============================================================
@@ -445,6 +461,13 @@ fun App() {
     // MAIN UI
     // ============================================================
 
+    LaunchedEffect(splashFinished) {
+        if (splashFinished) {
+            delay(1500)
+            showFantasticBubble = true
+        }
+    }
+
     RoomifyLocalization {
             MaterialTheme(typography = roomifyTypography) {
             Surface(
@@ -527,6 +550,58 @@ fun App() {
                             onViewProperty = { room ->
                                 pendingRoom = room
                                 // Stays on details but with new room
+                            }
+                        )
+                    }
+
+                    currentRoute == "furniture_dashboard" -> {
+                        org.com.ui.FurnitureDashboard(
+                            furnitures = furnitureList,
+                            onBack = { currentRoute = "discovery" },
+                            onViewDetail = {
+                                pendingFurniture = it
+                                currentRoute = "furniture_detail"
+                            },
+                            onNavigate = ::navigateTo
+                        )
+                    }
+
+                    currentRoute == "furniture_detail" && pendingFurniture != null -> {
+                        org.com.ui.FurnitureDetailScreen(
+                            furniture = pendingFurniture!!,
+                            onBack = { currentRoute = "furniture_dashboard" }
+                        )
+                    }
+
+                    currentRoute == "post_furniture" -> {
+                        val ctx = platformContext
+                        org.com.ui.PostFurniture(
+                            onBack = { currentRoute = "discovery" },
+                            onSubmit = { furniture, files ->
+                                scope.launch {
+                                    try {
+                                        // 1. Create Furniture Entry
+                                        val createResponse = RoomifyApi.createFurniture(furniture)
+                                        if (createResponse.success && createResponse.data?.id != null) {
+                                            val furnitureId = createResponse.data!!.id!!
+                                            
+                                            // 2. Upload Images if any
+                                            if (files.isNotEmpty()) {
+                                                val imageBytes = files.map { it.readByteArray(ctx) }
+                                                RoomifyApi.uploadFurnitureImages(furnitureId, imageBytes)
+                                            }
+                                            
+                                            // 3. Refresh List and Redirect
+                                            val refreshResponse = RoomifyApi.getAllFurniture()
+                                            if (refreshResponse.success && refreshResponse.data != null) {
+                                                furnitureList = refreshResponse.data!!
+                                            }
+                                            currentRoute = "furniture_dashboard"
+                                        }
+                                    } catch (e: Exception) {
+                                        println("App: Furniture posting failed: ${e.message}")
+                                    }
+                                }
                             }
                         )
                     }
@@ -910,6 +985,18 @@ fun App() {
                         }
                     }
                 }
+                
+                FantasticBubbleContainer(
+                    isVisible = showFantasticBubble,
+                    onSearch = {
+                        showFantasticBubble = false
+                        currentRoute = "furniture_dashboard"
+                    },
+                    onPost = {
+                        showFantasticBubble = false
+                        currentRoute = "post_furniture"
+                    }
+                )
             }
         }
     }
@@ -969,6 +1056,19 @@ private fun AppMapContainer(
             Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color(0xFF1A237E))
         }
     }
+}
+
+@Composable
+private fun FantasticBubbleContainer(
+    isVisible: Boolean,
+    onSearch: () -> Unit,
+    onPost: () -> Unit
+) {
+    org.com.ui.components.FantasticBubble(
+        isVisible = isVisible,
+        onSearchFurniture = onSearch,
+        onPostFurniture = onPost
+    )
 }
 
 @Composable
