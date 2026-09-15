@@ -123,8 +123,13 @@ private fun ConversationItem(conversation: Conversation, onClick: () -> Unit) {
                 
                 Spacer(Modifier.height(4.dp))
                 
+                Text("Regarding: ${conversation.roomTitle}", fontSize = 12.sp, color = PrimaryColor, fontWeight = FontWeight.ExtraBold)
+                
+                Spacer(Modifier.height(2.dp))
+                
                 Text(
                     text = conversation.lastMessage,
+
                     fontSize = 14.sp,
                     color = if (conversation.unreadCount > 0) Color.Black else Color.Gray,
                     fontWeight = if (conversation.unreadCount > 0) FontWeight.Bold else FontWeight.Normal,

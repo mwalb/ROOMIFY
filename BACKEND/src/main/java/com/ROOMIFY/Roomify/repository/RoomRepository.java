@@ -144,4 +144,9 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END FROM Room r " +
             "WHERE r.id = :roomId AND r.dalaliId = :dalaliId")
     boolean isRoomBelongsToDalali(@Param("roomId") Long roomId, @Param("dalaliId") Long dalaliId);
+
+    // ==================== METADATA QUERIES ====================
+
+    @Query("SELECT DISTINCT r.propertyType FROM Room r WHERE r.propertyType IS NOT NULL AND r.propertyType != ''")
+    List<String> findDistinctPropertyTypes();
 }

@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.com.model.ChatMessage
 import org.com.model.User
@@ -35,16 +36,35 @@ private val PrimaryLight = Color(0xFF3949AB)
 fun ChatScreen(
     currentUser: User,
     otherUserName: String,
+    otherUserId: Long,
+    roomId: Long? = null,
+    roomTitle: String? = null,
     onBack: () -> Unit
 ) {
     var messageText by remember { mutableStateOf("") }
-    val messages = remember {
-        mutableStateListOf(
-            ChatMessage(1L, 0L, "Hi, is this room still available?", "0", false),
-            ChatMessage(2L, currentUser.id, "Yes, it is! Would you like to schedule a viewing?", "0", true)
-        )
+    var messages = remember { mutableStateListOf<ChatMessage>() }
+    val scope = rememberCoroutineScope()
+    
+    LaunchedEffect(otherUserId, roomId) {
+        try {
+            val response = org.com.network.RoomifyApi.getChatHistory(currentUser.id, otherUserId, roomId)
+            if (response.success && response.data != null) {
+                messages.clear()
+                messages.addAll(response.data!!)
+            }
+        } catch (e: Exception) {
+            println("ChatScreen: Error fetching history: ${e.message}")
+        }
     }
+
     val listState = rememberLazyListState()
+    
+    // Auto-scroll to bottom when new messages arrive
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) {
+            listState.animateScrollToItem(messages.size - 1)
+        }
+    }
     
     Box(
         modifier = Modifier
@@ -91,8 +111,13 @@ fun ChatScreen(
                     
                     Column {
                         Text(otherUserName, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1A1A1A))
-                        Text("Online", fontSize = 11.sp, color = Color(0xFF4CAF50), fontWeight = FontWeight.Medium)
+                        if (roomTitle != null) {
+                            Text(roomTitle, fontSize = 11.sp, color = PrimaryColor, fontWeight = FontWeight.ExtraBold)
+                        } else {
+                            Text("Online", fontSize = 11.sp, color = Color(0xFF4CAF50), fontWeight = FontWeight.Medium)
+                        }
                     }
+
                 }
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -162,10 +187,48 @@ fun ChatScreen(
                     IconButton(
                         onClick = {
                             if (messageText.isNotBlank()) {
-                                messages.add(ChatMessage(messages.size.toLong() + 1, currentUser.id, messageText, "now", false))
-                                messageText = ""
+                                val newMsg = ChatMessage(
+                                    senderId = currentUser.id,
+                                    content = messageText,
+                                    timestamp = "now",
+                                    isRead = false,
+                                    roomId = roomId,
+                                    roomTitle = roomTitle
+                                )
+                                
+                                val msgToSend = ChatMessage(
+                                    senderId = currentUser.id,
+                                    content = messageText,
+                                    roomId = roomId,
+                                    roomTitle = roomTitle
+                                ).copy(messageId = otherUserId) // Reusing field for receiverId in simple DTO if needed or update DTO
+                                
+                                // Proper way: update ChatMessage to have receiverId or send as is if backend handles it
+                                // For now, we use a simple approach:
+                                scope.launch {
+                                    try {
+                                        // The backend ChatController expects ChatMessage with receiverId
+                                        // We need to make sure our frontend model matches or use a wrapper
+                                        val chatMsg = org.com.model.ChatMessage(
+                                            senderId = currentUser.id,
+                                            receiverId = otherUserId,
+                                            content = messageText,
+                                            roomId = roomId,
+                                            roomTitle = roomTitle
+                                        )
+                                        
+                                        messages.add(newMsg)
+                                        messageText = ""
+                                        
+                                        org.com.network.RoomifyApi.sendMessage(chatMsg)
+
+                                    } catch (e: Exception) {
+                                        println("ChatScreen: Send error: ${e.message}")
+                                    }
+                                }
                             }
                         },
+
                         modifier = Modifier
                             .size(44.dp)
                             .clip(CircleShape)

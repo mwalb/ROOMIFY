@@ -13,12 +13,22 @@ data class ChatMessage(
     @SerialName("senderId")
     val senderId: Long = 0L,
 
+    @SerialName("receiverId")
+    val receiverId: Long = 0L,
+
     @SerialName("content")
+
     val content: String = "",
 
     @SerialName("timestamp")
     val timestamp: String = "",
 
     @SerialName("isRead")
-    val isRead: Boolean = false
+    val isRead: Boolean = false,
+
+    @SerialName("roomId")
+    val roomId: Long? = null,
+
+    @SerialName("roomTitle")
+    val roomTitle: String? = null
 )

@@ -97,6 +97,14 @@ object RoomifyApi {
         return ApiClient.get("rooms/owner/$ownerId")  // ✅ Fixed
     }
 
+    suspend fun getPropertyTypes(): List<String> {
+        return try {
+            ApiClient.get("rooms/types")
+        } catch (e: Exception) {
+            listOf("Room", "Apartment", "Studio", "House", "Office")
+        }
+    }
+
     // ============================================================
     // BOOKINGS
     // ============================================================
@@ -199,6 +207,23 @@ object RoomifyApi {
             println("RoomifyApi: Profile image upload error: ${e.message}")
             ApiResponse(success = false, message = e.message ?: "Upload failed")
         }
+    }
+
+    // ============================================================
+    // CHAT
+    // ============================================================
+
+    suspend fun getConversations(userId: Long): ApiResponse<List<Conversation>> {
+        return ApiClient.get("chat/conversations/$userId")
+    }
+
+    suspend fun getChatHistory(user1: Long, user2: Long, roomId: Long? = null): ApiResponse<List<ChatMessage>> {
+        val query = if (roomId != null) "?user1=$user1&user2=$user2&roomId=$roomId" else "?user1=$user1&user2=$user2"
+        return ApiClient.get("chat/history$query")
+    }
+
+    suspend fun sendMessage(message: ChatMessage): ApiResponse<ChatMessage> {
+        return ApiClient.post("chat/send", message)
     }
 
     // ... rest of functions with same fix (remove "/api/" prefix)

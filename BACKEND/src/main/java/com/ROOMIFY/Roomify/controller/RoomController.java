@@ -19,6 +19,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
@@ -296,6 +297,24 @@ public class RoomController {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ApiResponse<>(false, null, "Error: " + e.getMessage()));
+        }
+    }
+
+    // ==================== METADATA ENDPOINTS ====================
+
+    @GetMapping("/types")
+    @Transactional(readOnly = true)
+    public ResponseEntity<List<String>> getPropertyTypes() {
+        try {
+            List<String> types = repo.findDistinctPropertyTypes();
+            // If empty, return some defaults
+            if (types.isEmpty()) {
+                types = Arrays.asList("Room", "Apartment", "Studio", "House", "Office");
+            }
+            return ResponseEntity.ok(types);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.ok(Arrays.asList("Room", "Apartment", "Studio", "House", "Office"));
         }
     }
 

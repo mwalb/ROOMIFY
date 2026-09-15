@@ -42,6 +42,7 @@ import kotlinx.coroutines.launch
 import org.com.auth.AuthManager
 import org.com.auth.AuthState
 import org.com.model.Booking
+import org.com.model.Conversation
 import org.com.model.Furniture
 import org.com.model.Room
 import org.com.network.RoomApi
@@ -174,6 +175,8 @@ fun App() {
 
     var ownerBookings by remember { mutableStateOf<List<org.com.model.Booking>>(emptyList()) }
     var tenantBookings by remember { mutableStateOf<List<org.com.model.Booking>>(emptyList()) }
+    var ownerConversations by remember { mutableStateOf<List<org.com.model.Conversation>>(emptyList()) }
+    var tenantConversations by remember { mutableStateOf<List<org.com.model.Conversation>>(emptyList()) }
     var tenantFavorites by remember { mutableStateOf<List<Room>>(emptyList()) }
     
     var furnitureList by remember { mutableStateOf(emptyList<Furniture>()) }
@@ -202,6 +205,31 @@ fun App() {
             }
         }
     }
+
+    fun loadOwnerConversations() {
+        val user = (authState as? AuthState.Authenticated)?.user
+        if (user != null) {
+            scope.launch {
+                val response = RoomifyApi.getConversations(user.id)
+                if (response.success) {
+                    ownerConversations = response.data ?: emptyList()
+                }
+            }
+        }
+    }
+
+    fun loadTenantConversations() {
+        val user = (authState as? AuthState.Authenticated)?.user
+        if (user != null) {
+            scope.launch {
+                val response = RoomifyApi.getConversations(user.id)
+                if (response.success) {
+                    tenantConversations = response.data ?: emptyList()
+                }
+            }
+        }
+    }
+
 
     val postRoomViewModel = remember(roomApi, authManager, scope) {
         PostRoomViewModel(
@@ -271,10 +299,17 @@ fun App() {
 
     LaunchedEffect(currentRoute) {
         when (currentRoute) {
-            "ownerdashboard", "dalalidashboard" -> loadOwnerBookings()
-            "tenant", "bookings" -> loadTenantBookings()
+            "ownerdashboard", "dalalidashboard" -> {
+                loadOwnerBookings()
+                loadOwnerConversations()
+            }
+            "tenant", "bookings", "messages" -> {
+                loadTenantBookings()
+                loadTenantConversations()
+            }
         }
     }
+
 
     fun withAuth(destination: String, action: () -> Unit) {
         if (isLoggedIn) {
@@ -631,6 +666,9 @@ fun App() {
                         ChatScreen(
                             currentUser = auth.user,
                             otherUserName = activeConversation?.otherPartyName ?: pendingRoom?.ownerName ?: "Owner",
+                            otherUserId = activeConversation?.otherPartyId ?: pendingRoom?.postedBy ?: 0L,
+                            roomId = activeConversation?.roomId ?: pendingRoom?.id,
+                            roomTitle = activeConversation?.roomTitle ?: pendingRoom?.title,
                             onBack = { 
                                 if (activeConversation != null) {
                                     activeConversation = null
@@ -640,6 +678,7 @@ fun App() {
                                 }
                             }
                         )
+
                     }
 
                     authState is AuthState.Authenticated -> {
@@ -672,6 +711,7 @@ fun App() {
                                         profileImage = user.profileImage,
                                         properties = viewModel.rooms.filter { it.postedBy == user.id || it.ownerName == user.name },
                                         bookings = ownerBookings,
+                                        conversations = ownerConversations,
                                         isRefreshing = viewModel.isLoading,
                                         onAddProperty = { currentRoute = "postroom" },
                                         onViewAnalytics = {
@@ -693,7 +733,12 @@ fun App() {
                                                 }
                                             }
                                         },
+                                        onConversationClick = { conv ->
+                                            activeConversation = conv
+                                            currentRoute = "chat"
+                                        },
                                         onLogout = {
+
                                             scope.launch {
                                                 authManager.logout()
                                                 currentRoute = "map"
@@ -851,7 +896,7 @@ fun App() {
                                 }
                                 "messages" -> {
                                     MessagesScreen(
-                                        conversations = emptyList(),
+                                        conversations = tenantConversations,
                                         onBack = { currentRoute = "tenant" },
                                         onConversationClick = { conv -> 
                                             activeConversation = conv
@@ -859,6 +904,7 @@ fun App() {
                                         }
                                     )
                                 }
+
                                 "bookings" -> {
                                     MyBookingsScreen(
                                         bookings = tenantBookings,

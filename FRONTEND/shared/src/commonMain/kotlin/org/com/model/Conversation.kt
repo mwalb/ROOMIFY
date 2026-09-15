@@ -29,7 +29,14 @@ data class Conversation(
     @SerialName("unreadCount")
     val unreadCount: Int = 0,
 
+    @SerialName("roomId")
+    val roomId: Long = 0L,
+
+    @SerialName("roomTitle")
+    val roomTitle: String = "",
+
     @SerialName("messages")
+
     val messages: List<ChatMessage> = emptyList()
 ) {
 

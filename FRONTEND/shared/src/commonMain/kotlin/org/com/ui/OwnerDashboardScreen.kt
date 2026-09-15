@@ -42,6 +42,7 @@ import org.com.model.Room
 import kotlinx.coroutines.launch
 import org.com.currentTimeMillis
 import org.com.model.Booking
+import org.com.model.Conversation
 import org.com.network.ApiClient
 
 private val PrimaryColor = Color(0xFF1A237E)
@@ -55,6 +56,7 @@ fun OwnerDashboardScreen(
     profileImage: String? = null,
     properties: List<Room>,
     bookings: List<Booking> = emptyList(),
+    conversations: List<Conversation> = emptyList(),
     isRefreshing: Boolean = false,
     onAddProperty: () -> Unit,
     onLogout: () -> Unit,
@@ -63,9 +65,11 @@ fun OwnerDashboardScreen(
     onViewFinances: () -> Unit = {},
     onAcceptBooking: (Booking) -> Unit = {},
     onRejectBooking: (Booking) -> Unit = {},
+    onConversationClick: (Conversation) -> Unit = {},
     onNavigate: (String) -> Unit = {},
     onBack: () -> Unit
 ) {
+
     val strings = LocalRoomifyStrings.current
     var selectedTab by remember { mutableStateOf(0) }
     val scrollState = rememberScrollState()
@@ -144,13 +148,15 @@ fun OwnerDashboardScreen(
 
                 // Custom Tab Bar
                 Row(
-                    modifier = Modifier.fillMaxWidth().background(Color.White).padding(horizontal = 16.dp),
+                    modifier = Modifier.fillMaxWidth().background(Color.White).padding(horizontal = 8.dp),
                     horizontalArrangement = Arrangement.SpaceAround
                 ) {
                     DashboardTab("Overview", selectedTab == 0) { selectedTab = 0 }
                     DashboardTab("Properties", selectedTab == 1) { selectedTab = 1 }
                     DashboardTab("Requests", selectedTab == 2) { selectedTab = 2 }
+                    DashboardTab("Messages", selectedTab == 3) { selectedTab = 3 }
                 }
+
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
@@ -204,7 +210,18 @@ fun OwnerDashboardScreen(
                                 }
                             }
                         }
+                        3 -> {
+                            Text("Tenant Inquiries", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Color.Gray)
+                            if (conversations.isEmpty()) {
+                                EmptyState("No messages yet")
+                            } else {
+                                conversations.forEach { conversation ->
+                                    OwnerConversationItem(conversation, onClick = { onConversationClick(conversation) })
+                                }
+                            }
+                        }
                     }
+
                 }
             }
         }
@@ -487,3 +504,36 @@ private fun BookingRequestCard(booking: Booking, onAccept: () -> Unit, onReject:
         }
     }
 }
+
+@Composable
+private fun OwnerConversationItem(conversation: Conversation, onClick: () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp).clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        color = Color.White,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier.size(48.dp).clip(CircleShape).background(PrimaryColor.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(conversation.otherPartyName.take(1).uppercase(), fontWeight = FontWeight.Black, color = PrimaryColor)
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(conversation.otherPartyName, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    if (conversation.unreadCount > 0) {
+                        Spacer(Modifier.width(8.dp))
+                        Box(Modifier.size(8.dp).background(Color.Red, CircleShape))
+                    }
+                }
+                Text("Regarding: ${conversation.roomTitle}", fontSize = 12.sp, color = PrimaryColor, fontWeight = FontWeight.ExtraBold)
+                Text(conversation.lastMessage, fontSize = 13.sp, color = Color.Gray, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = Color.LightGray, modifier = Modifier.size(18.dp))
+        }
+    }
+}
+

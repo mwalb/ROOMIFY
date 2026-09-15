@@ -25,30 +25,41 @@ public class DataInitializer implements CommandLineRunner {
         try {
             System.out.println("=== Starting Data Initialization ===");
             // Create Admin
-            if (userRepository.findByEmail("raphaelfrank02@gmail.com").isEmpty()) {
+            if (userRepository.findByEmail("admin@roomify.com").isEmpty()) {
                 User admin = new User();
-                admin.setName("Admin User");
-                admin.setEmail("raphaelfrank02@gmail.com");
+                admin.setName("System Admin");
+                admin.setEmail("admin@roomify.com");
                 admin.setPassword(passwordEncoder.encode("Raphael11111"));
                 admin.setRole(UserRole.ADMIN);
                 admin.setEmailVerified(true);
                 admin.setCreatedAt(LocalDateTime.now());
                 userRepository.save(admin);
-                System.out.println("Admin user created: raphaelfrank02@gmail.com");
+                System.out.println("Roomify: Admin account verified: admin@roomify.com / Raphael11111");
             }
 
             // Create Super Admin
-            if (userRepository.findByEmail("raphaelfrank01@gmail.com").isEmpty()) {
+            if (userRepository.findByEmail("superadmin@roomify.com").isEmpty()) {
                 User superAdmin = new User();
-                superAdmin.setName("Super Admin");
-                superAdmin.setEmail("raphaelfrank01@gmail.com");
+                superAdmin.setName("Main Super Admin");
+                superAdmin.setEmail("superadmin@roomify.com");
                 superAdmin.setPassword(passwordEncoder.encode("Raphael111111"));
                 superAdmin.setRole(UserRole.SUPER_ADMIN);
                 superAdmin.setEmailVerified(true);
                 superAdmin.setCreatedAt(LocalDateTime.now());
                 userRepository.save(superAdmin);
-                System.out.println("Super Admin user created: raphaelfrank01@gmail.com");
+                System.out.println("Roomify: Super Admin account verified: superadmin@roomify.com / Raphael111111");
             }
+
+            // Also ensure the personal emails work if they exist
+            userRepository.findByEmail("raphaelfrank02@gmail.com").ifPresent(u -> {
+                u.setRole(UserRole.ADMIN);
+                userRepository.save(u);
+            });
+            userRepository.findByEmail("raphaelfrank01@gmail.com").ifPresent(u -> {
+                u.setRole(UserRole.SUPER_ADMIN);
+                userRepository.save(u);
+            });
+
             System.out.println("=== Data Initialization Complete ===");
         } catch (Exception e) {
             System.err.println("!!! Data Initialization FAILED: " + e.getMessage());

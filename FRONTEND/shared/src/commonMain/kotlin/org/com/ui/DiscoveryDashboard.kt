@@ -21,7 +21,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import org.com.network.RoomifyApi
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DiscoveryDashboard(
     initialArea: String? = null,
@@ -33,23 +35,31 @@ fun DiscoveryDashboard(
     var selectedType by remember { mutableStateOf<String?>(null) }
     var selectedStatus by remember { mutableStateOf<String?>(null) }
     
-    val categories = listOf(
-        DiscoveryCategory("Room", Icons.Default.Bed, "Room", Color(0xFFE91E63)),
-        DiscoveryCategory("Apartment", Icons.Default.Apartment, "Apartment", Color(0xFF2196F3)),
-        DiscoveryCategory("Studio", Icons.Default.HomeWork, "Studio", Color(0xFF4CAF50))
-    )
+    var propertyTypes by remember { mutableStateOf(listOf("Room", "Apartment", "Studio", "House", "Office")) }
+    var statusExpanded by remember { mutableStateOf(false) }
+    var typeExpanded by remember { mutableStateOf(false) }
 
     val statuses = listOf(
-        StatusOption("All", null, Color.Gray),
+        StatusOption("All Statuses", null, Color.Gray),
         StatusOption("Available", "AVAILABLE", Color(0xFF2E7D32)),
         StatusOption("Pending", "PENDING", Color(0xFFF9A825)),
         StatusOption("Rented", "RENTED", Color(0xFFC62828))
     )
 
     var visible by remember { mutableStateOf(false) }
+    
     LaunchedEffect(Unit) {
         delay(100)
         visible = true
+        // Fetch property types from backend
+        try {
+            val fetchedTypes = RoomifyApi.getPropertyTypes()
+            if (fetchedTypes.isNotEmpty()) {
+                propertyTypes = fetchedTypes
+            }
+        } catch (e: Exception) {
+            println("DiscoveryDashboard: Error fetching types: ${e.message}")
+        }
     }
 
     Box(
@@ -89,12 +99,12 @@ fun DiscoveryDashboard(
 
             // COMBINED SEARCH CARD
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().widthIn(max = 600.dp),
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.95f)),
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
             ) {
-                Column(Modifier.padding(20.dp)) {
+                Column(Modifier.padding(24.dp)) {
                     Text("Search filters", fontWeight = FontWeight.Black, color = Color(0xFF1A237E), fontSize = 14.sp)
                     Spacer(Modifier.height(16.dp))
                     
@@ -115,7 +125,7 @@ fun DiscoveryDashboard(
                         )
                     )
                     
-                    Spacer(Modifier.height(14.dp))
+                    Spacer(Modifier.height(16.dp))
                     
                     // Price Input
                     OutlinedTextField(
@@ -134,56 +144,98 @@ fun DiscoveryDashboard(
                         )
                     )
                     
-                    Spacer(Modifier.height(14.dp))
+                    Spacer(Modifier.height(16.dp))
 
-                    // Status Selection
-                    Text("PROPERTY STATUS", fontWeight = FontWeight.Black, color = Color.Gray, fontSize = 12.sp)
-                    Spacer(Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    // Status Dropdown
+                    ExposedDropdownMenuBox(
+                        expanded = statusExpanded,
+                        onExpandedChange = { statusExpanded = !statusExpanded },
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        statuses.forEach { option ->
-                            val isSelected = selectedStatus == option.value
-                            FilterChip(
-                                selected = isSelected,
-                                onClick = { selectedStatus = option.value },
-                                label = { Text(option.label, fontWeight = FontWeight.Bold, fontSize = 11.sp) },
-                                shape = RoundedCornerShape(10.dp),
-                                modifier = Modifier.weight(1f),
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = option.color.copy(alpha = 0.2f),
-                                    selectedLabelColor = option.color
-                                )
+                        OutlinedTextField(
+                            value = statuses.find { it.value == selectedStatus }?.label ?: "All Statuses",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Property Status", fontWeight = FontWeight.Bold) },
+                            leadingIcon = { Icon(Icons.Default.Info, null, tint = Color.Gray) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = statusExpanded) },
+                            modifier = Modifier.menuAnchor().fillMaxWidth(),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color(0xFF1A237E),
+                                unfocusedBorderColor = Color.LightGray
                             )
+                        )
+                        ExposedDropdownMenu(
+                            expanded = statusExpanded,
+                            onDismissRequest = { statusExpanded = false }
+                        ) {
+                            statuses.forEach { option ->
+                                DropdownMenuItem(
+                                    text = { Text(option.label) },
+                                    onClick = {
+                                        selectedStatus = option.value
+                                        statusExpanded = false
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Circle,
+                                            null,
+                                            tint = option.color,
+                                            modifier = Modifier.size(12.dp)
+                                        )
+                                    }
+                                )
+                            }
                         }
                     }
 
-                    Spacer(Modifier.height(24.dp))
-                    
-                    // Category Selection inside the card for clarity
-                    Text("PROPERTY TYPE", fontWeight = FontWeight.Bold, color = Color.Gray, fontSize = 12.sp)
-                    Spacer(Modifier.height(8.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        categories.forEach { category ->
-                            val isSelected = selectedType == category.type
-                            FilterChip(
-                                selected = isSelected,
-                                onClick = { selectedType = if (isSelected) null else category.type },
-                                label = { Text(category.name, fontWeight = FontWeight.Bold) },
-                                leadingIcon = { Icon(category.icon, null, modifier = Modifier.size(16.dp)) },
-                                shape = RoundedCornerShape(10.dp),
-                                modifier = Modifier.weight(1f),
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = category.color.copy(alpha = 0.2f),
-                                    selectedLabelColor = category.color,
-                                    selectedLeadingIconColor = category.color
-                                )
+                    Spacer(Modifier.height(16.dp))
+
+                    // Property Type Dropdown
+                    ExposedDropdownMenuBox(
+                        expanded = typeExpanded,
+                        onExpandedChange = { typeExpanded = !typeExpanded },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        OutlinedTextField(
+                            value = selectedType ?: "All Property Types",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Property Type", fontWeight = FontWeight.Bold) },
+                            leadingIcon = { Icon(Icons.Default.Home, null, tint = Color.Gray) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeExpanded) },
+                            modifier = Modifier.menuAnchor().fillMaxWidth(),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color(0xFF1A237E),
+                                unfocusedBorderColor = Color.LightGray
                             )
+                        )
+                        ExposedDropdownMenu(
+                            expanded = typeExpanded,
+                            onDismissRequest = { typeExpanded = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("All Types") },
+                                onClick = {
+                                    selectedType = null
+                                    typeExpanded = false
+                                }
+                            )
+                            propertyTypes.forEach { type ->
+                                DropdownMenuItem(
+                                    text = { Text(type) },
+                                    onClick = {
+                                        selectedType = type
+                                        typeExpanded = false
+                                    }
+                                )
+                            }
                         }
                     }
 
-                    Spacer(Modifier.height(24.dp))
+                    Spacer(Modifier.height(32.dp))
                     
                     Button(
                         onClick = { 
@@ -200,39 +252,8 @@ fun DiscoveryDashboard(
                 }
             }
 
-            Spacer(Modifier.height(32.dp))
-
-            // POPULAR AREAS
-            Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
-                Text("Popular Locations", color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp)
-                Spacer(Modifier.height(16.dp))
-                
-                Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
-                    listOf("Mbezi Beach", "Upanga", "Kijitonyama", "Masaki", "Posta").forEach { area ->
-                        Surface(
-                            modifier = Modifier
-                                .padding(end = 10.dp)
-                                .clickable { 
-                                    areaQuery = area
-                                    onSearch(selectedType, area, priceQuery.toDoubleOrNull(), selectedStatus)
-                                },
-                            color = Color.White.copy(alpha = 0.12f),
-                            shape = RoundedCornerShape(20.dp),
-                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.2f))
-                        ) {
-                            Text(
-                                area, 
-                                color = Color.White, 
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-                }
-            }
-            
             Spacer(Modifier.height(48.dp))
+
             
             // QUICK EXPLORE
             TextButton(
@@ -259,12 +280,5 @@ fun DiscoveryDashboard(
 private data class StatusOption(
     val label: String,
     val value: String?,
-    val color: Color
-)
-
-private data class DiscoveryCategory(
-    val name: String,
-    val icon: ImageVector,
-    val type: String,
     val color: Color
 )
