@@ -78,6 +78,20 @@ public class Room {
     @Column(name = "image_count")
     private int imageCount;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "property_id")
+    @JsonIgnore
+    private Property property;
+
+    @Column(name = "property_id", insertable = false, updatable = false)
+    private Long propertyId;
+
+    @Column(name = "floor_number")
+    private Integer floorNumber;
+
+    @Column(name = "unit_number")
+    private String unitNumber;
+
     // ==================== DALALI (AGENT) FIELDS ====================
 
     @Column(name = "dalali_id")

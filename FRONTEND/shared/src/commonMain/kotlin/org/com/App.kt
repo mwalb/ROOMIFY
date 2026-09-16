@@ -803,6 +803,18 @@ fun App() {
                             "postroom" -> {
                                     PostRoom(
                                         state = postRoomState,
+                                        onPostModeChange = postRoomViewModel::onPostModeChange,
+                                        onNumFloorsChange = postRoomViewModel::onNumFloorsChange,
+                                        onUpdateFloorConfig = postRoomViewModel::updateFloorConfig,
+                                        onAddRoomTemplate = postRoomViewModel::addRoomTemplate,
+                                        onUpdateRoomTemplate = postRoomViewModel::updateRoomTemplate,
+                                        onGenerateUnits = postRoomViewModel::generateUnits,
+                                        onToggleUnitSelection = postRoomViewModel::toggleUnitSelection,
+                                        onSelectAllUnits = postRoomViewModel::selectAllUnits,
+                                        onClearUnitSelection = postRoomViewModel::clearUnitSelection,
+                                        onBulkUpdateUnits = postRoomViewModel::bulkUpdateUnits,
+                                        onDeleteSelectedUnits = postRoomViewModel::deleteSelectedUnits,
+                                        onUnitImagesSelected = postRoomViewModel::onUnitImagesSelected,
                                         onLocationModeChange = postRoomViewModel::onLocationModeChange,
                                         onManualAddressChange = postRoomViewModel::onManualAddressChange,
                                         onLatitudeChange = postRoomViewModel::onLatitudeChange,

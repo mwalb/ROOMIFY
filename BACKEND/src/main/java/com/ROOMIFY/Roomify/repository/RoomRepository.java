@@ -137,7 +137,7 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
 
     @Modifying
     @Transactional
-    @Query("DELETE FROM Room r WHERE r.postedBy IS NULL")
+    @Query("DELETE FROM Room r WHERE r.postedBy IS NULL AND r.id NOT IN (SELECT b.room.id FROM Booking b)")
     void deleteRoomsWithNoOwner();
 
     // Check if room belongs to dalali

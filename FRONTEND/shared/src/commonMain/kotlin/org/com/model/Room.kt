@@ -35,7 +35,10 @@ data class Room(
     val hasVideo: Boolean = false,
     val hasContract: Boolean = false,
     val videoUrl: String? = null,
-    val contractUrl: String? = null
+    val contractUrl: String? = null,
+    val propertyId: Long? = null,
+    val floorNumber: Int? = null,
+    val unitNumber: String? = null
 ) {
     val formattedPrice: String
         get() = if (price > 0) {

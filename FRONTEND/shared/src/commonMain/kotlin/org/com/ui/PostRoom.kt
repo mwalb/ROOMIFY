@@ -8,8 +8,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,6 +20,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.Badge
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,8 +55,28 @@ private val PrimaryColor = Color(0xFF1A237E)
 private val PrimaryLight = Color(0xFF3949AB)
 
 enum class LocationInputMode { MAP, MANUAL }
+enum class PostMode { SINGLE, BUILDING }
+
+data class FloorConfig(
+    val floorNumber: Int = 1,
+    val numRooms: Int = 0,
+    val startRoomNumber: Int = 1,
+    val prefix: String = ""
+)
+
+data class RoomTemplate(
+    val id: String = "",
+    val name: String = "",
+    val price: String = "",
+    val type: String = "Apartment",
+    val amenities: Set<String> = emptySet(),
+    val rooms: String = "1",
+    val baths: String = "1",
+    val area: String = ""
+)
 
 data class PropertyFormState(
+    val postMode: PostMode = PostMode.SINGLE,
     val roomId: Long? = null,
     val isEditing: Boolean = false,
     val ownerName: String = "",
@@ -64,7 +88,7 @@ data class PropertyFormState(
     val title: String = "",
     val description: String = "",
     val price: String = "",
-    val propertyType: String = "",
+    val propertyType: String = "Apartment",
     val rooms: String = "",
     val bathrooms: String = "",
     val area: String = "",
@@ -83,7 +107,18 @@ data class PropertyFormState(
     val contractSelected: Boolean = false,
     val isSubmitting: Boolean = false,
     val errorMessage: String? = null,
-    val successMessage: String? = null
+    val successMessage: String? = null,
+
+    // Building Specific Fields
+    val numFloors: String = "1",
+    val floorConfigs: List<FloorConfig> = emptyList(),
+    val roomTemplates: List<RoomTemplate> = listOf(RoomTemplate(id = "default", name = "Standard Room")),
+    val generatedUnits: List<org.com.model.Room> = emptyList(),
+    val unitImages: Map<Int, List<KmpFile>> = emptyMap(), // index in generatedUnits -> list of images
+    val selectedUnits: Set<Int> = emptySet(), // Indices of generatedUnits
+    val unitSearchQuery: String = "",
+    val unitFilterFloor: Int? = null,
+    val unitFilterStatus: String? = null
 )
 
 private val propertyTypes = listOf("Apartment", "House", "Studio", "Room", "Office")
@@ -93,6 +128,18 @@ private val amenitiesList = listOf("WiFi", "Parking", "Air Conditioning", "Furni
 @Composable
 fun PostRoom(
     state: PropertyFormState,
+    onPostModeChange: (PostMode) -> Unit,
+    onNumFloorsChange: (String) -> Unit,
+    onUpdateFloorConfig: (Int, (FloorConfig) -> FloorConfig) -> Unit,
+    onAddRoomTemplate: () -> Unit,
+    onUpdateRoomTemplate: (String, (RoomTemplate) -> RoomTemplate) -> Unit,
+    onGenerateUnits: (Int, Int, Int, String) -> Unit,
+    onToggleUnitSelection: (Int) -> Unit,
+    onSelectAllUnits: () -> Unit,
+    onClearUnitSelection: () -> Unit,
+    onBulkUpdateUnits: (String?, String?, String?) -> Unit,
+    onDeleteSelectedUnits: () -> Unit,
+    onUnitImagesSelected: (Int, List<KmpFile>) -> Unit,
     onLocationModeChange: (LocationInputMode) -> Unit,
     onManualAddressChange: (String) -> Unit,
     onLatitudeChange: (String) -> Unit,
@@ -120,7 +167,7 @@ fun PostRoom(
 ) {
     val strings = LocalRoomifyStrings.current
     var currentStep by remember { mutableStateOf(1) }
-    val totalSteps = 4
+    val totalSteps = if (state.postMode == PostMode.SINGLE) 4 else 6
     val scrollState = rememberScrollState()
 
     // Animation for card entry
@@ -245,26 +292,22 @@ fun PostRoom(
                         },
                         label = "stepTransition"
                     ) { step ->
-                        when (step) {
-                            1 -> StepBasicInfo(state, onTitleChange, onDescriptionChange, onPriceChange, onPropertyTypeChange)
-                            2 -> StepDetails(state, onRoomsChange, onBathroomsChange, onAreaChange, onMaxGuestsChange, onToggleAmenity)
-                            3 -> StepLocation(
-                            state, 
-                            onLocationModeChange, 
-                            onManualAddressChange, 
-                            onLatitudeChange, 
-                            onLongitudeChange,
-                            onLocationSelected
-                        )
-                            4 -> StepMediaAndContact(
-                                state, 
-                                { imagesPicker.launch() }, 
-                                { videoPicker.launch() },
-                                { contractPicker.launch() },
-                                onContactPhoneChange, 
-                                onContactEmailChange, 
-                                onRulesChange
-                            )
+                        if (state.postMode == PostMode.SINGLE) {
+                            when (step) {
+                                1 -> StepBasicInfo(state, onPostModeChange, onTitleChange, onDescriptionChange, onPriceChange, onPropertyTypeChange)
+                                2 -> StepDetails(state, onRoomsChange, onBathroomsChange, onAreaChange, onMaxGuestsChange, onToggleAmenity)
+                                3 -> StepLocation(state, onLocationModeChange, onManualAddressChange, onLatitudeChange, onLongitudeChange, onLocationSelected)
+                                4 -> StepMediaAndContact(state, { imagesPicker.launch() }, { videoPicker.launch() }, { contractPicker.launch() }, onContactPhoneChange, onContactEmailChange, onRulesChange)
+                            }
+                        } else {
+                            when (step) {
+                                1 -> StepBasicInfo(state, onPostModeChange, onTitleChange, onDescriptionChange, onPriceChange, onPropertyTypeChange)
+                                2 -> StepLocation(state, onLocationModeChange, onManualAddressChange, onLatitudeChange, onLongitudeChange, onLocationSelected)
+                                3 -> StepFloorsAndTemplates(state, onNumFloorsChange, onUpdateFloorConfig, onAddRoomTemplate, onUpdateRoomTemplate)
+                                4 -> StepBulkGeneration(state, onGenerateUnits)
+                                5 -> StepReviewUnits(state, onToggleUnitSelection, onSelectAllUnits, onClearUnitSelection, onBulkUpdateUnits, onDeleteSelectedUnits, onUnitImagesSelected)
+                                6 -> StepMediaAndContact(state, { imagesPicker.launch() }, { videoPicker.launch() }, { contractPicker.launch() }, onContactPhoneChange, onContactEmailChange, onRulesChange)
+                            }
                         }
                     }
                     Spacer(Modifier.height(32.dp))
@@ -290,11 +333,21 @@ fun PostRoom(
                         Spacer(Modifier.width(12.dp))
                     }
                     
-                    val canGoNext = when (currentStep) {
-                        1 -> state.title.isNotBlank() && state.price.isNotBlank()
-                        2 -> state.rooms.isNotBlank() && state.area.isNotBlank()
-                        3 -> state.latitude.isNotBlank() && state.longitude.isNotBlank() && state.selectedAddress != "No location selected"
-                        else -> true
+                    val canGoNext = when (state.postMode) {
+                        PostMode.SINGLE -> when (currentStep) {
+                            1 -> state.title.isNotBlank() && state.price.isNotBlank()
+                            2 -> state.rooms.isNotBlank() && state.area.isNotBlank()
+                            3 -> state.latitude.isNotBlank() && state.longitude.isNotBlank() && state.selectedAddress != "No location selected"
+                            else -> true
+                        }
+                        PostMode.BUILDING -> when (currentStep) {
+                            1 -> state.title.isNotBlank()
+                            2 -> state.latitude.isNotBlank() && state.longitude.isNotBlank() && state.selectedAddress != "No location selected"
+                            3 -> state.numFloors.isNotBlank() && state.numFloors.toIntOrNull()?.let { it > 0 } == true
+                            4 -> true // Generation is optional or can be skipped
+                            5 -> state.generatedUnits.isNotEmpty()
+                            else -> true
+                        }
                     }
 
                     Button(
@@ -362,19 +415,43 @@ private fun StepProgressBar(currentStep: Int, totalSteps: Int) {
 }
 
 @Composable
-private fun StepBasicInfo(state: PropertyFormState, onTitleChange: (String) -> Unit, onDescriptionChange: (String) -> Unit, onPriceChange: (String) -> Unit, onPropertyTypeChange: (String) -> Unit) {
+private fun StepBasicInfo(state: PropertyFormState, onPostModeChange: (PostMode) -> Unit, onTitleChange: (String) -> Unit, onDescriptionChange: (String) -> Unit, onPriceChange: (String) -> Unit, onPropertyTypeChange: (String) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        SectionTitle("General Information")
-        ProfessionalTextField(value = state.title, onValueChange = onTitleChange, label = "Property Title", placeholder = "e.g. Modern Apartment")
+        SectionTitle("What are you posting?")
+        
+        Row(modifier = Modifier.fillMaxWidth().background(Color(0xFFF0F2F5), RoundedCornerShape(12.dp)).padding(4.dp)) {
+            PostModeOption("Single Room", state.postMode == PostMode.SINGLE, Modifier.weight(1f)) { onPostModeChange(PostMode.SINGLE) }
+            PostModeOption("Building / Multiple", state.postMode == PostMode.BUILDING, Modifier.weight(1f)) { onPostModeChange(PostMode.BUILDING) }
+        }
+
+        Spacer(Modifier.height(8.dp))
+        SectionTitle(if (state.postMode == PostMode.SINGLE) "General Information" else "Property Information")
+        ProfessionalTextField(value = state.title, onValueChange = onTitleChange, label = if (state.postMode == PostMode.SINGLE) "Property Title" else "Building/Complex Name", placeholder = "e.g. Modern Apartment")
         ProfessionalTextField(value = state.description, onValueChange = onDescriptionChange, label = "Description", placeholder = "Describe your property...", singleLine = false, minHeight = 100.dp)
         
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            ProfessionalTextField(value = state.price, onValueChange = onPriceChange, label = "Price (TZS)", modifier = Modifier.weight(1f), placeholder = "0.00")
-            Column(Modifier.weight(1f)) {
-                Text("Type", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.Gray, modifier = Modifier.padding(bottom = 6.dp))
-                PropertyTypeDropdown(state.propertyType, onPropertyTypeChange)
+        if (state.postMode == PostMode.SINGLE) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                ProfessionalTextField(value = state.price, onValueChange = onPriceChange, label = "Price (TZS)", modifier = Modifier.weight(1f), placeholder = "0.00")
+                Column(Modifier.weight(1f)) {
+                    Text("Type", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.Gray, modifier = Modifier.padding(bottom = 6.dp))
+                    PropertyTypeDropdown(state.propertyType, onPropertyTypeChange)
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun PostModeOption(label: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Box(
+        modifier = modifier
+            .height(44.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (selected) PrimaryColor else Color.Transparent)
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label, color = if (selected) Color.White else Color.Gray, fontWeight = FontWeight.Bold, fontSize = 13.sp)
     }
 }
 
@@ -809,6 +886,321 @@ private fun StatusOverlay(success: Boolean, msg: String, btnText: String, onDism
             }
         }
     }
+}
+
+@Composable
+private fun StepFloorsAndTemplates(
+    state: PropertyFormState,
+    onNumFloorsChange: (String) -> Unit,
+    onUpdateFloorConfig: (Int, (FloorConfig) -> FloorConfig) -> Unit,
+    onAddRoomTemplate: () -> Unit,
+    onUpdateRoomTemplate: (String, (RoomTemplate) -> RoomTemplate) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        SectionTitle("Building Structure")
+        ProfessionalTextField(value = state.numFloors, onValueChange = onNumFloorsChange, label = "Number of Floors", placeholder = "e.g. 5")
+        
+        state.floorConfigs.forEach { config ->
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                color = Color(0xFFF8F9FA),
+                border = BorderStroke(1.dp, Color(0xFFEEEEEE))
+            ) {
+                Column(Modifier.padding(12.dp)) {
+                    Text("Floor ${config.floorNumber}", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = config.numRooms.toString(),
+                            onValueChange = { val n = it.toIntOrNull() ?: 0; onUpdateFloorConfig(config.floorNumber) { it.copy(numRooms = n) } },
+                            label = { Text("Rooms", fontSize = 11.sp) },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        OutlinedTextField(
+                            value = config.startRoomNumber.toString(),
+                            onValueChange = { val n = it.toIntOrNull() ?: 0; onUpdateFloorConfig(config.floorNumber) { it.copy(startRoomNumber = n) } },
+                            label = { Text("Start #", fontSize = 11.sp) },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+        SectionTitle("Room Templates")
+        state.roomTemplates.forEach { template ->
+            TemplateEditCard(template) { updated -> onUpdateRoomTemplate(template.id, { updated }) }
+        }
+        
+        TextButton(onClick = onAddRoomTemplate) {
+            Icon(Icons.Default.Add, null)
+            Text("ADD ANOTHER TEMPLATE")
+        }
+    }
+}
+
+@Composable
+private fun TemplateEditCard(template: RoomTemplate, onUpdate: (RoomTemplate) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, if (expanded) PrimaryColor else Color(0xFFEEEEEE))
+    ) {
+        Column(Modifier.padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Dashboard, null, tint = PrimaryColor, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(12.dp))
+                Text(template.name, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                IconButton(onClick = { expanded = !expanded }) {
+                    Icon(if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore, null)
+                }
+            }
+            
+            if (expanded) {
+                Spacer(Modifier.height(12.dp))
+                ProfessionalTextField(value = template.name, onValueChange = { onUpdate(template.copy(name = it)) }, label = "Template Name")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ProfessionalTextField(value = template.price, onValueChange = { onUpdate(template.copy(price = it)) }, label = "Price", modifier = Modifier.weight(1f))
+                    ProfessionalTextField(value = template.area, onValueChange = { onUpdate(template.copy(area = it)) }, label = "Area", modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StepBulkGeneration(
+    state: PropertyFormState,
+    onGenerate: (Int, Int, Int, String) -> Unit
+) {
+    var selectedFloor by remember { mutableStateOf(state.floorConfigs.firstOrNull()?.floorNumber ?: 1) }
+    var selectedTemplate by remember { mutableStateOf(state.roomTemplates.firstOrNull()?.id ?: "") }
+    var startNum by remember { mutableStateOf("101") }
+    var count by remember { mutableStateOf("10") }
+
+    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        SectionTitle("Bulk Room Generation")
+        
+        Surface(color = Color(0xFFF0F2F5), shape = RoundedCornerShape(16.dp)) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text("Generator Tool", fontWeight = FontWeight.Bold, color = PrimaryColor)
+                
+                // Floor Selector
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Target Floor", modifier = Modifier.width(100.dp), fontSize = 14.sp)
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(state.floorConfigs) { config ->
+                            FilterChip(
+                                selected = selectedFloor == config.floorNumber,
+                                onClick = { selectedFloor = config.floorNumber },
+                                label = { Text("F${config.floorNumber}") }
+                            )
+                        }
+                    }
+                }
+
+                // Template Selector
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Template", modifier = Modifier.width(100.dp), fontSize = 14.sp)
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(state.roomTemplates) { tmpl ->
+                            FilterChip(
+                                selected = selectedTemplate == tmpl.id,
+                                onClick = { selectedTemplate = tmpl.id },
+                                label = { Text(tmpl.name) }
+                            )
+                        }
+                    }
+                }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    ProfessionalTextField(value = startNum, onValueChange = { startNum = it }, label = "Start Room #", modifier = Modifier.weight(1f))
+                    ProfessionalTextField(value = count, onValueChange = { count = it }, label = "How many rooms?", modifier = Modifier.weight(1f))
+                }
+
+                Button(
+                    onClick = { onGenerate(selectedFloor, startNum.toIntOrNull() ?: 1, count.toIntOrNull() ?: 0, selectedTemplate) },
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                ) {
+                    Icon(Icons.Default.Bolt, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("GENERATE ROOMS")
+                }
+            }
+        }
+
+        if (state.generatedUnits.isNotEmpty()) {
+            Text("${state.generatedUnits.size} rooms generated so far", fontWeight = FontWeight.Bold, color = Color.Gray)
+        }
+    }
+}
+
+@Composable
+private fun StepReviewUnits(
+    state: PropertyFormState,
+    onToggleSelection: (Int) -> Unit,
+    onSelectAll: () -> Unit,
+    onClearSelection: () -> Unit,
+    onBulkUpdate: (String?, String?, String?) -> Unit,
+    onDeleteSelected: () -> Unit,
+    onUnitImagesSelected: (Int, List<KmpFile>) -> Unit
+) {
+    var showBulkActions by remember { mutableStateOf(false) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        SectionTitle("Review & Edit Units")
+        
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("${state.selectedUnits.size} selected", fontSize = 12.sp, color = Color.Gray)
+            Row {
+                TextButton(onClick = onSelectAll) { Text("Select All") }
+                TextButton(onClick = onClearSelection) { Text("Clear") }
+            }
+        }
+
+        if (state.selectedUnits.isNotEmpty()) {
+            Surface(
+                color = PrimaryColor.copy(alpha = 0.05f),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, PrimaryColor.copy(alpha = 0.2f))
+            ) {
+                Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    IconButton(onClick = { showBulkActions = true }) { Icon(Icons.Default.Edit, null, tint = PrimaryColor) }
+                    IconButton(onClick = onDeleteSelected) { Icon(Icons.Default.Delete, null, tint = Color.Red) }
+                }
+            }
+        }
+
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth().heightIn(max = 500.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            itemsIndexed(state.generatedUnits) { index, unit ->
+                UnitReviewRow(
+                    unit = unit,
+                    isSelected = index in state.selectedUnits,
+                    images = state.unitImages[index] ?: emptyList(),
+                    onToggle = { onToggleSelection(index) },
+                    onAddImages = { files -> onUnitImagesSelected(index, files) }
+                )
+            }
+        }
+    }
+
+    if (showBulkActions) {
+        BulkUpdateDialog(
+            onDismiss = { showBulkActions = false },
+            onApply = { price, status, type ->
+                onBulkUpdate(price, status, type)
+                showBulkActions = false
+            }
+        )
+    }
+}
+
+@Composable
+private fun UnitReviewRow(
+    unit: org.com.model.Room, 
+    isSelected: Boolean, 
+    images: List<KmpFile>,
+    onToggle: () -> Unit,
+    onAddImages: (List<KmpFile>) -> Unit
+) {
+    val imagesPicker = rememberFilePickerLauncher(
+        type = FilePickerFileType.Image,
+        selectionMode = FilePickerSelectionMode.Multiple,
+        onResult = { onAddImages(images + it) }
+    )
+
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = if (isSelected) PrimaryColor.copy(alpha = 0.05f) else Color.White,
+        border = BorderStroke(1.dp, if (isSelected) PrimaryColor else Color(0xFFEEEEEE))
+    ) {
+        Column {
+            Row(
+                Modifier.padding(12.dp).clickable { onToggle() }, 
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(checked = isSelected, onCheckedChange = { onToggle() })
+                Column(Modifier.weight(1f).padding(start = 8.dp)) {
+                    Text(unit.unitNumber ?: "No #", fontWeight = FontWeight.Bold)
+                    Text("Floor ${unit.floorNumber}", fontSize = 11.sp, color = Color.Gray)
+                }
+                
+                Text("TZS ${unit.price.toInt()}", fontWeight = FontWeight.Black, color = PrimaryColor, fontSize = 13.sp)
+                
+                Spacer(Modifier.width(12.dp))
+                
+                IconButton(onClick = { imagesPicker.launch() }) {
+                    BadgedBox(badge = { if (images.isNotEmpty()) Badge { Text("${images.size}") } }) {
+                        Icon(Icons.Default.AddAPhoto, null, tint = if (images.isNotEmpty()) PrimaryColor else Color.Gray)
+                    }
+                }
+            }
+            
+            if (images.isNotEmpty()) {
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(images) { image ->
+                        Box(Modifier.size(40.dp)) {
+                            Box(
+                                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(4.dp)).background(Color(0xFFEEEEEE)), 
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.Image, null, tint = Color.LightGray, modifier = Modifier.size(20.dp))
+                            }
+                            
+                            // Simple remove button for unit images
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .offset(x = 4.dp, y = (-4).dp)
+                                    .size(14.dp)
+                                    .background(Color.Red, CircleShape)
+                                    .clickable { onAddImages(images - image) },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.size(10.dp))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BulkUpdateDialog(onDismiss: () -> Unit, onApply: (String?, String?, String?) -> Unit) {
+    var price by remember { mutableStateOf("") }
+    var status by remember { mutableStateOf("AVAILABLE") }
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Bulk Update Selected") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(value = price, onValueChange = { price = it }, label = { Text("New Price") })
+                // Add more fields if needed
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onApply(price.ifBlank { null }, status, null) }) { Text("Apply Changes") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
 }
 
 @Composable

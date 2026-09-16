@@ -154,6 +154,26 @@ object RoomifyApi {
     }
 
     // ============================================================
+    // PROPERTIES & BUILDINGS
+    // ============================================================
+
+    suspend fun createProperty(property: Property): ApiResponse<Property> {
+        return try {
+            ApiClient.post("properties", property)
+        } catch (e: Exception) {
+            ApiResponse(success = false, message = e.message ?: "Failed to create property")
+        }
+    }
+
+    suspend fun getOwnerProperties(ownerId: Long): ApiResponse<List<Property>> {
+        return ApiClient.get("properties/owner/$ownerId")
+    }
+
+    suspend fun getPropertyById(id: Long): ApiResponse<Property> {
+        return ApiClient.get("properties/$id")
+    }
+
+    // ============================================================
     // FURNITURE
     // ============================================================
 

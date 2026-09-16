@@ -18,6 +18,9 @@ import com.mohamedrejeb.calf.io.KmpFile
 import com.mohamedrejeb.calf.io.readByteArray
 import com.mohamedrejeb.calf.core.PlatformContext
 
+import org.com.network.RoomifyApi
+import org.com.model.Property
+
 class PostRoomViewModel(
     private val roomApi: RoomApi,
     private val authManager: AuthManager,
@@ -65,6 +68,103 @@ class PostRoomViewModel(
 
     fun onOwnerNameChange(name: String) {
         _uiState.value = _uiState.value.copy(ownerName = name)
+    }
+
+    fun onPostModeChange(mode: org.com.ui.PostMode) {
+        _uiState.value = _uiState.value.copy(postMode = mode)
+    }
+
+    fun onNumFloorsChange(num: String) {
+        val n = num.toIntOrNull() ?: 1
+        val currentConfigs = _uiState.value.floorConfigs
+        val newConfigs = (1..n).map { floorNum ->
+            currentConfigs.find { it.floorNumber == floorNum } ?: org.com.ui.FloorConfig(floorNumber = floorNum)
+        }
+        _uiState.value = _uiState.value.copy(numFloors = num, floorConfigs = newConfigs)
+    }
+
+    fun updateFloorConfig(floorNum: Int, update: (org.com.ui.FloorConfig) -> org.com.ui.FloorConfig) {
+        val updated = _uiState.value.floorConfigs.map {
+            if (it.floorNumber == floorNum) update(it) else it
+        }
+        _uiState.value = _uiState.value.copy(floorConfigs = updated)
+    }
+
+    fun updateRoomTemplate(id: String, update: (org.com.ui.RoomTemplate) -> org.com.ui.RoomTemplate) {
+        val updated = _uiState.value.roomTemplates.map {
+            if (it.id == id) update(it) else it
+        }
+        _uiState.value = _uiState.value.copy(roomTemplates = updated)
+    }
+
+    fun addRoomTemplate() {
+        val id = "tmpl_" + org.com.currentTimeMillis()
+        val newList = _uiState.value.roomTemplates + org.com.ui.RoomTemplate(id = id, name = "New Template")
+        _uiState.value = _uiState.value.copy(roomTemplates = newList)
+    }
+
+    fun generateUnits(floorNum: Int, startNum: Int, count: Int, templateId: String) {
+        val template = _uiState.value.roomTemplates.find { it.id == templateId } ?: return
+        val currentUnits = _uiState.value.generatedUnits.toMutableList()
+
+        for (i in 0 until count) {
+            val unitNum = startNum + i
+            val title = "${_uiState.value.title} - $unitNum"
+            val room = Room(
+                title = title,
+                price = template.price.toDoubleOrNull() ?: 0.0,
+                propertyType = template.type,
+                roomsCount = template.rooms.toIntOrNull() ?: 1,
+                bathroomsCount = template.baths.toIntOrNull() ?: 1,
+                area = template.area.toDoubleOrNull() ?: 0.0,
+                amenities = template.amenities.toList(),
+                floorNumber = floorNum,
+                unitNumber = unitNum.toString(),
+                status = "AVAILABLE"
+            )
+            currentUnits.add(room)
+        }
+        _uiState.value = _uiState.value.copy(generatedUnits = currentUnits)
+    }
+
+    fun toggleUnitSelection(index: Int) {
+        val current = _uiState.value.selectedUnits
+        val updated = if (index in current) current - index else current + index
+        _uiState.value = _uiState.value.copy(selectedUnits = updated)
+    }
+
+    fun selectAllUnits() {
+        _uiState.value = _uiState.value.copy(selectedUnits = _uiState.value.generatedUnits.indices.toSet())
+    }
+
+    fun clearUnitSelection() {
+        _uiState.value = _uiState.value.copy(selectedUnits = emptySet())
+    }
+
+    fun bulkUpdateUnits(price: String?, status: String?, type: String?) {
+        val selected = _uiState.value.selectedUnits
+        val updated = _uiState.value.generatedUnits.mapIndexed { index, room ->
+            if (index in selected) {
+                room.copy(
+                    price = price?.toDoubleOrNull() ?: room.price,
+                    status = status ?: room.status,
+                    propertyType = type ?: room.propertyType
+                )
+            } else room
+        }
+        _uiState.value = _uiState.value.copy(generatedUnits = updated)
+    }
+
+    fun deleteSelectedUnits() {
+        val selected = _uiState.value.selectedUnits
+        val remaining = _uiState.value.generatedUnits.filterIndexed { index, _ -> index !in selected }
+        _uiState.value = _uiState.value.copy(generatedUnits = remaining, selectedUnits = emptySet())
+    }
+
+    fun onUnitImagesSelected(index: Int, files: List<KmpFile>) {
+        val current = _uiState.value.unitImages.toMutableMap()
+        current[index] = files
+        _uiState.value = _uiState.value.copy(unitImages = current)
     }
 
     fun onLocationModeChange(mode: LocationInputMode) {
@@ -179,7 +279,7 @@ class PostRoomViewModel(
         val state = _uiState.value
         
         // Basic validation
-        if (state.title.isBlank() || state.price.isBlank() || state.contactPhone.isBlank()) {
+        if (state.title.isBlank() || (state.postMode == org.com.ui.PostMode.SINGLE && state.price.isBlank()) || state.contactPhone.isBlank()) {
             onError("Please fill in all required fields (Title, Price, Phone)")
             return
         }
@@ -194,68 +294,95 @@ class PostRoomViewModel(
 
         scope.launch {
             try {
-                val room = Room(
-                    id = state.roomId,
-                    title = state.title,
-                    description = state.description,
-                    price = state.price.toDoubleOrNull() ?: 0.0,
-                    propertyType = state.propertyType,
-                    latitude = state.latitude.toDoubleOrNull() ?: 0.0,
-                    longitude = state.longitude.toDoubleOrNull() ?: 0.0,
-                    address = state.selectedAddress,
-                    postedBy = auth.user.id,
-                    ownerName = state.ownerName,
-                    contactPhone = state.contactPhone,
-                    contactEmail = state.contactEmail,
-                    roomsCount = state.rooms.toIntOrNull() ?: 1,
-                    bathroomsCount = state.bathrooms.toIntOrNull() ?: 1,
-                    area = state.area.toDoubleOrNull() ?: 0.0,
-                    maxGuests = state.maxGuests.toIntOrNull() ?: 1,
-                    amenities = state.selectedAmenities.toList(),
-                    rules = listOf(state.rules),
-                    images = state.existingImages,
-                    videoUrl = state.existingVideo,
-                    contractUrl = state.existingContract,
-                    hasVideo = state.videoSelected,
-                    hasContract = state.contractSelected,
-                    status = "AVAILABLE"
-                )
-
-                val result = if (state.isEditing && state.roomId != null) {
-                    roomApi.updateRoom(state.roomId, room)
-                } else {
-                    roomApi.createRoom(room)
-                }
-
-                if (result != null && result.id != null) {
-                    val roomId = result.id!!
-                    
-                    // 1. Upload Images
-                    if (state.images.isNotEmpty()) {
-                        val imageBytes = state.images.map { it.readByteArray(context) }
-                        roomApi.uploadImages(roomId, imageBytes)
-                    }
-                    
-                    // 2. Upload Video
-                    state.video?.let {
-                        roomApi.uploadVideo(roomId, it.readByteArray(context))
-                    }
-                    
-                    // 3. Upload Contract
-                    state.contract?.let {
-                        roomApi.uploadContract(roomId, it.readByteArray(context))
-                    }
-
-                    _uiState.value = _uiState.value.copy(
-                        isSubmitting = false,
-                        successMessage = if (state.isEditing) "Your property has been updated successfully!" else "Your property \"${state.title}\" has been posted successfully and is now visible on the map!"
+                if (state.postMode == org.com.ui.PostMode.SINGLE) {
+                    val room = Room(
+                        id = state.roomId,
+                        title = state.title,
+                        description = state.description,
+                        price = state.price.toDoubleOrNull() ?: 0.0,
+                        propertyType = state.propertyType,
+                        latitude = state.latitude.toDoubleOrNull() ?: 0.0,
+                        longitude = state.longitude.toDoubleOrNull() ?: 0.0,
+                        address = state.selectedAddress,
+                        postedBy = auth.user.id,
+                        ownerName = state.ownerName,
+                        contactPhone = state.contactPhone,
+                        contactEmail = state.contactEmail,
+                        roomsCount = state.rooms.toIntOrNull() ?: 1,
+                        bathroomsCount = state.bathrooms.toIntOrNull() ?: 1,
+                        area = state.area.toDoubleOrNull() ?: 0.0,
+                        maxGuests = state.maxGuests.toIntOrNull() ?: 1,
+                        amenities = state.selectedAmenities.toList(),
+                        rules = listOf(state.rules),
+                        images = state.existingImages,
+                        videoUrl = state.existingVideo,
+                        contractUrl = state.existingContract,
+                        hasVideo = state.videoSelected,
+                        hasContract = state.contractSelected,
+                        status = "AVAILABLE"
                     )
+
+                    val result = if (state.isEditing && state.roomId != null) {
+                        roomApi.updateRoom(state.roomId, room)
+                    } else {
+                        roomApi.createRoom(room)
+                    }
+
+                    if (result != null && result.id != null) {
+                        handleMediaUploads(result.id!!, context)
+                        _uiState.value = _uiState.value.copy(
+                            isSubmitting = false,
+                            successMessage = "Your property \"${state.title}\" has been posted successfully!"
+                        )
+                    }
                 } else {
-                    _uiState.value = _uiState.value.copy(
-                        isSubmitting = false,
-                        errorMessage = "Failed to save room. Please try again."
+                    // BUILDING MODE
+                    val property = Property(
+                        title = state.title,
+                        description = state.description,
+                        address = state.selectedAddress,
+                        latitude = state.latitude.toDoubleOrNull() ?: 0.0,
+                        longitude = state.longitude.toDoubleOrNull() ?: 0.0,
+                        ownerId = auth.user.id,
+                        ownerName = state.ownerName,
+                        contactPhone = state.contactPhone,
+                        contactEmail = state.contactEmail,
+                        propertyType = "BUILDING",
+                        hasVideo = state.videoSelected,
+                        hasContract = state.contractSelected,
+                        units = state.generatedUnits.map { u ->
+                            u.copy(
+                                postedBy = auth.user.id,
+                                ownerName = state.ownerName,
+                                contactPhone = state.contactPhone,
+                                contactEmail = state.contactEmail,
+                                address = state.selectedAddress,
+                                latitude = state.latitude.toDoubleOrNull() ?: 0.0,
+                                longitude = state.longitude.toDoubleOrNull() ?: 0.0
+                            )
+                        }
                     )
-                    onError("Failed to save room. Please try again.")
+
+                    val result = RoomifyApi.createProperty(property)
+                    if (result.success && result.data != null) {
+                        val savedProperty = result.data!!
+                        
+                        // Upload Unit Images if any
+                        savedProperty.units.forEachIndexed { index, savedUnit ->
+                            val unitImages = state.unitImages[index]
+                            if (!unitImages.isNullOrEmpty() && savedUnit.id != null) {
+                                val imageBytes = unitImages.map { it.readByteArray(context) }
+                                roomApi.uploadImages(savedUnit.id!!, imageBytes)
+                            }
+                        }
+
+                        _uiState.value = _uiState.value.copy(
+                            isSubmitting = false,
+                            successMessage = "Building \"${state.title}\" with ${state.generatedUnits.size} units has been created!"
+                        )
+                    } else {
+                        throw Exception(result.message)
+                    }
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
@@ -265,6 +392,16 @@ class PostRoomViewModel(
                 onError(e.message ?: "An unexpected error occurred")
             }
         }
+    }
+
+    private suspend fun handleMediaUploads(roomId: Long, context: PlatformContext) {
+        val state = _uiState.value
+        if (state.images.isNotEmpty()) {
+            val imageBytes = state.images.map { it.readByteArray(context) }
+            roomApi.uploadImages(roomId, imageBytes)
+        }
+        state.video?.let { roomApi.uploadVideo(roomId, it.readByteArray(context)) }
+        state.contract?.let { roomApi.uploadContract(roomId, it.readByteArray(context)) }
     }
 
     fun deleteRoom(roomId: Long, onSuccess: () -> Unit, onError: (String) -> Unit) {
