@@ -63,7 +63,15 @@ public class SecurityConfig {
                         // ==========================================
 
                         // Creating/updating/deleting rooms requires login
+                        // Anyone authenticated can POST (to be checked in controller if specific roles needed, but usually Owner/Dalali)
                         .requestMatchers(HttpMethod.POST, "/api/rooms/**").authenticated()
+                        
+                        // Restrict approval/rejection/featured/promoted to Admin/SuperAdmin
+                        .requestMatchers("/api/rooms/*/approve").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers("/api/rooms/*/reject").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers("/api/rooms/*/featured").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers("/api/rooms/*/promoted").hasAnyRole("ADMIN", "SUPER_ADMIN")
+
                         .requestMatchers(HttpMethod.PUT, "/api/rooms/**").authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/api/rooms/**").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/rooms/**").authenticated()
@@ -75,7 +83,17 @@ public class SecurityConfig {
                         .requestMatchers("/api/favorites/**").authenticated()
 
                         // User endpoints require authentication
-                        .requestMatchers("/api/users/**").authenticated()
+                        .requestMatchers("/api/users/profile/**").authenticated()
+                        .requestMatchers("/api/users/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+
+                        // Analytics and System Audit require Admin or Super Admin
+                        .requestMatchers("/api/analytics/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers("/api/system/audit/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+
+                        // Admin management
+                        .requestMatchers("/api/admin-management/admins/**").hasRole("SUPER_ADMIN")
+                        .requestMatchers("/api/admin-management/users/*/role").hasRole("SUPER_ADMIN")
+                        .requestMatchers("/api/admin-management/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
 
                         // Everything else requires authentication
                         .anyRequest().authenticated()

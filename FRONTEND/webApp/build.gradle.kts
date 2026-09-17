@@ -13,7 +13,10 @@ kotlin {
         browser {
             commonWebpackConfig {
                 outputFileName = "webApp.js"
+
                 devServer = (devServer ?: KotlinWebpackConfig.DevServer()).apply {
+                    port = 8081
+
                     static = (static ?: mutableListOf()).apply {
                         add(project.rootDir.path)
                         add(project.projectDir.path)
@@ -21,6 +24,7 @@ kotlin {
                 }
             }
         }
+
         binaries.executable()
     }
 
@@ -33,10 +37,9 @@ kotlin {
             implementation(compose.components.resources)
             implementation("org.jetbrains.compose.material:material-icons-extended:1.6.0")
         }
-        
+
         wasmJsMain.dependencies {
             implementation(compose.ui)
-
         }
     }
 }

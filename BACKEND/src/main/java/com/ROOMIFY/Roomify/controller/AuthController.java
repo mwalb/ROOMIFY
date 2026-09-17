@@ -189,7 +189,7 @@ public class AuthController {
         user.setLastLoginAt(LocalDateTime.now());
         user = userRepository.save(user);
 
-        String jwt = jwtUtil.generateToken(user.getEmail());
+        String jwt = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
 
         Map<String, Object> userData = new HashMap<>();
         userData.put("id", user.getId());
@@ -260,7 +260,7 @@ public class AuthController {
 
             User savedUser = userService.save(user);
 
-            String token = jwtUtil.generateToken(savedUser.getEmail());
+            String token = jwtUtil.generateToken(savedUser.getEmail(), savedUser.getRole().name());
 
             AuthResponse response = new AuthResponse(
                     true,
@@ -310,8 +310,8 @@ public class AuthController {
             user.setLastLoginAt(LocalDateTime.now());
             User updatedUser = userRepository.save(user);
 
-            // Generate token
-            String token = jwtUtil.generateToken(updatedUser.getEmail());
+            // Generate token with role
+            String token = jwtUtil.generateToken(updatedUser.getEmail(), updatedUser.getRole().name());
 
             // Prepare response
             Map<String, Object> userData = new HashMap<>();
@@ -364,13 +364,36 @@ public class AuthController {
         }
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<AuthResponse> getCurrentUser(@RequestHeader("Authorization") String authHeader) {
+        try {
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new AuthResponse(false, null, null, "No token provided"));
+            }
+
+            String token = authHeader.substring(7);
+            String email = jwtUtil.extractEmail(token);
+
+            User user = userRepository.findByEmail(email).orElse(null);
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new AuthResponse(false, null, null, "User not found"));
+            }
+
+            // Return user and the same token (or refresh it)
+            return ResponseEntity.ok(new AuthResponse(true, token, user, "Session restored"));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new AuthResponse(false, null, null, "Invalid token"));
+        }
+    }
+
     @PostMapping("/guest")
     public ResponseEntity<Map<String, Object>> guestLogin() {
         Map<String, Object> response = new HashMap<>();
 
         try {
             // Create a temporary guest user or return a guest token
-            String guestToken = jwtUtil.generateToken("guest@temp.com");
+            String guestToken = jwtUtil.generateToken("guest@temp.com", "GUEST");
 
             Map<String, Object> userData = new HashMap<>();
             userData.put("id", -1);

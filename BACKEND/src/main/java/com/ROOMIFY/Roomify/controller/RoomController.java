@@ -4,6 +4,7 @@ import com.ROOMIFY.Roomify.dto.ApiResponse;
 import com.ROOMIFY.Roomify.model.Room;
 import com.ROOMIFY.Roomify.repository.RoomRepository;
 import com.ROOMIFY.Roomify.service.FCMService;
+import com.ROOMIFY.Roomify.service.AuditService;
 import com.ROOMIFY.Roomify.service.RoomNotifier;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,6 +38,9 @@ public class RoomController {
 
     @Autowired
     private RoomNotifier notifier;
+
+    @Autowired
+    private AuditService auditService;
 
     @Value("${file.upload.dir:uploads}")
     private String uploadDir;
@@ -385,6 +389,8 @@ public class RoomController {
 
             room.approve();
             repo.save(room);
+            
+            auditService.log("APPROVE_PROPERTY", "Room", roomId.toString(), "Property approved: " + room.getTitle());
 
             return ResponseEntity.ok(new ApiResponse<>(true, null, "Property approved successfully"));
         } catch (Exception e) {
@@ -408,6 +414,8 @@ public class RoomController {
 
             room.reject(reason != null ? reason : "No reason provided");
             repo.save(room);
+            
+            auditService.log("REJECT_PROPERTY", "Room", roomId.toString(), "Property rejected: " + room.getTitle() + ". Reason: " + reason);
 
             return ResponseEntity.ok(new ApiResponse<>(true, null, "Property rejected"));
         } catch (Exception e) {

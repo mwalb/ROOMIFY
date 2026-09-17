@@ -36,14 +36,30 @@ public class JwtUtil {
         System.out.println("Expiration: " + expiration + " ms (" + (expiration / 1000 / 60 / 60) + " hours)");
     }
 
-    // Generate JWT token
-    public String generateToken(String email) {
+    // Generate JWT token with role
+    public String generateToken(String email, String role) {
         return Jwts.builder()
                 .setSubject(email)
+                .claim("role", role)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(key, SignatureAlgorithm.HS512) // Use HS512
                 .compact();
+    }
+
+    // Keep original method for compatibility if needed, but preferably use the one with role
+    public String generateToken(String email) {
+        return generateToken(email, "USER");
+    }
+
+    // Extract claim from token
+    public String extractClaim(String token, String claimName) {
+        return Jwts.parser()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .get(claimName, String.class);
     }
 
     // Extract email/username from token

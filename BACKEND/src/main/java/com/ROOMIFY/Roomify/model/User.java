@@ -33,6 +33,7 @@ public class User {
     private UserRole role;
 
     private boolean emailVerified;
+    private boolean enabled = true;
     private String firebaseUid;
 
     @Column(columnDefinition = "TIMESTAMP")
