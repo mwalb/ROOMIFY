@@ -8,6 +8,7 @@ data class Booking(
     val userId: Long? = null,
     val userName: String? = null,
     val userEmail: String? = null,
+    val userPhone: String? = null,
     val roomId: Long? = null,
     val roomTitle: String? = null,
     val roomImageUrl: String? = null,
@@ -17,5 +18,6 @@ data class Booking(
     val endDate: String = "",
     val numberOfGuests: Int = 1,
     val specialRequests: String? = null,
+    val bookingDate: String? = null,
     val createdAt: String? = null
 )

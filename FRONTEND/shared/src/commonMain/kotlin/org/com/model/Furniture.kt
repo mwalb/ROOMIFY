@@ -35,6 +35,12 @@ data class Furniture(
     val address: String? = null,
     @SerialName("images")
     val images: List<String> = emptyList(),
+    @SerialName("shopId")
+    val shopId: Long? = null,
+    @SerialName("videoUrl")
+    val videoUrl: String? = null,
+    @SerialName("hasVideo")
+    val hasVideo: Boolean = false,
     @SerialName("createdAt")
     val createdAt: String? = null,
     @SerialName("status")

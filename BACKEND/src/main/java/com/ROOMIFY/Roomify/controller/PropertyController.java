@@ -7,6 +7,7 @@ import com.ROOMIFY.Roomify.repository.PropertyRepository;
 import com.ROOMIFY.Roomify.repository.RoomRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,9 +29,14 @@ public class PropertyController {
     }
 
     @GetMapping("/{id}")
+    @Transactional(readOnly = true)
     public ResponseEntity<ApiResponse<Property>> getById(@PathVariable Long id) {
         return repository.findById(id)
-                .map(p -> ResponseEntity.ok(new ApiResponse<>(true, p, "Property found")))
+                .map(p -> {
+                    // Force load units if lazy
+                    p.getUnits().size(); 
+                    return ResponseEntity.ok(new ApiResponse<>(true, p, "Property found"));
+                })
                 .orElse(ResponseEntity.notFound().build());
     }
 

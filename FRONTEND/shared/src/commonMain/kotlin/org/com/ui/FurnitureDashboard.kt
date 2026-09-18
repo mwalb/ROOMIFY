@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -29,31 +30,52 @@ import androidx.compose.ui.unit.sp
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
 import org.com.model.Furniture
+import org.com.model.Shop
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FurnitureDashboard(
     furnitures: List<Furniture>,
+    shops: List<Shop> = emptyList(),
     onBack: () -> Unit,
     onViewDetail: (Furniture) -> Unit,
+    onViewShop: (Shop) -> Unit = {},
     onNavigate: (String) -> Unit
 ) {
+    var selectedTab by remember { mutableStateOf(0) }
     val categories = listOf("All", "Bed", "Sofa", "Table", "Electronics", "Decor")
     var selectedCategory by remember { mutableStateOf("All") }
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Furniture & Home Decor", fontWeight = FontWeight.Black) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.White
+            Column(Modifier.background(Color.White)) {
+                CenterAlignedTopAppBar(
+                    title = { Text("Furniture Hub", fontWeight = FontWeight.Black) },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { 
+                            if (selectedTab == 0) onNavigate("post_furniture")
+                            else onNavigate("post_shop")
+                        }) {
+                            Icon(Icons.Default.Add, null)
+                        }
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
                 )
-            )
+                
+                TabRow(selectedTabIndex = selectedTab, containerColor = Color.White, contentColor = Color(0xFF6200EE)) {
+                    Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }) {
+                        Text("Products", modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold)
+                    }
+                    Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }) {
+                        Text("Shops", modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
         }
     ) { padding ->
         Column(
@@ -62,45 +84,119 @@ fun FurnitureDashboard(
                 .padding(padding)
                 .background(Color(0xFFF8F9FA))
         ) {
-            // Category Selector
-            LazyRow(
-                modifier = Modifier.padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(categories) { category ->
-                    FilterChip(
-                        selected = selectedCategory == category,
-                        onClick = { selectedCategory = category },
-                        label = { Text(category) },
-                        shape = RoundedCornerShape(12.dp)
-                    )
+            if (selectedTab == 0) {
+                // Category Selector
+                LazyRow(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(categories) { category ->
+                        FilterChip(
+                            selected = selectedCategory == category,
+                            onClick = { selectedCategory = category },
+                            label = { Text(category) },
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
                 }
-            }
 
-            // Furniture List
-            LazyColumn(
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                val filtered = if (selectedCategory == "All") furnitures
-                               else furnitures.filter { it.category.equals(selectedCategory, ignoreCase = true) }
+                // Furniture List
+                LazyColumn(
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    val filtered = if (selectedCategory == "All") furnitures
+                                   else furnitures.filter { it.category.equals(selectedCategory, ignoreCase = true) }
 
-                if (filtered.isEmpty()) {
-                    item {
-                        Box(Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(Icons.Default.Inventory, null, modifier = Modifier.size(64.dp), tint = Color.LightGray)
-                                Spacer(Modifier.height(16.dp))
-                                Text("Hakuna bidhaa zilizopatikana", color = Color.Gray)
-                            }
+                    if (filtered.isEmpty()) {
+                        item {
+                            EmptyStatePlaceholder("Hakuna bidhaa zilizopatikana")
+                        }
+                    } else {
+                        items(filtered) { item ->
+                            FurnitureCard(item, onClick = { onViewDetail(item) })
                         }
                     }
+                    item { Spacer(Modifier.height(80.dp)) }
+                }
+            } else {
+                // Shops List
+                LazyColumn(
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    if (shops.isEmpty()) {
+                        item {
+                            EmptyStatePlaceholder("Hakuna maduka yaliyosajiliwa bado")
+                        }
+                    } else {
+                        items(shops) { shop ->
+                            ShopCard(shop, onClick = { onViewShop(shop) })
+                        }
+                    }
+                    item { Spacer(Modifier.height(80.dp)) }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyStatePlaceholder(text: String) {
+    Box(Modifier.fillMaxWidth().height(400.dp), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(Icons.Default.Inventory, null, modifier = Modifier.size(64.dp), tint = Color.LightGray)
+            Spacer(Modifier.height(16.dp))
+            Text(text, color = Color.Gray)
+        }
+    }
+}
+
+@Composable
+fun ShopCard(shop: Shop, onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(80.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFFF0F2F5)), contentAlignment = Alignment.Center) {
+                if (shop.firstImageUrl != null) {
+                    KamelImage(
+                        resource = { asyncPainterResource(shop.firstImageUrl!!) },
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
                 } else {
-                    items(filtered) { item ->
-                        FurnitureCard(item, onClick = { onViewDetail(item) })
+                    Icon(Icons.Default.Storefront, null, tint = Color.LightGray, modifier = Modifier.size(32.dp))
+                }
+            }
+            
+            Spacer(Modifier.width(16.dp))
+            
+            Column(Modifier.weight(1f)) {
+                Text(shop.name, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.LocationOn, null, tint = Color.Gray, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text(shop.address ?: "Mtaa haujatajwa", color = Color.Gray, fontSize = 12.sp, maxLines = 1)
+                }
+                Spacer(Modifier.height(4.dp))
+                if (shop.hasVideo) {
+                    Surface(color = Color(0xFFFFEBEE), shape = CircleShape) {
+                        Row(Modifier.padding(horizontal = 8.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.PlayCircle, null, tint = Color.Red, modifier = Modifier.size(10.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("VIDEO DEMO", fontSize = 8.sp, fontWeight = FontWeight.Black, color = Color.Red)
+                        }
                     }
                 }
             }
+            
+            Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = Color.LightGray)
         }
     }
 }

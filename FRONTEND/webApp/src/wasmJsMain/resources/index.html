@@ -51,13 +51,13 @@
             width: 100vw;
             height: 100vh;
 
-            z-index: 1;
+            z-index: -1;
 
-            display: block;
+            display: none;
 
-            visibility: visible;
+            visibility: hidden;
 
-            opacity: 1;
+            opacity: 0;
 
             background: #e5e3df;
 
@@ -165,26 +165,26 @@
         }
 
 
-        map.style.zIndex = "1";
+        map.style.zIndex = "-1";
 
-        compose.style.zIndex = "0";
+        compose.style.zIndex = "10";
 
 
         map.style.display =
-            "block";
+            "none";
 
         map.style.visibility =
-            "visible";
+            "hidden";
 
         map.style.opacity =
-            "1";
+            "0";
 
 
         compose.style.background =
-            "transparent";
+            "white";
 
         compose.style.backgroundColor =
-            "transparent";
+            "white";
 
 
         const canvases =

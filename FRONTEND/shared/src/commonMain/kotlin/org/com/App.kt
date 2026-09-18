@@ -41,10 +41,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.com.auth.AuthManager
 import org.com.auth.AuthState
-import org.com.model.Booking
-import org.com.model.Conversation
-import org.com.model.Furniture
-import org.com.model.Room
+import org.com.model.*
 import org.com.network.RoomApi
 import org.com.ui.OwnerDashboardScreen
 import org.com.ui.PostRoom
@@ -173,16 +170,18 @@ fun App() {
         )
     }
 
-    var ownerBookings by remember { mutableStateOf<List<org.com.model.Booking>>(emptyList()) }
-    var tenantBookings by remember { mutableStateOf<List<org.com.model.Booking>>(emptyList()) }
-    var ownerConversations by remember { mutableStateOf<List<org.com.model.Conversation>>(emptyList()) }
-    var tenantConversations by remember { mutableStateOf<List<org.com.model.Conversation>>(emptyList()) }
+    var ownerBookings by remember { mutableStateOf<List<Booking>>(emptyList()) }
+    var tenantBookings by remember { mutableStateOf<List<Booking>>(emptyList()) }
+    var ownerConversations by remember { mutableStateOf<List<Conversation>>(emptyList()) }
+    var tenantConversations by remember { mutableStateOf<List<Conversation>>(emptyList()) }
     var tenantFavorites by remember { mutableStateOf<List<Room>>(emptyList()) }
     
     var furnitureList by remember { mutableStateOf(emptyList<Furniture>()) }
     var pendingFurniture by remember { mutableStateOf<Furniture?>(null) }
+    var shopList by remember { mutableStateOf(emptyList<Shop>()) }
+    var pendingShop by remember { mutableStateOf<Shop?>(null) }
     var showFantasticBubble by remember { mutableStateOf(false) }
-    var activeConversation by remember { mutableStateOf<org.com.model.Conversation?>(null) }
+    var activeConversation by remember { mutableStateOf<Conversation?>(null) }
 
     fun loadOwnerBookings() {
         val user = (authState as? AuthState.Authenticated)?.user
@@ -252,6 +251,14 @@ fun App() {
             val response = RoomifyApi.getAllFurniture()
             if (response.success && response.data != null) {
                 furnitureList = response.data!!
+            }
+        }
+
+        // Load shops
+        scope.launch {
+            val response = RoomifyApi.getAllShops()
+            if (response.success && response.data != null) {
+                shopList = response.data!!
             }
         }
     }
@@ -595,12 +602,29 @@ fun App() {
                     currentRoute == "furniture_dashboard" -> {
                         org.com.ui.FurnitureDashboard(
                             furnitures = furnitureList,
+                            shops = shopList,
                             onBack = { currentRoute = "discovery" },
                             onViewDetail = {
                                 pendingFurniture = it
                                 currentRoute = "furniture_detail"
                             },
+                            onViewShop = {
+                                pendingShop = it
+                                currentRoute = "shop_detail"
+                            },
                             onNavigate = ::navigateTo
+                        )
+                    }
+
+                    currentRoute == "shop_detail" && pendingShop != null -> {
+                        org.com.ui.ShopDetailScreen(
+                            shop = pendingShop!!,
+                            shopFurniture = furnitureList.filter { it.shopId == pendingShop?.id },
+                            onBack = { currentRoute = "furniture_dashboard" },
+                            onViewFurniture = {
+                                pendingFurniture = it
+                                currentRoute = "furniture_detail"
+                            }
                         )
                     }
 
@@ -614,8 +638,9 @@ fun App() {
                     currentRoute == "post_furniture" -> {
                         val ctx = platformContext
                         org.com.ui.PostFurniture(
-                            onBack = { currentRoute = "discovery" },
-                            onSubmit = { furniture, files ->
+                            shops = shopList,
+                            onBack = { currentRoute = "furniture_dashboard" },
+                            onSubmit = { furniture, files, videoFile ->
                                 scope.launch {
                                     try {
                                         // 1. Create Furniture Entry
@@ -638,6 +663,40 @@ fun App() {
                                         }
                                     } catch (e: Exception) {
                                         println("App: Furniture posting failed: ${e.message}")
+                                    }
+                                }
+                            }
+                        )
+                    }
+
+                    currentRoute == "post_shop" -> {
+                        val ctx = platformContext
+                        org.com.ui.PostShop(
+                            onBack = { currentRoute = "furniture_dashboard" },
+                            onSubmit = { shop, images, video ->
+                                scope.launch {
+                                    try {
+                                        val createResponse = RoomifyApi.createShop(shop.copy(ownerId = (authState as? AuthState.Authenticated)?.user?.id))
+                                        if (createResponse.success && createResponse.data?.id != null) {
+                                            val shopId = createResponse.data!!.id!!
+                                            
+                                            if (images.isNotEmpty()) {
+                                                val bytes = images.map { it.readByteArray(ctx) }
+                                                RoomifyApi.uploadShopImages(shopId, bytes)
+                                            }
+                                            
+                                            video?.let {
+                                                RoomifyApi.uploadShopVideo(shopId, it.readByteArray(ctx))
+                                            }
+                                            
+                                            val refreshResponse = RoomifyApi.getAllShops()
+                                            if (refreshResponse.success && refreshResponse.data != null) {
+                                                shopList = refreshResponse.data!!
+                                            }
+                                            currentRoute = "furniture_dashboard"
+                                        }
+                                    } catch (e: Exception) {
+                                        println("App: Shop posting failed: ${e.message}")
                                     }
                                 }
                             }

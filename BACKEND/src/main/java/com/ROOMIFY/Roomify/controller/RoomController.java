@@ -285,6 +285,18 @@ public class RoomController {
         }
     }
 
+    @GetMapping("/property/{propertyId}")
+    @Transactional(readOnly = true)
+    public ResponseEntity<ApiResponse<List<Room>>> getRoomsByProperty(@PathVariable Long propertyId) {
+        try {
+            List<Room> rooms = repo.findByPropertyId(propertyId);
+            return ResponseEntity.ok(new ApiResponse<>(true, rooms, "Rooms for property retrieved"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>(false, null, "Error: " + e.getMessage()));
+        }
+    }
+
     // ==================== BOOKING COUNT ENDPOINT ====================
 
     @GetMapping("/{roomId}/bookings/count")
@@ -319,6 +331,28 @@ public class RoomController {
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.ok(Arrays.asList("Room", "Apartment", "Studio", "House", "Office"));
+        }
+    }
+
+    @GetMapping("/areas")
+    @Transactional(readOnly = true)
+    public ResponseEntity<List<String>> getAreaSuggestions() {
+        try {
+            List<String> addresses = repo.findDistinctAddresses();
+            java.util.Set<String> areas = new java.util.HashSet<>();
+            
+            for (String addr : addresses) {
+                if (addr == null || addr.isEmpty()) continue;
+                String[] parts = addr.split(",");
+                if (parts.length > 0) {
+                    areas.add(parts[0].trim());
+                }
+            }
+            
+            return ResponseEntity.ok(new ArrayList<>(areas));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 

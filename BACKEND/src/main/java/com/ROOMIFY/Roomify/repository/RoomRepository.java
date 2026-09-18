@@ -17,6 +17,9 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     // Find rooms posted by a specific user (owner)
     List<Room> findByPostedBy(Long postedBy);
 
+    // Find all units in a building/complex
+    List<Room> findByPropertyId(Long propertyId);
+
     // Find all available rooms
     List<Room> findByIsAvailableTrue();
 
@@ -149,4 +152,7 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
 
     @Query("SELECT DISTINCT r.propertyType FROM Room r WHERE r.propertyType IS NOT NULL AND r.propertyType != ''")
     List<String> findDistinctPropertyTypes();
+
+    @Query("SELECT DISTINCT r.address FROM Room r WHERE r.address IS NOT NULL AND r.address != ''")
+    List<String> findDistinctAddresses();
 }

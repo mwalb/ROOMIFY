@@ -35,8 +35,7 @@ import androidx.compose.ui.unit.sp
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
 import org.com.i18n.LocalRoomifyStrings
-import org.com.model.Room
-import org.com.model.User
+import org.com.model.*
 import kotlinx.coroutines.launch
 import org.com.currentTimeMillis
 import org.com.network.ApiClient
@@ -49,14 +48,14 @@ private val PrimaryLight = Color(0xFF3949AB)
 fun DalaliDashboardScreen(
     user: User,
     properties: List<Room>,
-    bookings: List<org.com.model.Booking> = emptyList(),
+    bookings: List<Booking> = emptyList(),
     isRefreshing: Boolean = false,
     onAddProperty: () -> Unit,
     onLogout: () -> Unit,
     onViewProperty: (Room) -> Unit,
     onViewAnalytics: () -> Unit = {},
-    onAcceptBooking: (org.com.model.Booking) -> Unit = {},
-    onRejectBooking: (org.com.model.Booking) -> Unit = {},
+    onAcceptBooking: (Booking) -> Unit = {},
+    onRejectBooking: (Booking) -> Unit = {},
     onNavigate: (String) -> Unit = {},
     onBack: () -> Unit
 ) {
@@ -304,7 +303,7 @@ private fun DalaliPropertyCard(room: Room, onClick: () -> Unit) {
 }
 
 @Composable
-private fun DalaliBookingRequestCard(booking: org.com.model.Booking, onAccept: () -> Unit, onReject: () -> Unit) {
+private fun DalaliBookingRequestCard(booking: Booking, onAccept: () -> Unit, onReject: () -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),

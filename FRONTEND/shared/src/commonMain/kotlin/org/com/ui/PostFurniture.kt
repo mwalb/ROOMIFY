@@ -30,14 +30,18 @@ import com.mohamedrejeb.calf.picker.FilePickerFileType
 import com.mohamedrejeb.calf.picker.FilePickerSelectionMode
 import com.mohamedrejeb.calf.picker.rememberFilePickerLauncher
 import org.com.model.Furniture
+import org.com.model.Shop
+import org.com.network.RoomifyApi
 import org.com.ui.AddressResult
+import org.com.ui.components.AutocompleteTextField
 import org.com.ui.components.LocationPickerModal
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PostFurniture(
+    shops: List<Shop> = emptyList(),
     onBack: () -> Unit,
-    onSubmit: (Furniture, List<KmpFile>) -> Unit
+    onSubmit: (Furniture, List<KmpFile>, KmpFile?) -> Unit
 ) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -48,7 +52,10 @@ fun PostFurniture(
     var latitude by remember { mutableStateOf("") }
     var longitude by remember { mutableStateOf("") }
     var selectedImages by remember { mutableStateOf(emptyList<KmpFile>()) }
-    
+    var selectedVideo by remember { mutableStateOf<KmpFile?>(null) }
+
+    var selectedShop by remember { mutableStateOf<Shop?>(null) }
+
     var showMapModal by remember { mutableStateOf(false) }
     var selectedFullAddress by remember { mutableStateOf("") }
     
@@ -60,13 +67,23 @@ fun PostFurniture(
     val scrollState = rememberScrollState()
     val categories = listOf("Bed", "Sofa", "Table", "Electronics", "Decor", "Other")
 
+    var areaSuggestions by remember { mutableStateOf(emptyList<String>()) }
+    LaunchedEffect(Unit) {
+        try { areaSuggestions = RoomifyApi.getAreaSuggestions() } catch (e: Exception) {}
+    }
+
     val imagesPicker = rememberFilePickerLauncher(
         type = FilePickerFileType.Image,
         selectionMode = FilePickerSelectionMode.Multiple,
         onResult = { newFiles -> 
-            // Append new files to existing list to allow incremental adding
             selectedImages = selectedImages + newFiles 
         }
+    )
+
+    val videoPicker = rememberFilePickerLauncher(
+        type = FilePickerFileType.Video,
+        selectionMode = FilePickerSelectionMode.Single,
+        onResult = { selectedVideo = it.firstOrNull() }
     )
 
     Scaffold(
@@ -90,17 +107,18 @@ fun PostFurniture(
                             price = price.toDoubleOrNull() ?: 0.0,
                             category = category,
                             condition = condition,
-                            address = address,
-                            latitude = latitude.toDoubleOrNull() ?: 0.0,
-                            longitude = longitude.toDoubleOrNull() ?: 0.0,
-                            ownerName = sellerName,
-                            contactPhone = sellerPhone,
-                            contactEmail = sellerEmail,
+                            address = if (selectedShop != null) selectedShop!!.address else address,
+                            latitude = if (selectedShop != null) selectedShop!!.latitude else (latitude.toDoubleOrNull() ?: 0.0),
+                            longitude = if (selectedShop != null) selectedShop!!.longitude else (longitude.toDoubleOrNull() ?: 0.0),
+                            ownerName = if (selectedShop != null) selectedShop!!.name else sellerName,
+                            contactPhone = if (selectedShop != null) selectedShop!!.contactPhone else sellerPhone,
+                            contactEmail = if (selectedShop != null) selectedShop!!.contactEmail else sellerEmail,
+                            shopId = selectedShop?.id,
                             status = "AVAILABLE"
                         )
-                        onSubmit(furniture, selectedImages)
+                        onSubmit(furniture, selectedImages, selectedVideo)
                     },
-                    enabled = title.isNotBlank() && price.isNotBlank() && selectedImages.isNotEmpty() && sellerName.isNotBlank() && sellerPhone.isNotBlank(),
+                    enabled = title.isNotBlank() && price.isNotBlank() && selectedImages.isNotEmpty() && (selectedShop != null || (sellerName.isNotBlank() && sellerPhone.isNotBlank())),
                     modifier = Modifier.fillMaxWidth().padding(16.dp).height(56.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6200EE))
@@ -118,6 +136,38 @@ fun PostFurniture(
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
+            // Shop Selection
+            Text("Chagua Duka (Kama unalo)", fontWeight = FontWeight.Bold)
+            var shopExpanded by remember { mutableStateOf(false) }
+            ExposedDropdownMenuBox(
+                expanded = shopExpanded,
+                onExpandedChange = { shopExpanded = it },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = selectedShop?.name ?: "Binafsi (Sio duka)",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Duka la Bidhaa") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = shopExpanded) },
+                    modifier = Modifier.menuAnchor().fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    leadingIcon = { Icon(Icons.Default.Storefront, null, tint = Color(0xFF6200EE)) }
+                )
+                ExposedDropdownMenu(expanded = shopExpanded, onDismissRequest = { shopExpanded = false }) {
+                    DropdownMenuItem(
+                        text = { Text("Binafsi (Sio duka)") },
+                        onClick = { selectedShop = null; shopExpanded = false }
+                    )
+                    shops.forEach { shop ->
+                        DropdownMenuItem(
+                            text = { Text(shop.name) },
+                            onClick = { selectedShop = shop; shopExpanded = false }
+                        )
+                    }
+                }
+            }
+
             // Media Selection
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Picha za Bidhaa", fontWeight = FontWeight.Black, modifier = Modifier.weight(1f))
@@ -157,8 +207,6 @@ fun PostFurniture(
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
                                         Icon(Icons.Default.Image, null, tint = Color.LightGray, modifier = Modifier.size(32.dp))
-                                        // On mobile/web, KmpFile can't always be turned into a painter easily without async
-                                        // For now, we show a placeholder icon but the logic for "alot of pictures" is there.
                                     }
                                 }
                                 
@@ -193,6 +241,183 @@ fun PostFurniture(
                                     Text("Add More", fontSize = 11.sp, color = Color(0xFF6200EE), fontWeight = FontWeight.Bold)
                                 }
                             }
+                        }
+                    }
+                }
+            }
+
+            // Video Demo Selection
+            Text("Video Demo (Optional)", fontWeight = FontWeight.Bold)
+            Surface(
+                modifier = Modifier.fillMaxWidth().height(80.dp).clickable { videoPicker.launch() },
+                color = if (selectedVideo != null) Color(0xFFE8F5E9) else Color(0xFFF8F9FA),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, if (selectedVideo != null) Color(0xFF2E7D32) else Color(0xFFEEEEEE))
+            ) {
+                Row(
+                    Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        if (selectedVideo != null) Icons.Default.CheckCircle else Icons.Default.PlayCircle,
+                        null,
+                        tint = if (selectedVideo != null) Color(0xFF2E7D32) else Color.Gray
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        if (selectedVideo != null) "Video selected" else "Add item video demo",
+                        color = if (selectedVideo != null) Color(0xFF2E7D32) else Color.Gray
+                    )
+                }
+            }
+
+            // Form Fields
+            OutlinedTextField(
+                value = title,
+                onValueChange = { title = it },
+                label = { Text("Jina la Bidhaa") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            )
+
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = price,
+                    onValueChange = { price = it },
+                    label = { Text("Bei (TZS)") },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp)
+                )
+
+                var expanded by remember { mutableStateOf(false) }
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = it },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    OutlinedTextField(
+                        value = category,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Aina") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                        categories.forEach { cat ->
+                            DropdownMenuItem(
+                                text = { Text(cat) },
+                                onClick = { category = cat; expanded = false }
+                            )
+                        }
+                    }
+                }
+            }
+
+            OutlinedTextField(
+                value = description,
+                onValueChange = { description = it },
+                label = { Text("Maelezo zaidi") },
+                modifier = Modifier.fillMaxWidth().height(120.dp),
+                shape = RoundedCornerShape(12.dp),
+                singleLine = false
+            )
+
+            if (selectedShop == null) {
+                // Contact Information
+                Text("Taarifa za Muuzaji", fontWeight = FontWeight.Bold)
+                OutlinedTextField(
+                    value = sellerName,
+                    onValueChange = { sellerName = it },
+                    label = { Text("Jina Kamili") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    leadingIcon = { Icon(Icons.Default.Person, null) }
+                )
+
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(
+                        value = sellerPhone,
+                        onValueChange = { sellerPhone = it },
+                        label = { Text("Namba ya Simu") },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        leadingIcon = { Icon(Icons.Default.Phone, null) }
+                    )
+                    OutlinedTextField(
+                        value = sellerEmail,
+                        onValueChange = { sellerEmail = it },
+                        label = { Text("Email (Sio lazima)") },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        leadingIcon = { Icon(Icons.Default.Email, null) }
+                    )
+                }
+
+                // Location
+                Text("Eneo la Bidhaa", fontWeight = FontWeight.Bold)
+                
+                if (latitude.isNotBlank() && longitude.isNotBlank()) {
+                    Surface(
+                        color = Color(0xFFE8F5E9),
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        border = BorderStroke(1.dp, Color(0xFF2E7D32).copy(alpha = 0.2f))
+                    ) {
+                        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF2E7D32))
+                            Spacer(Modifier.width(12.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(address.ifBlank { "Location Selected" }, fontWeight = FontWeight.Bold, color = Color(0xFF1B5E20))
+                                if (selectedFullAddress.isNotBlank()) {
+                                    Text(selectedFullAddress, fontSize = 11.sp, color = Color(0xFF2E7D32))
+                                }
+                            }
+                            IconButton(onClick = { showMapModal = true }) {
+                                Icon(Icons.Default.EditLocationAlt, null, tint = Color(0xFF1B5E20))
+                            }
+                        }
+                    }
+                } else {
+                    AutocompleteTextField(
+                        value = address,
+                        onValueChange = { address = it },
+                        suggestions = areaSuggestions,
+                        label = "Mtaa / Eneo (Andika hapa)",
+                        placeholder = "e.g. Mbezi Beach, Dar es Salaam",
+                        onSuggestionSelected = { address = it }
+                    )
+
+                    Spacer(Modifier.height(8.dp))
+
+                    Button(
+                        onClick = { showMapModal = true },
+                        modifier = Modifier.fillMaxWidth().height(54.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A237E), contentColor = Color.White)
+                    ) {
+                        Icon(Icons.Default.Map, null)
+                        Spacer(Modifier.width(10.dp))
+                        Text("Chagua kwenye Ramani (Recommended)", fontWeight = FontWeight.Bold)
+                    }
+                }
+            } else {
+                // Show selected shop info summary
+                Surface(
+                    color = Color(0xFFE3F2FD),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    border = BorderStroke(1.dp, Color(0xFF2196F3).copy(alpha = 0.2f))
+                ) {
+                    Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Storefront, null, tint = Color(0xFF1976D2))
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text("Bidhaa itapostiwa chini ya duka:", fontSize = 11.sp, color = Color.Gray)
+                            Text(selectedShop!!.name, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
+                            Text(selectedShop!!.address ?: "Eneo la duka", fontSize = 12.sp, color = Color(0xFF1976D2))
                         }
                     }
                 }
@@ -306,14 +531,16 @@ fun PostFurniture(
                     }
                 }
             } else {
-                OutlinedTextField(
+                AutocompleteTextField(
                     value = address,
                     onValueChange = { address = it },
-                    label = { Text("Mtaa / Eneo (Andika hapa)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    leadingIcon = { Icon(Icons.Default.LocationOn, null) }
+                    suggestions = areaSuggestions,
+                    label = "Mtaa / Eneo (Andika hapa)",
+                    placeholder = "e.g. Mbezi Beach, Dar es Salaam",
+                    onSuggestionSelected = { address = it }
                 )
+
+                Spacer(Modifier.height(8.dp))
 
                 Button(
                     onClick = { showMapModal = true },

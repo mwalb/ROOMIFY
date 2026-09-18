@@ -8,47 +8,42 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "furniture")
+@Table(name = "shops")
 @Getter
 @Setter
-public class Furniture {
+public class Shop {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String title;
+    private String name;
     
     @Column(columnDefinition = "TEXT")
     private String description;
     
-    private double price;
-    private String category;
-    private String conditionStatus; // NEW, USED
-    
-    private Long postedBy;
-    private String ownerName;
-    private String contactPhone;
-    private String contactEmail;
-    
+    private String address;
     private double latitude;
     private double longitude;
-    private String address;
+    
+    private String contactPhone;
+    private String contactEmail;
+    private String websiteUrl;
+    
+    @Column(name = "owner_id")
+    private Long ownerId;
     
     @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "furniture_images", joinColumns = @JoinColumn(name = "furniture_id"))
+    @CollectionTable(name = "shop_images", joinColumns = @JoinColumn(name = "shop_id"))
     @Column(name = "image")
     private List<String> images = new ArrayList<>();
     
-    @Column(name = "shop_id")
-    private Long shopId;
-    
+    private String logoUrl;
     private String videoUrl;
     private boolean hasVideo;
     
-    private String status = "AVAILABLE"; // AVAILABLE, SOLD
-    
     private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime updatedAt = LocalDateTime.now();
 
-    public Furniture() {}
+    public Shop() {}
 }

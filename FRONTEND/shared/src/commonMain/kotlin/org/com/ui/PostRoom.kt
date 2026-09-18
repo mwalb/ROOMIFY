@@ -47,9 +47,13 @@ import com.mohamedrejeb.calf.picker.FilePickerSelectionMode
 import com.mohamedrejeb.calf.picker.rememberFilePickerLauncher
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
+import org.com.model.*
 import kotlinx.coroutines.launch
 import org.com.i18n.LocalRoomifyStrings
 import org.com.network.ApiClient
+
+import org.com.network.RoomifyApi
+import org.com.ui.components.AutocompleteTextField
 
 private val PrimaryColor = Color(0xFF1A237E)
 private val PrimaryLight = Color(0xFF3949AB)
@@ -113,7 +117,7 @@ data class PropertyFormState(
     val numFloors: String = "1",
     val floorConfigs: List<FloorConfig> = emptyList(),
     val roomTemplates: List<RoomTemplate> = listOf(RoomTemplate(id = "default", name = "Standard Room")),
-    val generatedUnits: List<org.com.model.Room> = emptyList(),
+    val generatedUnits: List<Room> = emptyList(),
     val unitImages: Map<Int, List<KmpFile>> = emptyMap(), // index in generatedUnits -> list of images
     val selectedUnits: Set<Int> = emptySet(), // Indices of generatedUnits
     val unitSearchQuery: String = "",
@@ -169,6 +173,11 @@ fun PostRoom(
     var currentStep by remember { mutableStateOf(1) }
     val totalSteps = if (state.postMode == PostMode.SINGLE) 4 else 6
     val scrollState = rememberScrollState()
+    
+    var areaSuggestions by remember { mutableStateOf(emptyList<String>()) }
+    LaunchedEffect(Unit) {
+        try { areaSuggestions = RoomifyApi.getAreaSuggestions() } catch (e: Exception) {}
+    }
 
     // Animation for card entry
     val cardAlpha = remember { Animatable(0f) }
@@ -296,13 +305,13 @@ fun PostRoom(
                             when (step) {
                                 1 -> StepBasicInfo(state, onPostModeChange, onTitleChange, onDescriptionChange, onPriceChange, onPropertyTypeChange)
                                 2 -> StepDetails(state, onRoomsChange, onBathroomsChange, onAreaChange, onMaxGuestsChange, onToggleAmenity)
-                                3 -> StepLocation(state, onLocationModeChange, onManualAddressChange, onLatitudeChange, onLongitudeChange, onLocationSelected)
+                                3 -> StepLocation(state, onLocationModeChange, onManualAddressChange, onLatitudeChange, onLongitudeChange, onLocationSelected, areaSuggestions)
                                 4 -> StepMediaAndContact(state, { imagesPicker.launch() }, { videoPicker.launch() }, { contractPicker.launch() }, onContactPhoneChange, onContactEmailChange, onRulesChange)
                             }
                         } else {
                             when (step) {
                                 1 -> StepBasicInfo(state, onPostModeChange, onTitleChange, onDescriptionChange, onPriceChange, onPropertyTypeChange)
-                                2 -> StepLocation(state, onLocationModeChange, onManualAddressChange, onLatitudeChange, onLongitudeChange, onLocationSelected)
+                                2 -> StepLocation(state, onLocationModeChange, onManualAddressChange, onLatitudeChange, onLongitudeChange, onLocationSelected, areaSuggestions)
                                 3 -> StepFloorsAndTemplates(state, onNumFloorsChange, onUpdateFloorConfig, onAddRoomTemplate, onUpdateRoomTemplate)
                                 4 -> StepBulkGeneration(state, onGenerateUnits)
                                 5 -> StepReviewUnits(state, onToggleUnitSelection, onSelectAllUnits, onClearUnitSelection, onBulkUpdateUnits, onDeleteSelectedUnits, onUnitImagesSelected)
@@ -485,7 +494,8 @@ private fun StepLocation(
     onManualAddressChange: (String) -> Unit, 
     onLatitudeChange: (String) -> Unit, 
     onLongitudeChange: (String) -> Unit,
-    onLocationSelected: (AddressResult) -> Unit
+    onLocationSelected: (AddressResult) -> Unit,
+    areaSuggestions: List<String> = emptyList()
 ) {
     val showTabs = isMapTabSupported()
     var showMapModal by remember { mutableStateOf(false) }
@@ -527,22 +537,21 @@ private fun StepLocation(
                         Text("Property Address", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
                         
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedTextField(
-                                value = state.manualAddress,
-                                onValueChange = { 
-                                    onManualAddressChange(it)
-                                },
-                                placeholder = { Text("e.g. Mbezi Beach, Dar es Salaam", fontSize = 13.sp) },
-                                modifier = Modifier.weight(1f).height(56.dp),
-                                shape = RoundedCornerShape(10.dp),
-                                singleLine = true,
-                                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PrimaryColor)
-                            )
+                            Box(modifier = Modifier.weight(1f)) {
+                                AutocompleteTextField(
+                                    value = state.manualAddress,
+                                    onValueChange = { onManualAddressChange(it) },
+                                    suggestions = areaSuggestions,
+                                    label = "Address",
+                                    placeholder = "e.g. Mbezi Beach, Dar es Salaam",
+                                    onSuggestionSelected = { onManualAddressChange(it) }
+                                )
+                            }
                             
                             Button(
                                 onClick = { showMapModal = true },
                                 modifier = Modifier.height(56.dp),
-                                shape = RoundedCornerShape(10.dp),
+                                shape = RoundedCornerShape(14.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
                             ) {
                                 Icon(Icons.Default.LocationOn, null, modifier = Modifier.size(18.dp))
@@ -1107,7 +1116,7 @@ private fun StepReviewUnits(
 
 @Composable
 private fun UnitReviewRow(
-    unit: org.com.model.Room, 
+    unit: Room,
     isSelected: Boolean, 
     images: List<KmpFile>,
     onToggle: () -> Unit,

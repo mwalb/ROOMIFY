@@ -21,8 +21,19 @@
      * displayed markers.
      */
     window.roomifyAllRooms = [];
+    window.roomifyAreaSuggestions = [];
 
     window.roomifySearchQuery = "";
+
+    function fetchAreaSuggestions() {
+        fetch('/api/rooms/areas')
+            .then(response => response.json())
+            .then(data => {
+                window.roomifyAreaSuggestions = data || [];
+                console.log("Roomify: Fetched " + window.roomifyAreaSuggestions.length + " area suggestions");
+            })
+            .catch(err => console.error("Roomify: Failed to fetch area suggestions", err));
+    }
 
     /*
      * ============================================================
@@ -196,8 +207,42 @@
                 background: rgba(255, 255, 255, 0.96);
                 border-radius: 18px;
                 box-shadow: 0 3px 12px rgba(0,0,0,0.15);
-                overflow: hidden;
                 border: 1px solid #BDBDBD;
+                position: relative;
+            }
+
+            .roomify-autocomplete-dropdown {
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: white;
+                border-radius: 0 0 18px 18px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                border: 1px solid #BDBDBD;
+                border-top: none;
+                z-index: 10002;
+                max-height: 250px;
+                overflow-y: auto;
+                display: none;
+            }
+
+            .roomify-autocomplete-item {
+                padding: 12px 16px;
+                cursor: pointer;
+                border-bottom: 1px solid #F5F5F5;
+                color: #1A237E;
+                font-weight: 500;
+                display: flex;
+                align-items: center;
+            }
+
+            .roomify-autocomplete-item:hover {
+                background: #F0F2F5;
+            }
+
+            .roomify-autocomplete-item:last-child {
+                border-bottom: none;
             }
 
             .roomify-search-icon {
@@ -871,6 +916,8 @@
             >
                 ×
             </button>
+
+            <div id="roomify-autocomplete-dropdown" class="roomify-autocomplete-dropdown"></div>
         `;
 
         var input =
@@ -883,37 +930,12 @@
                 "#roomify-search-clear"
             );
 
-        /*
-         * Prevent map gestures when interacting with search.
-         */
+        var dropdown =
+            wrapper.querySelector(
+                "#roomify-autocomplete-dropdown"
+            );
 
-        wrapper.addEventListener(
-            "click",
-            function (event) {
-
-                event.stopPropagation();
-            }
-        );
-
-        wrapper.addEventListener(
-            "mousedown",
-            function (event) {
-
-                event.stopPropagation();
-            }
-        );
-
-        wrapper.addEventListener(
-            "touchstart",
-            function (event) {
-
-                event.stopPropagation();
-            },
-            {
-                passive: true
-            }
-        );
-
+        fetchAreaSuggestions();
 
         input.addEventListener(
             "input",
@@ -934,8 +956,52 @@
                 filterRooms(
                     query
                 );
+
+                updateAutocompleteDropdown(query);
             }
         );
+
+        function updateAutocompleteDropdown(query) {
+            if (query.length < 2) {
+                dropdown.style.display = "none";
+                return;
+            }
+
+            var filtered = window.roomifyAreaSuggestions.filter(function(area) {
+                return area.toLowerCase().includes(query.toLowerCase()) && area !== query;
+            }).slice(0, 5);
+
+            if (filtered.length === 0) {
+                dropdown.style.display = "none";
+                return;
+            }
+
+            dropdown.innerHTML = "";
+            filtered.forEach(function(area) {
+                var item = document.createElement("div");
+                item.className = "roomify-autocomplete-item";
+                item.innerHTML = `
+                    <span style="margin-right:10px;">📍</span>
+                    <span>${area}</span>
+                `;
+                item.onclick = function() {
+                    input.value = area;
+                    window.roomifySearchQuery = area;
+                    dropdown.style.display = "none";
+                    filterRooms(area);
+                };
+                dropdown.appendChild(item);
+            });
+
+            dropdown.style.display = "block";
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener("click", function(e) {
+            if (!wrapper.contains(e.target)) {
+                dropdown.style.display = "none";
+            }
+        });
 
 
         clear.addEventListener(
@@ -2516,7 +2582,8 @@
     function createPriceIcon(
         price,
         status,
-        selected
+        selected,
+        isComplex
     ) {
 
         var text =
@@ -2534,6 +2601,10 @@
                 ? 1.0
                 : statusAlpha(status);
 
+        var buildingIndicator = isComplex ?
+            '<circle cx="82" cy="12" r="10" fill="#FFFFFF" stroke="' + color + '" stroke-width="1.5"/>' +
+            '<text x="82" y="15.5" text-anchor="middle" font-size="9" fill="' + color + '">🏢</text>'
+            : '';
 
         var svg =
             '<svg xmlns="http://www.w3.org/2000/svg" ' +
@@ -2568,6 +2639,8 @@
             'fill="' +
             color +
             '"/>' +
+
+            buildingIndicator +
 
             '<path ' +
             'd="M42 35 L50 47 L58 35" ' +
@@ -3281,7 +3354,8 @@
                     createPriceIcon(
                         entry.room.price,
                         entry.room.status,
-                        selected
+                        selected,
+                        !!entry.room.propertyId
                     )
                 );
             }
@@ -3376,7 +3450,8 @@
                         createPriceIcon(
                             room.price,
                             room.status,
-                            selected
+                            selected,
+                            !!room.propertyId
                         ),
 
                     optimized:

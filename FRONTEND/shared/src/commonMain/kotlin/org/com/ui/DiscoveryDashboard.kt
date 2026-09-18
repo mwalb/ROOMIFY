@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import org.com.network.RoomifyApi
+import org.com.ui.components.AutocompleteTextField
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,6 +37,7 @@ fun DiscoveryDashboard(
     var selectedStatus by remember { mutableStateOf<String?>(null) }
     
     var propertyTypes by remember { mutableStateOf(listOf("Room", "Apartment", "Studio", "House", "Office")) }
+    var areaSuggestions by remember { mutableStateOf(emptyList<String>()) }
     var statusExpanded by remember { mutableStateOf(false) }
     var typeExpanded by remember { mutableStateOf(false) }
 
@@ -51,14 +53,16 @@ fun DiscoveryDashboard(
     LaunchedEffect(Unit) {
         delay(100)
         visible = true
-        // Fetch property types from backend
+        // Fetch metadata from backend
         try {
             val fetchedTypes = RoomifyApi.getPropertyTypes()
             if (fetchedTypes.isNotEmpty()) {
                 propertyTypes = fetchedTypes
             }
+            
+            areaSuggestions = RoomifyApi.getAreaSuggestions()
         } catch (e: Exception) {
-            println("DiscoveryDashboard: Error fetching types: ${e.message}")
+            println("DiscoveryDashboard: Error fetching metadata: ${e.message}")
         }
     }
 
@@ -108,21 +112,14 @@ fun DiscoveryDashboard(
                     Text("Search filters", fontWeight = FontWeight.Black, color = Color(0xFF1A237E), fontSize = 14.sp)
                     Spacer(Modifier.height(16.dp))
                     
-                    // Area Input
-                    OutlinedTextField(
+                    // Area Input with Autocomplete
+                    AutocompleteTextField(
                         value = areaQuery,
                         onValueChange = { areaQuery = it },
-                        label = { Text("Location / Area", fontWeight = FontWeight.Bold) },
-                        placeholder = { Text("e.g. Upanga, Mbezi, City Center") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        leadingIcon = { Icon(Icons.Default.LocationOn, null, tint = Color(0xFF1A237E)) },
-                        trailingIcon = { if(areaQuery.isNotEmpty()) IconButton(onClick = { areaQuery = "" }) { Icon(Icons.Default.Clear, null) } },
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF1A237E),
-                            unfocusedBorderColor = Color.LightGray
-                        )
+                        suggestions = areaSuggestions,
+                        label = "Location / Area",
+                        placeholder = "e.g. Upanga, Mbezi, City Center",
+                        onSuggestionSelected = { areaQuery = it }
                     )
                     
                     Spacer(Modifier.height(16.dp))

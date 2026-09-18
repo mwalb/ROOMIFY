@@ -89,13 +89,13 @@ public class AdminManagementController {
         User user = userRepository.findById(id).orElse(null);
         if (user == null) return ResponseEntity.notFound().build();
 
-        boolean enabled = request.get("enabled");
-        user.setEnabled(enabled);
+        // boolean enabled = request.get("enabled");
+        // user.setEnabled(enabled);
         User saved = userRepository.save(user);
         
-        String action = enabled ? "ACTIVATE" : "DEACTIVATE";
-        auditService.log(action, "User", id.toString(), "Account " + (enabled ? "enabled" : "disabled"));
+        // String action = enabled ? "ACTIVATE" : "DEACTIVATE";
+        // auditService.log(action, "User", id.toString(), "Account " + (enabled ? "enabled" : "disabled"));
 
-        return ResponseEntity.ok(new ApiResponse<>(true, saved, "User status updated successfully"));
+        return ResponseEntity.ok(new ApiResponse<>(true, saved, "User status updated (field currently disabled in DB)"));
     }
 }

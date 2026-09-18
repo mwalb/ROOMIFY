@@ -433,6 +433,22 @@ private fun TenantPropertyCard(room: Room, onClick: () -> Unit) {
                         }
                     }
                 )
+                
+                if (room.propertyId != null) {
+                    Surface(
+                        modifier = Modifier.align(Alignment.TopStart).padding(8.dp),
+                        color = PrimaryColor,
+                        shape = CircleShape
+                    ) {
+                        Icon(
+                            Icons.Default.CorporateFare,
+                            null,
+                            tint = Color.White,
+                            modifier = Modifier.padding(4.dp).size(14.dp)
+                        )
+                    }
+                }
+
                 Surface(
                     modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
                     color = Color.Black.copy(alpha = 0.6f),

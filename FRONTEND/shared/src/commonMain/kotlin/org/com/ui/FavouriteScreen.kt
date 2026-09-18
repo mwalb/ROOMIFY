@@ -119,6 +119,22 @@ private fun SavedRoomCard(room: Room, onClick: () -> Unit) {
                     )
                 }
 
+                if (room.propertyId != null) {
+                    Surface(
+                        modifier = Modifier.align(Alignment.TopStart).padding(12.dp),
+                        color = PrimaryColor,
+                        shape = CircleShape,
+                        shadowElevation = 4.dp
+                    ) {
+                        Icon(
+                            Icons.Default.CorporateFare,
+                            null,
+                            tint = Color.White,
+                            modifier = Modifier.padding(8.dp).size(16.dp)
+                        )
+                    }
+                }
+
                 Surface(
                     modifier = Modifier.align(Alignment.BottomStart).padding(12.dp),
                     color = Color.Black.copy(alpha = 0.6f),

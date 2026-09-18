@@ -39,6 +39,8 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SquareFoot
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -488,6 +490,14 @@ actual fun MapContent(
     onViewProperty: (Room) -> Unit,
     onNavigate: (String) -> Unit
 ) {
+    val areaSuggestions = remember { mutableStateListOf<String>() }
+    LaunchedEffect(Unit) {
+        try {
+            val suggestions = RoomifyApi.getAreaSuggestions()
+            areaSuggestions.clear()
+            areaSuggestions.addAll(suggestions)
+        } catch (e: Exception) {}
+    }
 
     /*
      * ========================================================
@@ -903,7 +913,9 @@ actual fun MapContent(
             },
 
             searchFocusRequester =
-                searchFocusRequester
+                searchFocusRequester,
+            
+            suggestions = areaSuggestions
         )
 
 
@@ -1002,26 +1014,25 @@ private fun MapHeader(
     onMenuClick: () -> Unit,
     onSearchChange: (String) -> Unit,
     onSearchClick: () -> Unit,
-    searchFocusRequester: FocusRequester
+    searchFocusRequester: FocusRequester,
+    suggestions: List<String> = emptyList()
 ) {
     val strings = LocalRoomifyStrings.current
 
-    Row(
-
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(
-                    start = 14.dp,
-                    end = 14.dp,
-                    top = 18.dp
-                ),
-
-        verticalAlignment =
-            Alignment.CenterVertically,
-        
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 18.dp)
     ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            /*
+             * ====================================================
 
 
         /*
@@ -1361,6 +1372,41 @@ private fun MapHeader(
                             statusExpanded = false
                         }
                     )
+                }
+            }
+        }
+
+        // Suggestions Dropdown (Android)
+        val filteredSuggestions = remember(searchQuery, suggestions) {
+            if (searchQuery.length < 2) emptyList()
+            else suggestions.filter { it.contains(searchQuery, ignoreCase = true) && it != searchQuery }.take(5)
+        }
+
+        if (filteredSuggestions.isNotEmpty()) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 70.dp) // Align with search bar
+                    .padding(top = 4.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = Color.White,
+                shadowElevation = 8.dp,
+                border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.5f))
+            ) {
+                Column {
+                    filteredSuggestions.forEach { suggestion ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSearchChange(suggestion) }
+                                .padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.LocationOn, null, modifier = Modifier.size(16.dp), tint = Color.Gray)
+                            Spacer(Modifier.width(12.dp))
+                            Text(suggestion, fontSize = 13.sp, color = RoomifyGradientStart)
+                        }
+                    }
                 }
             }
         }
@@ -1840,6 +1886,41 @@ private fun RoomifySideBar(
                                     overflow = TextOverflow.Ellipsis
                                 )
                             }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Suggestions Dropdown (Android)
+        val filteredSuggestions = remember(searchQuery, suggestions) {
+            if (searchQuery.length < 2) emptyList()
+            else suggestions.filter { it.contains(searchQuery, ignoreCase = true) && it != searchQuery }.take(5)
+        }
+
+        if (filteredSuggestions.isNotEmpty()) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 70.dp) // Align with search bar
+                    .padding(top = 4.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = Color.White,
+                shadowElevation = 8.dp,
+                border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.5f))
+            ) {
+                Column {
+                    filteredSuggestions.forEach { suggestion ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSearchChange(suggestion) }
+                                .padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.LocationOn, null, modifier = Modifier.size(16.dp), tint = Color.Gray)
+                            Spacer(Modifier.width(12.dp))
+                            Text(suggestion, fontSize = 13.sp, color = RoomifyGradientStart)
                         }
                     }
                 }
@@ -2397,6 +2478,41 @@ private fun RoomPropertyPopup(
                 }
             }
         }
+
+        // Suggestions Dropdown (Android)
+        val filteredSuggestions = remember(searchQuery, suggestions) {
+            if (searchQuery.length < 2) emptyList()
+            else suggestions.filter { it.contains(searchQuery, ignoreCase = true) && it != searchQuery }.take(5)
+        }
+
+        if (filteredSuggestions.isNotEmpty()) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 70.dp) // Align with search bar
+                    .padding(top = 4.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = Color.White,
+                shadowElevation = 8.dp,
+                border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.5f))
+            ) {
+                Column {
+                    filteredSuggestions.forEach { suggestion ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSearchChange(suggestion) }
+                                .padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.LocationOn, null, modifier = Modifier.size(16.dp), tint = Color.Gray)
+                            Spacer(Modifier.width(12.dp))
+                            Text(suggestion, fontSize = 13.sp, color = RoomifyGradientStart)
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -2712,6 +2828,41 @@ private fun LanguageSelector(
                         fontSize = 12.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                     )
+                }
+            }
+        }
+
+        // Suggestions Dropdown (Android)
+        val filteredSuggestions = remember(searchQuery, suggestions) {
+            if (searchQuery.length < 2) emptyList()
+            else suggestions.filter { it.contains(searchQuery, ignoreCase = true) && it != searchQuery }.take(5)
+        }
+
+        if (filteredSuggestions.isNotEmpty()) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 70.dp) // Align with search bar
+                    .padding(top = 4.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = Color.White,
+                shadowElevation = 8.dp,
+                border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.5f))
+            ) {
+                Column {
+                    filteredSuggestions.forEach { suggestion ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSearchChange(suggestion) }
+                                .padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.LocationOn, null, modifier = Modifier.size(16.dp), tint = Color.Gray)
+                            Spacer(Modifier.width(12.dp))
+                            Text(suggestion, fontSize = 13.sp, color = RoomifyGradientStart)
+                        }
+                    }
                 }
             }
         }

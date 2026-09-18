@@ -14,6 +14,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.CorporateFare
+import androidx.compose.material.icons.filled.Domain
+import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -37,8 +42,8 @@ import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
 import kotlinx.coroutines.delay
 import org.com.i18n.LocalRoomifyStrings
-import org.com.model.Room
-import org.com.model.User
+import org.com.model.*
+import org.com.network.RoomifyApi
 import org.com.ui.components.SpacePlannerDialog
 
 private val PrimaryColor = Color(0xFF1A237E)
@@ -68,6 +73,31 @@ fun PropertyDetailsScreen(
     val scrollState = rememberScrollState()
     
     var selectedImageUrl by remember { mutableStateOf<String?>(null) }
+    
+    var parentProperty by remember { mutableStateOf<Property?>(null) }
+    var otherUnitsInComplex by remember { mutableStateOf<List<Room>>(emptyList()) }
+    var isLoadingComplex by remember { mutableStateOf(false) }
+
+    LaunchedEffect(room.propertyId) {
+        if (room.propertyId != null) {
+            isLoadingComplex = true
+            try {
+                val propResponse = RoomifyApi.getPropertyById(room.propertyId)
+                if (propResponse.success) {
+                    parentProperty = propResponse.data
+                }
+                
+                val unitsResponse = RoomifyApi.getRoomsByProperty(room.propertyId)
+                if (unitsResponse.success) {
+                    otherUnitsInComplex = unitsResponse.data?.filter { it.id != room.id } ?: emptyList()
+                }
+            } catch (e: Exception) {
+                println("PropertyDetails: Error loading complex info: ${e.message}")
+            } finally {
+                isLoadingComplex = false
+            }
+        }
+    }
 
     val isMyProperty = currentUser?.id == room.postedBy
 
@@ -220,11 +250,44 @@ fun PropertyDetailsScreen(
                 ) {
                     // Title and Basic Info
                     Column {
-                        Surface(color = PrimaryColor.copy(alpha = 0.08f), shape = RoundedCornerShape(6.dp)) {
-                            Text(room.propertyType?.uppercase() ?: "PROPERTY", modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp), fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = PrimaryColor)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Surface(color = PrimaryColor.copy(alpha = 0.08f), shape = RoundedCornerShape(6.dp)) {
+                                Text(room.propertyType?.uppercase() ?: "PROPERTY", modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp), fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = PrimaryColor)
+                            }
+                            
+                            if (room.propertyId != null) {
+                                Spacer(Modifier.width(8.dp))
+                                Surface(color = Color(0xFFFFD600).copy(alpha = 0.15f), shape = RoundedCornerShape(6.dp)) {
+                                    Row(Modifier.padding(horizontal = 8.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.Verified, null, tint = Color(0xFFFBC02D), modifier = Modifier.size(12.dp))
+                                        Spacer(Modifier.width(4.dp))
+                                        Text("PREMIUM COMPLEX", fontSize = 9.sp, fontWeight = FontWeight.Black, color = Color(0xFFF57F17))
+                                    }
+                                }
+                            }
                         }
                         Spacer(Modifier.height(8.dp))
                         Text(text = room.title ?: "", fontSize = 24.sp, fontWeight = FontWeight.Black, color = Color(0xFF111111), lineHeight = 30.sp)
+                        
+                        if (room.unitNumber != null || room.floorNumber != null) {
+                            Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.CorporateFare, null, tint = PrimaryColor, modifier = Modifier.size(14.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                    text = buildString {
+                                        if (room.floorNumber != null) append("Floor ${room.floorNumber}")
+                                        if (room.unitNumber != null) {
+                                            if (isNotEmpty()) append(" • ")
+                                            append("Unit ${room.unitNumber}")
+                                        }
+                                    },
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = PrimaryColor
+                                )
+                            }
+                        }
+
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 6.dp)) {
                             Icon(Icons.Default.LocationOn, null, tint = Color.DarkGray, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
@@ -264,6 +327,20 @@ fun PropertyDetailsScreen(
 
                     // Section: Neighborhood Insights
                     NeighborhoodInsights()
+
+                    // Section: Complex Overview (NEW)
+                    if (room.propertyId != null && parentProperty != null) {
+                        SectionTitleDetails("Building Inventory")
+                        BuildingInventoryList(
+                            currentRoomId = room.id ?: 0,
+                            units = otherUnitsInComplex + listOf(room),
+                            onViewUnit = { onViewProperty(it) }
+                        )
+                        
+                        Spacer(Modifier.height(8.dp))
+                        SectionTitleDetails("Complex Details")
+                        ComplexOverviewCard(parentProperty!!)
+                    }
 
                     // Section: Video / Virtual Tour
                     if (room.hasVideo && !room.videoUrl.isNullOrBlank()) {
@@ -655,25 +732,42 @@ private fun RelatedPropertyCard(room: Room, onClick: () -> Unit) {
         border = BorderStroke(1.dp, Color(0xFFEEEEEE))
     ) {
         Column {
-            KamelImage(
-                resource = { asyncPainterResource(room.firstImageUrl ?: "") },
-                contentDescription = null,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(100.dp)
-                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
-                contentScale = ContentScale.Crop,
-                onLoading = { _: Float ->
-                    Box(Modifier.fillMaxSize().background(Color(0xFFF0F2F5)), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = PrimaryColor)
+            Box {
+                KamelImage(
+                    resource = { asyncPainterResource(room.firstImageUrl ?: "") },
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp)
+                        .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+                    contentScale = ContentScale.Crop,
+                    onLoading = { _: Float ->
+                        Box(Modifier.fillMaxSize().background(Color(0xFFF0F2F5)), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = PrimaryColor)
+                        }
+                    },
+                    onFailure = {
+                        Box(Modifier.fillMaxSize().background(Color(0xFFF0F2F5)), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.Error, null, tint = Color.LightGray, modifier = Modifier.size(24.dp))
+                        }
                     }
-                },
-                onFailure = {
-                    Box(Modifier.fillMaxSize().background(Color(0xFFF0F2F5)), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.Error, null, tint = Color.LightGray, modifier = Modifier.size(24.dp))
+                )
+                
+                if (room.propertyId != null) {
+                    Surface(
+                        modifier = Modifier.align(Alignment.TopEnd).padding(6.dp),
+                        color = PrimaryColor,
+                        shape = CircleShape
+                    ) {
+                        Icon(
+                            Icons.Default.CorporateFare,
+                            null,
+                            tint = Color.White,
+                            modifier = Modifier.padding(4.dp).size(12.dp)
+                        )
                     }
                 }
-            )
+            }
             @Suppress("DEPRECATION")
             Column(Modifier.padding(8.dp)) {
                 Text(
@@ -683,6 +777,16 @@ private fun RelatedPropertyCard(room: Room, onClick: () -> Unit) {
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+                
+                if (room.unitNumber != null) {
+                    Text(
+                        "Unit ${room.unitNumber}",
+                        fontSize = 10.sp,
+                        color = Color.Gray,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
                 Text(
                     text = room.formattedPrice,
                     fontSize = 11.sp,
@@ -838,7 +942,137 @@ private fun PropertyImage(url: String, modifier: Modifier = Modifier) {
     )
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun BuildingInventoryList(
+    currentRoomId: Long,
+    units: List<Room>,
+    onViewUnit: (Room) -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = Color(0xFFF8F9FA),
+        border = BorderStroke(1.dp, Color(0xFFEEEEEE))
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            val floorsMap = units.groupBy { it.floorNumber ?: 0 }
+            val sortedFloorKeys = floorsMap.keys.sorted()
+            
+            for (floor in sortedFloorKeys) {
+                val floorUnits = floorsMap[floor] ?: emptyList()
+                
+                Text(
+                    "FLOOR ${if(floor == 0) "G" else floor}", 
+                    fontSize = 11.sp, 
+                    fontWeight = FontWeight.Black, 
+                    color = Color.Gray,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                
+                val sortedUnits = floorUnits.sortedBy { it.unitNumber }
+                for (unit in sortedUnits) {
+                    val isCurrent = unit.id == currentRoomId
+                    
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 6.dp)
+                            .clickable { onViewUnit(unit) },
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (isCurrent) PrimaryColor.copy(alpha = 0.05f) else Color.White,
+                        border = BorderStroke(1.dp, if (isCurrent) PrimaryColor else Color.Transparent)
+                    ) {
+                        Row(
+                            Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier.size(32.dp).background(if (isCurrent) PrimaryColor else Color(0xFFF0F2F5), RoundedCornerShape(8.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    unit.unitNumber?.take(4) ?: "#", 
+                                    color = if (isCurrent) Color.White else PrimaryColor, 
+                                    fontSize = 11.sp, 
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            
+                            Spacer(Modifier.width(12.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(unit.title ?: "Unit ${unit.unitNumber}", fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                                Text(unit.status, fontSize = 10.sp, color = if (unit.status == "AVAILABLE") SuccessColor else Color.Red, fontWeight = FontWeight.Bold)
+                            }
+                            
+                            Text(unit.formattedPrice.split("/").first(), fontSize = 13.sp, fontWeight = FontWeight.Black, color = PrimaryColor)
+                        }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ComplexOverviewCard(property: Property) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = Color(0xFFF0F2F5),
+        border = BorderStroke(1.dp, Color(0xFFE0E0E0))
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier.size(48.dp).background(PrimaryColor, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.Domain, null, tint = Color.White, modifier = Modifier.size(24.dp))
+                }
+                Spacer(Modifier.width(16.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(property.title ?: "Building Complex", fontSize = 16.sp, fontWeight = FontWeight.Black, color = PrimaryColor)
+                    Text("Verified Multi-Unit Building", fontSize = 12.sp, color = Color.Gray)
+                }
+            }
+            
+            if (!property.description.isNullOrBlank()) {
+                Spacer(Modifier.height(12.dp))
+                Text(property.description, fontSize = 13.sp, color = Color.DarkGray)
+            }
+            
+            Spacer(Modifier.height(16.dp))
+            HorizontalDivider(color = Color.LightGray.copy(alpha = 0.3f))
+            Spacer(Modifier.height(16.dp))
+            
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                ComplexStatItem("TOTAL UNITS", "${property.units.size}", Icons.Default.Inventory2, Modifier.weight(1f))
+                ComplexStatItem("LOCATION", property.address?.split(",")?.firstOrNull() ?: "Verified", Icons.Default.LocationOn, Modifier.weight(1f))
+            }
+            
+            Spacer(Modifier.height(16.dp))
+            
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                ComplexStatItem("MANAGER", property.ownerName ?: "Standard", Icons.Default.Badge, Modifier.weight(1f))
+                ComplexStatItem("TYPE", "Premium Complex", Icons.Default.Star, Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ComplexStatItem(label: String, value: String, icon: ImageVector, modifier: Modifier = Modifier) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, null, tint = PrimaryColor, modifier = Modifier.size(16.dp))
+        Spacer(Modifier.width(8.dp))
+        Column {
+            Text(label, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+            Text(value, fontSize = 13.sp, fontWeight = FontWeight.Black, color = Color.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
 @Composable
 private fun FlowRow(mainAxisSpacing: Dp, crossAxisSpacing: Dp, content: @Composable () -> Unit) {
     androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(mainAxisSpacing), verticalArrangement = Arrangement.spacedBy(crossAxisSpacing)) { content() }

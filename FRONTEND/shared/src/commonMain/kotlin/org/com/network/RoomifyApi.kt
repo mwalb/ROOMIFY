@@ -105,6 +105,14 @@ object RoomifyApi {
         }
     }
 
+    suspend fun getAreaSuggestions(): List<String> {
+        return try {
+            ApiClient.get("rooms/areas")
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
     // ============================================================
     // BOOKINGS
     // ============================================================
@@ -171,6 +179,72 @@ object RoomifyApi {
 
     suspend fun getPropertyById(id: Long): ApiResponse<Property> {
         return ApiClient.get("properties/$id")
+    }
+
+    suspend fun getRoomsByProperty(propertyId: Long): ApiResponse<List<Room>> {
+        return ApiClient.get("rooms/property/$propertyId")
+    }
+
+    // ============================================================
+    // SHOPS
+    // ============================================================
+
+    suspend fun getAllShops(): ApiResponse<List<Shop>> {
+        return ApiClient.get("shops")
+    }
+
+    suspend fun getShopById(id: Long): ApiResponse<Shop> {
+        return ApiClient.get("shops/$id")
+    }
+
+    suspend fun createShop(shop: Shop): ApiResponse<Shop> {
+        return try {
+            ApiClient.post("shops", shop)
+        } catch (e: Exception) {
+            ApiResponse(success = false, message = e.message ?: "Failed to create shop")
+        }
+    }
+
+    suspend fun uploadShopImages(shopId: Long, imageBytes: List<ByteArray>): ApiResponse<List<String>> {
+        return try {
+            val response = ApiClient.client.post("shops/$shopId/images") {
+                setBody(
+                    MultiPartFormDataContent(
+                        formData {
+                            imageBytes.forEachIndexed { index, bytes ->
+                                append("images", bytes, Headers.build {
+                                    append(HttpHeaders.ContentType, "image/jpeg")
+                                    append(HttpHeaders.ContentDisposition, "filename=\"shop_$index.jpg\"")
+                                })
+                            }
+                        }
+                    )
+                )
+            }
+            response.body()
+        } catch (e: Exception) {
+            ApiResponse(success = false, message = e.message ?: "Upload failed")
+        }
+    }
+
+    suspend fun uploadShopVideo(shopId: Long, videoBytes: ByteArray): ApiResponse<String> {
+        return try {
+            val response = ApiClient.client.post("shops/$shopId/video") {
+                setBody(
+                    MultiPartFormDataContent(
+                        formData {
+                            append("video", videoBytes, Headers.build {
+                                append(HttpHeaders.ContentType, "video/mp4")
+                                append(HttpHeaders.ContentDisposition, "filename=\"shop_video.mp4\"")
+                            })
+                        }
+                    )
+                )
+            }
+            response.body()
+        } catch (e: Exception) {
+            ApiResponse(success = false, message = e.message ?: "Upload failed")
+        }
     }
 
     // ============================================================
