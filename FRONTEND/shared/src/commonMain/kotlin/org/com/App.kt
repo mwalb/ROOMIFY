@@ -14,21 +14,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -290,7 +281,7 @@ fun App() {
         mutableStateOf<Room?>(null)
     }
 
-    val recentlyViewedRooms: SnapshotStateList<Room> = remember { mutableStateListOf<Room>() }
+    val recentlyViewedRooms = remember { mutableStateListOf<Room>() }
 
     var discoveryQuery by remember { mutableStateOf<String?>(null) }
 
@@ -758,6 +749,12 @@ fun App() {
                                         viewModel = viewModel,
                                         authState = authState,
                                         routingDestination = routingDestination,
+                                        onLogout = {
+                                            scope.launch {
+                                                authManager.logout()
+                                                currentRoute = "map"
+                                            }
+                                        },
                                         onClearRoute = { routingDestination = null },
                                         onViewProperty = ::viewProperty,
                                         onNavigate = ::navigateTo
@@ -766,8 +763,7 @@ fun App() {
                                 "ownerdashboard" -> {
                                     val user = (authState as AuthState.Authenticated).user
                                     OwnerDashboardScreen(
-                                        ownerName = user.name,
-                                        profileImage = user.profileImage,
+                                        user = user,
                                         properties = viewModel.rooms.filter { it.postedBy == user.id || it.ownerName == user.name },
                                         bookings = ownerBookings,
                                         conversations = ownerConversations,
@@ -805,6 +801,10 @@ fun App() {
                                         },
                                         onViewProperty = { room ->
                                             viewProperty(room)
+                                        },
+                                        onSearch = { type, area, price, status ->
+                                            viewModel.setFilters(type, area, price, status)
+                                            currentRoute = "map"
                                         },
                                         onNavigate = { route -> navigateTo(route) },
                                         onBack = {
@@ -844,6 +844,10 @@ fun App() {
                                                     loadOwnerBookings()
                                                 }
                                             }
+                                        },
+                                        onSearch = { type, area, price, status ->
+                                            viewModel.setFilters(type, area, price, status)
+                                            currentRoute = "map"
                                         },
                                         onNavigate = { route -> navigateTo(route) },
                                         onBack = { currentRoute = "map" }
@@ -944,8 +948,7 @@ fun App() {
                                 "tenant" -> {
                                     val user = (authState as AuthState.Authenticated).user
                                     TenantScreen(
-                                        tenantName = user.name,
-                                        profileImage = user.profileImage,
+                                        user = user,
                                         bookings = tenantBookings,
                                         allRooms = viewModel.rooms,
                                         recentlyViewed = recentlyViewedRooms,
@@ -960,6 +963,16 @@ fun App() {
                                         onViewAll = {
                                             viewModel.clearFilters()
                                             discoveryQuery = null
+                                            currentRoute = "map"
+                                        },
+                                        onLogout = {
+                                            scope.launch {
+                                                authManager.logout()
+                                                currentRoute = "map"
+                                            }
+                                        },
+                                        onSearch = { type, area, price, status ->
+                                            viewModel.setFilters(type, area, price, status)
                                             currentRoute = "map"
                                         },
                                         onNavigate = { route -> navigateTo(route) }
@@ -996,6 +1009,12 @@ fun App() {
                                         viewModel = viewModel,
                                         authState = authState,
                                         routingDestination = routingDestination,
+                                        onLogout = {
+                                            scope.launch {
+                                                authManager.logout()
+                                                currentRoute = "map"
+                                            }
+                                        },
                                         onClearRoute = { routingDestination = null },
                                         onViewProperty = ::viewProperty,
                                         onNavigate = ::navigateTo
@@ -1121,6 +1140,12 @@ fun App() {
                                     viewModel = viewModel,
                                     authState = authState,
                                     routingDestination = routingDestination,
+                                    onLogout = {
+                                        scope.launch {
+                                            authManager.logout()
+                                            currentRoute = "map"
+                                        }
+                                    },
                                     onClearRoute = { routingDestination = null },
                                     onViewProperty = ::viewProperty,
                                     onNavigate = ::navigateTo
@@ -1152,54 +1177,82 @@ private fun AppMapContainer(
     viewModel: MapViewModel,
     authState: AuthState,
     routingDestination: Room?,
+    onLogout: () -> Unit,
     onClearRoute: () -> Unit,
     onViewProperty: (Room) -> Unit,
     onNavigate: (String) -> Unit
 ) {
-    Box(modifier = Modifier.fillMaxSize()) {
-        MapContent(
-            rooms = viewModel.filteredRooms,
-            selectedRoom = viewModel.selectedRoom,
-            authState = authState,
-            routingDestination = routingDestination,
-            currentStatusFilter = viewModel.filterStatus ?: "ALL",
-            shouldFitBounds = viewModel.shouldFitBounds,
-            viewedRoomIds = viewModel.viewedRoomIds,
-            savedRoomIds = viewModel.savedRoomIds,
-            onStatusFilterChange = { viewModel.filterStatus = if (it == "ALL") null else it },
-            onFitBoundsHandled = { viewModel.clearFitBounds() },
-            onClearRoute = onClearRoute,
-            onRoomSelected = { room ->
-                viewModel.selectRoom(room)
-            },
-            onRoomCleared = {
-                viewModel.clearSelectedRoom()
-            },
-            onViewProperty = onViewProperty,
-            onNavigate = onNavigate
-        )
+    val user = (authState as? AuthState.Authenticated)?.user
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
 
-        // Status Legend (Bottom Left)
-        Surface(
-            modifier = Modifier.align(Alignment.BottomStart).padding(16.dp).padding(bottom = 24.dp),
-            color = Color.White.copy(alpha = 0.95f),
-            shape = RoundedCornerShape(16.dp),
-            shadowElevation = 4.dp
-        ) {
-            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("PROPERTY STATUS", fontWeight = FontWeight.Black, fontSize = 10.sp, color = Color.Gray)
-                MapLegendItem("Available", Color(0xFF2E7D32))
-                MapLegendItem("Pending", Color(0xFFF9A825))
-                MapLegendItem("Rented", Color(0xFFC62828))
-            }
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            org.com.ui.components.RoomifySidebar(
+                user = user,
+                onNavigate = onNavigate,
+                onLogout = onLogout,
+                onSearch = { type, area, price, status ->
+                    viewModel.setFilters(type, area, price, status)
+                },
+                onClose = { scope.launch { drawerState.close() } }
+            )
         }
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            MapContent(
+                rooms = viewModel.filteredRooms,
+                selectedRoom = viewModel.selectedRoom,
+                authState = authState,
+                routingDestination = routingDestination,
+                currentStatusFilter = viewModel.filterStatus ?: "ALL",
+                shouldFitBounds = viewModel.shouldFitBounds,
+                viewedRoomIds = viewModel.viewedRoomIds,
+                savedRoomIds = viewModel.savedRoomIds,
+                onStatusFilterChange = { viewModel.filterStatus = if (it == "ALL") null else it },
+                onFitBoundsHandled = { viewModel.clearFitBounds() },
+                onClearRoute = onClearRoute,
+                onRoomSelected = { room ->
+                    viewModel.selectRoom(room)
+                },
+                onRoomCleared = {
+                    viewModel.clearSelectedRoom()
+                },
+                onViewProperty = onViewProperty,
+                onNavigate = onNavigate
+            )
 
-        // Floating Back Button
-        IconButton(
-            onClick = { onNavigate("discovery") },
-            modifier = Modifier.padding(16.dp).align(Alignment.TopStart).size(44.dp).background(Color.White, CircleShape).shadow(4.dp, CircleShape)
-        ) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color(0xFF1A237E))
+            // Status Legend (Bottom Left)
+            Surface(
+                modifier = Modifier.align(Alignment.BottomStart).padding(16.dp).padding(bottom = 24.dp),
+                color = Color.White.copy(alpha = 0.95f),
+                shape = RoundedCornerShape(16.dp),
+                shadowElevation = 4.dp
+            ) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("PROPERTY STATUS", fontWeight = FontWeight.Black, fontSize = 10.sp, color = Color.Gray)
+                    MapLegendItem("Available", Color(0xFF2E7D32))
+                    MapLegendItem("Pending", Color(0xFFF9A825))
+                    MapLegendItem("Rented", Color(0xFFC62828))
+                }
+            }
+
+            // Menu Button (Top Left)
+            IconButton(
+                onClick = { scope.launch { drawerState.open() } },
+                modifier = Modifier.padding(16.dp).align(Alignment.TopStart).size(44.dp).background(Color.White, CircleShape).shadow(4.dp, CircleShape)
+            ) {
+                Icon(Icons.Default.Menu, "Menu", tint = Color(0xFF1A237E))
+            }
+            
+            // Discovery Shortcut (Top Right)
+            IconButton(
+                onClick = { onNavigate("discovery") },
+                modifier = Modifier.padding(16.dp).align(Alignment.TopEnd).size(44.dp).background(Color.White, CircleShape).shadow(4.dp, CircleShape)
+            ) {
+                Icon(Icons.Default.Search, "Discovery", tint = Color(0xFF1A237E))
+            }
         }
     }
 }

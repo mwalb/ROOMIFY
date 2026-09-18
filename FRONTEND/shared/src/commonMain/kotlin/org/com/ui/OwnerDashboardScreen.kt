@@ -52,8 +52,7 @@ private val SuccessColor = Color(0xFF4CAF50)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OwnerDashboardScreen(
-    ownerName: String,
-    profileImage: String? = null,
+    user: org.com.model.User,
     properties: List<Room>,
     bookings: List<Booking> = emptyList(),
     conversations: List<Conversation> = emptyList(),
@@ -66,6 +65,7 @@ fun OwnerDashboardScreen(
     onAcceptBooking: (Booking) -> Unit = {},
     onRejectBooking: (Booking) -> Unit = {},
     onConversationClick: (Conversation) -> Unit = {},
+    onSearch: (type: String?, area: String?, maxPrice: Double?, status: String?) -> Unit = { _, _, _, _ -> },
     onNavigate: (String) -> Unit = {},
     onBack: () -> Unit
 ) {
@@ -73,155 +73,172 @@ fun OwnerDashboardScreen(
     val strings = LocalRoomifyStrings.current
     var selectedTab by remember { mutableStateOf(0) }
     val scrollState = rememberScrollState()
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(PrimaryColor, PrimaryLight))),
-        contentAlignment = Alignment.Center
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            org.com.ui.components.RoomifySidebar(
+                user = user,
+                onNavigate = onNavigate,
+                onLogout = onLogout,
+                onSearch = onSearch,
+                onClose = { scope.launch { drawerState.close() } }
+            )
+        }
     ) {
-        // Main Centered Dashboard Card
-        Card(
+        Box(
             modifier = Modifier
-                .fillMaxWidth(0.94f)
-                .widthIn(max = 500.dp)
-                .fillMaxHeight(0.92f)
-                .padding(vertical = 16.dp),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FA)),
-            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
+                .fillMaxSize()
+                .background(Brush.verticalGradient(listOf(PrimaryColor, PrimaryLight))),
+            contentAlignment = Alignment.Center
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                // Dashboard Header
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(PrimaryColor)
-                        .padding(horizontal = 20.dp, vertical = 16.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = onBack, modifier = Modifier.size(32.dp)) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White, modifier = Modifier.size(20.dp))
-                        }
-                        Spacer(Modifier.width(12.dp))
-                        Column(Modifier.weight(1f)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("Owner Dashboard", color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
-                                if (isRefreshing) {
-                                    Spacer(Modifier.width(8.dp))
-                                    CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 2.dp, color = Color.White)
-                                }
+            // Main Centered Dashboard Card
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth(0.94f)
+                    .widthIn(max = 500.dp)
+                    .fillMaxHeight(0.92f)
+                    .padding(vertical = 16.dp),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FA)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
+            ) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    // Dashboard Header
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(PrimaryColor)
+                            .padding(horizontal = 20.dp, vertical = 16.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = { scope.launch { drawerState.open() } }, modifier = Modifier.size(32.dp)) {
+                                Icon(Icons.Default.Menu, contentDescription = "Menu", tint = Color.White, modifier = Modifier.size(20.dp))
                             }
-                            Text(ownerName, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black)
-                        }
-                        
-                        if (!profileImage.isNullOrBlank()) {
-                            val fullUrl = ApiClient.resolveUrl(profileImage)
-
-                            Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .border(1.dp, Color.White.copy(alpha = 0.5f), CircleShape)
-                                    .clickable { onNavigate("profile") }
-                            ) {
-                                KamelImage(
-                                    resource = { asyncPainterResource(fullUrl) },
-                                    contentDescription = "Profile",
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize(),
-                                    onLoading = { _: Float -> Box(Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.1f))) },
-                                    onFailure = { 
-                                        IconButton(onClick = onLogout, modifier = Modifier.fillMaxSize()) {
-                                            Icon(Icons.AutoMirrored.Filled.Logout, null, tint = Color.White, modifier = Modifier.size(18.dp))
-                                        }
+                            Spacer(Modifier.width(12.dp))
+                            Column(Modifier.weight(1f)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    @Suppress("DEPRECATION")
+                                    Text("Owner Dashboard", color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
+                                    if (isRefreshing) {
+                                        Spacer(Modifier.width(8.dp))
+                                        CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 2.dp, color = Color.White)
                                     }
-                                )
+                                }
+                                @Suppress("DEPRECATION")
+                                Text(user.name, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black)
                             }
-                        } else {
-                            IconButton(onClick = onLogout, modifier = Modifier.size(36.dp).background(Color.White.copy(alpha = 0.15f), CircleShape)) {
-                                Icon(Icons.AutoMirrored.Filled.Logout, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                            
+                            if (!user.profileImage.isNullOrBlank()) {
+                                val fullUrl = ApiClient.resolveUrl(user.profileImage!!)
+
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .border(1.dp, Color.White.copy(alpha = 0.5f), CircleShape)
+                                        .clickable { onNavigate("profile") }
+                                ) {
+                                    KamelImage(
+                                        resource = { asyncPainterResource(fullUrl) },
+                                        contentDescription = "Profile",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize(),
+                                        onLoading = { _: Float -> Box(Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.1f))) },
+                                        onFailure = { 
+                                            IconButton(onClick = onLogout, modifier = Modifier.fillMaxSize()) {
+                                                Icon(Icons.AutoMirrored.Filled.Logout, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                            }
+                                        }
+                                    )
+                                }
+                            } else {
+                                IconButton(onClick = onLogout, modifier = Modifier.size(36.dp).background(Color.White.copy(alpha = 0.15f), CircleShape)) {
+                                    Icon(Icons.AutoMirrored.Filled.Logout, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                }
                             }
                         }
                     }
-                }
 
-                // Custom Tab Bar
-                Row(
-                    modifier = Modifier.fillMaxWidth().background(Color.White).padding(horizontal = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceAround
-                ) {
-                    DashboardTab("Overview", selectedTab == 0) { selectedTab = 0 }
-                    DashboardTab("Properties", selectedTab == 1) { selectedTab = 1 }
-                    DashboardTab("Requests", selectedTab == 2) { selectedTab = 2 }
-                    DashboardTab("Messages", selectedTab == 3) { selectedTab = 3 }
-                }
+                    // Custom Tab Bar
+                    Row(
+                        modifier = Modifier.fillMaxWidth().background(Color.White).padding(horizontal = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceAround
+                    ) {
+                        DashboardTab("Overview", selectedTab == 0) { selectedTab = 0 }
+                        DashboardTab("Properties", selectedTab == 1) { selectedTab = 1 }
+                        DashboardTab("Requests", selectedTab == 2) { selectedTab = 2 }
+                        DashboardTab("Messages", selectedTab == 3) { selectedTab = 3 }
+                    }
 
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-
-                // Scrollable Content
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .verticalScroll(scrollState)
-                        .padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
-                ) {
-                    when (selectedTab) {
-                        0 -> {
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                StatCardCompact("Properties", properties.size.toString(), Icons.Default.Business, Modifier.weight(1f))
-                                StatCardCompact("Views", properties.sumOf { it.viewCount }.toString(), Icons.Default.Visibility, Modifier.weight(1f))
-                            }
-
-                            SectionHeaderOwner("Revenue Performance")
-                            RevenueChart()
-
-                            Column {
-                                SectionHeaderOwner("Quick Actions")
-                                Spacer(Modifier.height(12.dp))
+                    // Scrollable Content
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .verticalScroll(scrollState)
+                            .padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(20.dp)
+                    ) {
+                        when (selectedTab) {
+                            0 -> {
                                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    ActionItemCompact("Add New", Icons.Default.Add, PrimaryColor, Modifier.weight(1f), onAddProperty)
-                                    ActionItemCompact("Analytics", Icons.AutoMirrored.Filled.TrendingUp, Color(0xFF00897B), Modifier.weight(1f), onViewAnalytics)
-                                    ActionItemCompact("Finances", Icons.Default.Payments, Color(0xFFF9A825), Modifier.weight(1f), onViewFinances)
+                                    StatCardCompact("Properties", properties.size.toString(), Icons.Default.Business, Modifier.weight(1f))
+                                    StatCardCompact("Views", properties.sumOf { it.viewCount }.toString(), Icons.Default.Visibility, Modifier.weight(1f))
+                                }
+
+                                SectionHeaderOwner("Revenue Performance")
+                                RevenueChart()
+
+                                Column {
+                                    SectionHeaderOwner("Quick Actions")
+                                    Spacer(Modifier.height(12.dp))
+                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        ActionItemCompact("Add New", Icons.Default.Add, PrimaryColor, Modifier.weight(1f), onAddProperty)
+                                        ActionItemCompact("Analytics", Icons.AutoMirrored.Filled.TrendingUp, Color(0xFF00897B), Modifier.weight(1f), onViewAnalytics)
+                                        ActionItemCompact("Finances", Icons.Default.Payments, Color(0xFFF9A825), Modifier.weight(1f), onViewFinances)
+                                    }
                                 }
                             }
-                        }
-                        1 -> {
-                            SectionHeaderOwner("My Properties")
-                            if (properties.isEmpty()) {
-                                EmptyState("No properties listed")
-                            } else {
-                                properties.forEach { room ->
-                                    OwnerPropertyCard(room, onClick = { onViewProperty(room) })
+                            1 -> {
+                                SectionHeaderOwner("My Properties")
+                                if (properties.isEmpty()) {
+                                    EmptyState("No properties listed")
+                                } else {
+                                    properties.forEach { room ->
+                                        OwnerPropertyCard(room, onClick = { onViewProperty(room) })
+                                    }
                                 }
                             }
-                        }
-                        2 -> {
-                            Text("Pending Requests", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Color.Gray)
-                            val pendingBookings = bookings.filter { it.status == "PENDING" }
-                            if (pendingBookings.isEmpty()) {
-                                EmptyState("No pending requests")
-                            } else {
-                                pendingBookings.forEach { booking ->
-                                    BookingRequestCard(booking, onAccept = { onAcceptBooking(booking) }, onReject = { onRejectBooking(booking) })
+                            2 -> {
+                                @Suppress("DEPRECATION")
+                                Text("Pending Requests", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Color.Gray)
+                                val pendingBookings = bookings.filter { it.status == "PENDING" }
+                                if (pendingBookings.isEmpty()) {
+                                    EmptyState("No pending requests")
+                                } else {
+                                    pendingBookings.forEach { booking ->
+                                        BookingRequestCard(booking, onAccept = { onAcceptBooking(booking) }, onReject = { onRejectBooking(booking) })
+                                    }
                                 }
                             }
-                        }
-                        3 -> {
-                            Text("Tenant Inquiries", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Color.Gray)
-                            if (conversations.isEmpty()) {
-                                EmptyState("No messages yet")
-                            } else {
-                                conversations.forEach { conversation ->
-                                    OwnerConversationItem(conversation, onClick = { onConversationClick(conversation) })
+                            3 -> {
+                                @Suppress("DEPRECATION")
+                                Text("Tenant Inquiries", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Color.Gray)
+                                if (conversations.isEmpty()) {
+                                    EmptyState("No messages yet")
+                                } else {
+                                    conversations.forEach { conversation ->
+                                        OwnerConversationItem(conversation, onClick = { onConversationClick(conversation) })
+                                    }
                                 }
                             }
                         }
                     }
-
                 }
             }
         }
@@ -236,6 +253,7 @@ private fun DashboardTab(title: String, active: Boolean, onClick: () -> Unit) {
             .padding(vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        @Suppress("DEPRECATION")
         Text(title, fontSize = 14.sp, fontWeight = if (active) FontWeight.ExtraBold else FontWeight.Bold, color = if (active) PrimaryColor else Color.DarkGray)
         Spacer(Modifier.height(4.dp))
         Box(Modifier.width(20.dp).height(3.dp).background(if (active) PrimaryColor else Color.Transparent))
@@ -248,7 +266,9 @@ private fun StatCardCompact(title: String, value: String, icon: ImageVector, mod
         Column(Modifier.padding(16.dp)) {
             Icon(icon, null, tint = PrimaryColor, modifier = Modifier.size(20.dp))
             Spacer(Modifier.height(8.dp))
+            @Suppress("DEPRECATION")
             Text(value, fontSize = 20.sp, fontWeight = FontWeight.Black, color = PrimaryColor)
+            @Suppress("DEPRECATION")
             Text(title, fontSize = 13.sp, color = Color.DarkGray, fontWeight = FontWeight.ExtraBold)
         }
     }
@@ -260,6 +280,7 @@ private fun ActionItemCompact(title: String, icon: ImageVector, color: Color, mo
         Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
             Icon(icon, null, tint = color, modifier = Modifier.size(24.dp))
             Spacer(Modifier.height(6.dp))
+            @Suppress("DEPRECATION")
             Text(title, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = color)
         }
     }
@@ -268,6 +289,7 @@ private fun ActionItemCompact(title: String, icon: ImageVector, color: Color, mo
 @Composable
 private fun EmptyState(msg: String) {
     Box(Modifier.fillMaxWidth().height(150.dp).background(Color.White, RoundedCornerShape(16.dp)), contentAlignment = Alignment.Center) {
+        @Suppress("DEPRECATION")
         Text(msg, color = Color.LightGray, fontSize = 13.sp)
     }
 }
@@ -317,14 +339,17 @@ private fun OwnerPropertyCard(room: Room, onClick: () -> Unit) {
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    @Suppress("DEPRECATION")
                     Text(room.title ?: "Property", fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, color = Color(0xFF1A1A1A), modifier = Modifier.weight(1f))
                     LivePulseIndicator()
                 }
                 Spacer(Modifier.height(2.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    @Suppress("DEPRECATION")
                     Text(room.formattedPrice, fontSize = 13.sp, color = PrimaryColor, fontWeight = FontWeight.ExtraBold)
                     Spacer(Modifier.width(8.dp))
                     Surface(color = if (room.status == "AVAILABLE") Color(0xFFE8F5E9) else Color(0xFFFFEBEE), shape = CircleShape) {
+                        @Suppress("DEPRECATION")
                         Text(room.status, color = if (room.status == "AVAILABLE") Color(0xFF2E7D32) else Color.Red, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                     }
                 }
@@ -338,6 +363,7 @@ private fun OwnerPropertyCard(room: Room, onClick: () -> Unit) {
                         trackColor = Color(0xFFF0F2F5)
                     )
                     Spacer(Modifier.width(8.dp))
+                    @Suppress("DEPRECATION")
                     Text("85% Health", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
                 }
             }
@@ -348,6 +374,7 @@ private fun OwnerPropertyCard(room: Room, onClick: () -> Unit) {
 
 @Composable
 private fun SectionHeaderOwner(title: String) {
+    @Suppress("DEPRECATION")
     Text(title, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Color.Gray, letterSpacing = 0.5.sp)
 }
 
@@ -366,6 +393,7 @@ private fun RevenueChart() {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.BarChart, null, tint = PrimaryColor, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(8.dp))
+                @Suppress("DEPRECATION")
                 Text("Monthly Earnings (Estimated)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.DarkGray)
             }
             Spacer(Modifier.weight(1f))
@@ -397,6 +425,7 @@ private fun RevenueChart() {
             Spacer(Modifier.height(8.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun").forEach { month ->
+                    @Suppress("DEPRECATION")
                     Text(month, fontSize = 9.sp, color = Color.LightGray, fontWeight = FontWeight.Bold)
                 }
             }
@@ -430,6 +459,7 @@ private fun LivePulseIndicator() {
             Box(Modifier.size(4.dp).background(Color.Red, CircleShape))
         }
         Spacer(Modifier.width(4.dp))
+        @Suppress("DEPRECATION")
         Text("LIVE", color = Color.Red, fontSize = 8.sp, fontWeight = FontWeight.Black)
     }
 }
@@ -461,7 +491,9 @@ private fun BookingRequestCard(booking: Booking, onAccept: () -> Unit, onReject:
                 
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
+                    @Suppress("DEPRECATION")
                     Text(booking.userName ?: "Guest", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    @Suppress("DEPRECATION")
                     Text(booking.roomTitle ?: "Room", fontSize = 12.sp, color = Color.Gray, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 
@@ -469,6 +501,7 @@ private fun BookingRequestCard(booking: Booking, onAccept: () -> Unit, onReject:
                     color = PrimaryColor.copy(alpha = 0.05f),
                     shape = RoundedCornerShape(8.dp)
                 ) {
+                    @Suppress("DEPRECATION")
                     Text(
                         text = "TZS ${booking.totalPrice?.toInt() ?: 0}",
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -483,11 +516,15 @@ private fun BookingRequestCard(booking: Booking, onAccept: () -> Unit, onReject:
             // Added dates information
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column {
+                    @Suppress("DEPRECATION")
                     Text("Check-in", fontSize = 10.sp, color = Color.Gray)
+                    @Suppress("DEPRECATION")
                     Text(booking.startDate, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
                 Column(horizontalAlignment = Alignment.End) {
+                    @Suppress("DEPRECATION")
                     Text("Check-out", fontSize = 10.sp, color = Color.Gray)
+                    @Suppress("DEPRECATION")
                     Text(booking.endDate, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
             }
@@ -495,9 +532,11 @@ private fun BookingRequestCard(booking: Booking, onAccept: () -> Unit, onReject:
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = onAccept, modifier = Modifier.weight(1f).height(38.dp), shape = RoundedCornerShape(10.dp), colors = ButtonDefaults.buttonColors(containerColor = SuccessColor)) {
+                    @Suppress("DEPRECATION")
                     Text("Accept", fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 }
                 OutlinedButton(onClick = onReject, modifier = Modifier.weight(1f).height(38.dp), shape = RoundedCornerShape(10.dp), border = BorderStroke(1.dp, Color.Red)) {
+                    @Suppress("DEPRECATION")
                     Text("Reject", fontSize = 13.sp, color = Color.Red, fontWeight = FontWeight.Bold)
                 }
             }
@@ -518,22 +557,25 @@ private fun OwnerConversationItem(conversation: Conversation, onClick: () -> Uni
                 modifier = Modifier.size(48.dp).clip(CircleShape).background(PrimaryColor.copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center
             ) {
+                @Suppress("DEPRECATION")
                 Text(conversation.otherPartyName.take(1).uppercase(), fontWeight = FontWeight.Black, color = PrimaryColor)
             }
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    @Suppress("DEPRECATION")
                     Text(conversation.otherPartyName, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                     if (conversation.unreadCount > 0) {
                         Spacer(Modifier.width(8.dp))
                         Box(Modifier.size(8.dp).background(Color.Red, CircleShape))
                     }
                 }
+                @Suppress("DEPRECATION")
                 Text("Regarding: ${conversation.roomTitle}", fontSize = 12.sp, color = PrimaryColor, fontWeight = FontWeight.ExtraBold)
+                @Suppress("DEPRECATION")
                 Text(conversation.lastMessage, fontSize = 13.sp, color = Color.Gray, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = Color.LightGray, modifier = Modifier.size(18.dp))
         }
     }
 }
-

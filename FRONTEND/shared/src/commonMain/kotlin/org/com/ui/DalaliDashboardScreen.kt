@@ -56,6 +56,7 @@ fun DalaliDashboardScreen(
     onViewAnalytics: () -> Unit = {},
     onAcceptBooking: (Booking) -> Unit = {},
     onRejectBooking: (Booking) -> Unit = {},
+    onSearch: (type: String?, area: String?, maxPrice: Double?, status: String?) -> Unit = { _, _, _, _ -> },
     onNavigate: (String) -> Unit = {},
     onBack: () -> Unit
 ) {
@@ -67,40 +68,13 @@ fun DalaliDashboardScreen(
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            ModalDrawerSheet(
-                drawerContainerColor = PrimaryColor,
-                drawerTonalElevation = 0.dp,
-                modifier = Modifier.width(280.dp).fillMaxHeight()
-            ) {
-                Spacer(Modifier.height(48.dp))
-                Text("AGENT MENU", modifier = Modifier.padding(16.dp), color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                
-                DalaliDrawerItem("Dashboard", Icons.Default.Dashboard) {
-                    scope.launch { drawerState.close() }
-                }
-                DalaliDrawerItem("My Listings", Icons.Default.Business) { 
-                    scope.launch { drawerState.close() }
-                }
-                DalaliDrawerItem("Add Listing", Icons.Default.Add) {
-                    scope.launch { drawerState.close() }
-                    onAddProperty()
-                }
-                DalaliDrawerItem("Analytics", Icons.AutoMirrored.Filled.TrendingUp) {
-                    scope.launch { drawerState.close() }
-                    onViewAnalytics()
-                }
-                DalaliDrawerItem("Profile", Icons.Default.Person) {
-                    scope.launch { drawerState.close() }
-                    onNavigate("profile")
-                }
-                
-                Spacer(Modifier.weight(1f))
-                DalaliDrawerItem("Logout", Icons.AutoMirrored.Filled.Logout) { 
-                    scope.launch { drawerState.close() }
-                    onLogout() 
-                }
-                Spacer(Modifier.height(24.dp))
-            }
+            org.com.ui.components.RoomifySidebar(
+                user = user,
+                onNavigate = onNavigate,
+                onLogout = onLogout,
+                onSearch = onSearch,
+                onClose = { scope.launch { drawerState.close() } }
+            )
         }
     ) {
         Box(
