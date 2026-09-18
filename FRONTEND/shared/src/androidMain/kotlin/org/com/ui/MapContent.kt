@@ -22,25 +22,21 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Bathtub
 import androidx.compose.material.icons.filled.Bed
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SquareFoot
-import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -51,6 +47,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -84,11 +81,8 @@ import com.google.maps.android.compose.Polyline
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.suspendCancellableCoroutine
-import androidx.compose.runtime.mutableStateListOf
-import org.com.model.*
 import kotlin.coroutines.resume
 import kotlin.math.roundToInt
-
 
 /*
  * ============================================================
@@ -97,58 +91,25 @@ import kotlin.math.roundToInt
  */
 
 private const val ROOMIFY_BLUE = 0xFF1976D2
+private val RoomifyGradientStart = Color(0xFF1A237E)
+private val RoomifyGradientEnd = Color(0xFF3949AB)
+private val RoomifyWhite = Color(0xFFFFFFFF)
+private val RoomifyWhite95 = Color(0xF2FFFFFF)
+private val RoomifyWhite90 = Color(0xE6FFFFFF)
+private val RoomifyWhite80 = Color(0xCCFFFFFF)
+private val RoomifyWhite70 = Color(0xB3FFFFFF)
+private val RoomifyWhite55 = Color(0x8CFFFFFF)
+private val RoomifyGreen = Color(0xFF2E7D32)
+private val RoomifyYellow = Color(0xFFF9A825)
+private val RoomifyRed = Color(0xFFC62828)
+private val RoomifyViewedGray = Color(0xFF9E9E9E)
+private val RoomifySavedPink = Color(0xFFE91E63)
 
-private val RoomifyGradientStart =
-    Color(0xFF1A237E)
-
-private val RoomifyGradientEnd =
-    Color(0xFF3949AB)
-
-private val RoomifyWhite =
-    Color(0xFFFFFFFF)
-
-private val RoomifyWhite95 =
-    Color(0xF2FFFFFF)
-
-private val RoomifyWhite90 =
-    Color(0xE6FFFFFF)
-
-private val RoomifyWhite80 =
-    Color(0xCCFFFFFF)
-
-private val RoomifyWhite70 =
-    Color(0xB3FFFFFF)
-
-private val RoomifyWhite55 =
-    Color(0x8CFFFFFF)
-
-private val RoomifyWhite25 =
-    Color(0x40FFFFFF)
-
-private val RoomifyWhite18 =
-    Color(0x2EFFFFFF)
-
-private val RoomifyWhite12 =
-    Color(0x1FFFFFFF)
-
-private val RoomifyGreen =
-    Color(0xFF2E7D32)
-
-private val RoomifyYellow =
-    Color(0xFFF9A825)
-
-private val RoomifyRed =
-    Color(0xFFC62828)
-
-private val RoomifyOrange =
-    Color(0xFFFF9800)
-
-
-private const val ROOMIFY_GREEN = 0xFF2E7D32
+private const val ROOMIFY_VIEWED_GRAY = 0xFF9E9E9E
+private const val ROOMIFY_SAVED_PINK = 0xFFE91E63
 private const val ROOMIFY_YELLOW = 0xFFF9A825
 private const val ROOMIFY_RED = 0xFFC62828
 private const val ROOMIFY_ORANGE = 0xFFFF9800
-
 
 /*
  * ============================================================
@@ -158,31 +119,31 @@ private const val ROOMIFY_ORANGE = 0xFFFF9800
 
 private fun statusColor(
     status: String?,
-    selected: Boolean
+    selected: Boolean,
+    isSaved: Boolean = false,
+    isViewed: Boolean = false
 ): Int {
-
     if (selected) {
         return ROOMIFY_ORANGE.toInt()
     }
-
-    return when (
-        status?.uppercase() ?: "AVAILABLE"
-    ) {
-
-        "AVAILABLE" ->
-            ROOMIFY_GREEN.toInt()
-
-        "PENDING" ->
-            ROOMIFY_YELLOW.toInt()
-
-        "RENTED" ->
-            ROOMIFY_RED.toInt()
-
-        else ->
-            ROOMIFY_BLUE.toInt()
+    
+    if (isSaved) {
+        return ROOMIFY_SAVED_PINK.toInt()
     }
-}
 
+    val baseColor = when (status?.uppercase() ?: "AVAILABLE") {
+        "AVAILABLE" -> ROOMIFY_GREEN.toInt()
+        "PENDING" -> ROOMIFY_YELLOW.toInt()
+        "RENTED" -> ROOMIFY_RED.toInt()
+        else -> ROOMIFY_BLUE.toInt()
+    }
+    
+    if (isViewed) {
+        return ROOMIFY_VIEWED_GRAY.toInt()
+    }
+    
+    return baseColor
+}
 
 /*
  * ============================================================
@@ -190,33 +151,14 @@ private fun statusColor(
  * ============================================================
  */
 
-private fun statusText(
-    status: String?
-): String {
-
-    return when (
-        status?.uppercase() ?: "AVAILABLE"
-    ) {
-
-        "AVAILABLE" ->
-            "Available"
-
-        "PENDING" ->
-            "Pending"
-
-        "RENTED" ->
-            "Rented"
-
-        else ->
-            status
-                ?.lowercase()
-                ?.replaceFirstChar {
-                    it.uppercase()
-                }
-                ?: "Available"
+private fun statusText(status: String?): String {
+    return when (status?.uppercase() ?: "AVAILABLE") {
+        "AVAILABLE" -> "Available"
+        "PENDING" -> "Pending"
+        "RENTED" -> "Rented"
+        else -> status?.lowercase()?.replaceFirstChar { it.uppercase() } ?: "Available"
     }
 }
-
 
 /*
  * ============================================================
@@ -224,24 +166,12 @@ private fun statusText(
  * ============================================================
  */
 
-private fun formatFullPrice(
-    price: Double
-): String {
-
-    if (
-        !price.isFinite() ||
-        price <= 0.0
-    ) {
+private fun formatFullPrice(price: Double): String {
+    if (!price.isFinite() || price <= 0.0) {
         return "Price on request"
     }
-
-    return "TZS ${
-        price
-            .roundToInt()
-            .toStringWithCommas()
-    } / month"
+    return "TZS ${price.roundToInt().toStringWithCommas()} / month"
 }
-
 
 /*
  * ============================================================
@@ -249,48 +179,24 @@ private fun formatFullPrice(
  * ============================================================
  */
 
-private fun formatCompactPrice(
-    price: Double
-): String {
-
-    if (
-        !price.isFinite() ||
-        price <= 0.0
-    ) {
+private fun formatCompactPrice(price: Double): String {
+    if (!price.isFinite() || price <= 0.0) {
         return "Price"
     }
-
     return when {
-
         price >= 1_000_000.0 -> {
-
-            val value =
-                ((price / 1_000_000.0) * 100.0)
-                    .roundToInt() / 100.0
-
+            val value = ((price / 1_000_000.0) * 100.0).roundToInt() / 100.0
             "TZS ${value.removeTrailingZeros()}M"
         }
-
         price >= 1_000.0 -> {
-
-            val value =
-                ((price / 1_000.0) * 100.0)
-                    .roundToInt() / 100.0
-
+            val value = ((price / 1_000.0) * 100.0).roundToInt() / 100.0
             "TZS ${value.removeTrailingZeros()}K"
         }
-
         else -> {
-
-            "TZS ${
-                price
-                    .roundToInt()
-                    .toStringWithCommas()
-            }"
+            "TZS ${price.roundToInt().toStringWithCommas()}"
         }
     }
 }
-
 
 /*
  * ============================================================
@@ -299,7 +205,6 @@ private fun formatCompactPrice(
  */
 
 private fun Int.toStringWithCommas(): String {
-
     return toString()
         .reversed()
         .chunked(3)
@@ -307,21 +212,13 @@ private fun Int.toStringWithCommas(): String {
         .reversed()
 }
 
-
 private fun Double.removeTrailingZeros(): String {
-
-    return if (
-        this % 1.0 == 0.0
-    ) {
-
+    return if (this % 1.0 == 0.0) {
         toInt().toString()
-
     } else {
-
         toString()
     }
 }
-
 
 /*
  * ============================================================
@@ -331,69 +228,27 @@ private fun Double.removeTrailingZeros(): String {
 
 private fun createPriceMarker(
     room: Room,
-    selected: Boolean
+    selected: Boolean,
+    isSaved: Boolean = false,
+    isViewed: Boolean = false
 ): BitmapDescriptor {
-
-    val color =
-        statusColor(
-            status = room.status,
-            selected = selected
-        )
-
-    val status =
-        room.status
-            ?.uppercase()
-            ?: "AVAILABLE"
-
-    val alpha =
-        if (
-            !selected &&
-            status == "RENTED"
-        ) {
-            140
-        } else {
-            255
-        }
-
-    val text =
-        formatCompactPrice(
-            room.price
-        )
+    val color = statusColor(status = room.status, selected = selected, isSaved = isSaved, isViewed = isViewed)
+    val status = room.status?.uppercase() ?: "AVAILABLE"
+    val alpha = if (!selected && status == "RENTED") 140 else 255
+    val text = formatCompactPrice(room.price)
 
     val width = 192
     val height = 92
+    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG)
 
-    val bitmap =
-        Bitmap.createBitmap(
-            width,
-            height,
-            Bitmap.Config.ARGB_8888
-        )
-
-    val canvas =
-        Canvas(bitmap)
-
-    val paint =
-        Paint(
-            Paint.ANTI_ALIAS_FLAG
-        )
-
-    paint.color =
-        android.graphics.Color.argb(
-            alpha,
-
-            android.graphics.Color.red(
-                color
-            ),
-
-            android.graphics.Color.green(
-                color
-            ),
-
-            android.graphics.Color.blue(
-                color
-            )
-        )
+    paint.color = android.graphics.Color.argb(
+        alpha,
+        android.graphics.Color.red(color),
+        android.graphics.Color.green(color),
+        android.graphics.Color.blue(color)
+    )
 
     val left = 8f
     val top = 8f
@@ -401,72 +256,93 @@ private fun createPriceMarker(
     val bottom = 58f
     val radius = 25f
 
-    canvas.drawRoundRect(
-        left,
-        top,
-        right,
-        bottom,
-        radius,
-        radius,
-        paint
-    )
+    canvas.drawRoundRect(left, top, right, bottom, radius, radius, paint)
 
-    val pointer =
-        Path().apply {
+    val pointer = Path().apply {
+        moveTo(80f, bottom)
+        lineTo(96f, 78f)
+        lineTo(112f, bottom)
+        close()
+    }
+    canvas.drawPath(pointer, paint)
 
-            moveTo(
-                80f,
-                bottom
-            )
+    paint.color = android.graphics.Color.WHITE
+    paint.alpha = 255
+    paint.textSize = 22f
+    paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+    paint.textAlign = Paint.Align.CENTER
 
-            lineTo(
-                96f,
-                78f
-            )
+    canvas.drawText(text, 96f, 43f, paint)
 
-            lineTo(
-                112f,
-                bottom
-            )
-
-            close()
-        }
-
-    canvas.drawPath(
-        pointer,
-        paint
-    )
-
-    paint.color =
-        android.graphics.Color.WHITE
-
-    paint.alpha =
-        255
-
-    paint.textSize =
-        22f
-
-    paint.typeface =
-        Typeface.create(
-            Typeface.DEFAULT,
-            Typeface.BOLD
-        )
-
-    paint.textAlign =
-        Paint.Align.CENTER
-
-    canvas.drawText(
-        text,
-        96f,
-        43f,
-        paint
-    )
-
-    return BitmapDescriptorFactory.fromBitmap(
-        bitmap
-    )
+    return BitmapDescriptorFactory.fromBitmap(bitmap)
 }
 
+/*
+ * ============================================================
+ * DOT MARKER
+ * ============================================================
+ */
+
+private fun createDotMarker(
+    room: Room,
+    selected: Boolean,
+    isSaved: Boolean = false,
+    isViewed: Boolean = false
+): BitmapDescriptor {
+    val size = if (selected) 64 else 48
+    val color = statusColor(room.status, selected, isSaved, isViewed)
+    
+    val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+    
+    // Outer glow/shadow
+    paint.color = android.graphics.Color.argb(60, 0, 0, 0)
+    canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint)
+    
+    // White border
+    paint.color = android.graphics.Color.WHITE
+    canvas.drawCircle(size / 2f, size / 2f, size / 2f - 2f, paint)
+    
+    // Main dot
+    paint.color = color
+    canvas.drawCircle(size / 2f, size / 2f, size / 2f - 6f, paint)
+    
+    return BitmapDescriptorFactory.fromBitmap(bitmap)
+}
+
+/*
+ * ============================================================
+ * CLUSTER MARKER
+ * ============================================================
+ */
+
+private fun createClusterMarker(count: Int): BitmapDescriptor {
+    val size = 120
+    val color = 0xFF1A237E.toInt() // Roomify Blue
+    
+    val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+    
+    // White border
+    paint.color = android.graphics.Color.WHITE
+    canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint)
+    
+    // Blue circle
+    paint.color = color
+    canvas.drawCircle(size / 2f, size / 2f, size / 2f - 8f, paint)
+    
+    // Count text
+    paint.color = android.graphics.Color.WHITE
+    paint.textSize = 42f
+    paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+    paint.textAlign = Paint.Align.CENTER
+    
+    canvas.drawText(count.toString(), size / 2f, size / 2f + 15f, paint)
+    
+    return BitmapDescriptorFactory.fromBitmap(bitmap)
+}
 
 /*
  * ============================================================
@@ -482,6 +358,8 @@ actual fun MapContent(
     routingDestination: Room?,
     currentStatusFilter: String,
     shouldFitBounds: Boolean,
+    viewedRoomIds: Set<Long>,
+    savedRoomIds: Set<Long>,
     onStatusFilterChange: (String) -> Unit,
     onFitBoundsHandled: () -> Unit,
     onClearRoute: () -> Unit,
@@ -499,19 +377,9 @@ actual fun MapContent(
         } catch (e: Exception) {}
     }
 
-    /*
-     * ========================================================
-     * AUTOMATIC FIT BOUNDS (Android)
-     * ========================================================
-     */
-
-    val cameraPositionState =
-        rememberCameraPositionState {
-            position = CameraPosition.fromLatLngZoom(
-                LatLng(-6.7924, 39.2083),
-                12f
-            )
-        }
+    val cameraPositionState = rememberCameraPositionState {
+        position = CameraPosition.fromLatLngZoom(LatLng(-6.7924, 39.2083), 11f)
+    }
 
     LaunchedEffect(rooms, shouldFitBounds) {
         if (shouldFitBounds && rooms.isNotEmpty()) {
@@ -523,7 +391,6 @@ actual fun MapContent(
                 }
                 val bounds = boundsBuilder.build()
                 
-                // Animate camera to fit bounds
                 cameraPositionState.animate(
                     update = CameraUpdateFactory.newLatLngBounds(bounds, 150),
                     durationMs = 1000
@@ -560,7 +427,6 @@ actual fun MapContent(
                     routePoints.add(LatLng(location.latitude, location.longitude))
                     routePoints.add(LatLng(dest.latitude, dest.longitude))
                     
-                    // Zoom to fit route
                     val bounds = com.google.android.gms.maps.model.LatLngBounds.builder()
                         .include(LatLng(location.latitude, location.longitude))
                         .include(LatLng(dest.latitude, dest.longitude))
@@ -576,39 +442,11 @@ actual fun MapContent(
         }
     }
 
-
-    /*
-     * ========================================================
-     * MENU STATE
-     * ========================================================
-     *
-     * This state belongs entirely to Android MapContent.
-     *
-     * Therefore the web MapContent is not affected.
-     */
-
-    var menuOpen by remember {
-        mutableStateOf(false)
-    }
-
-
-    /*
-     * ========================================================
-     * SEARCH STATE
-     * ========================================================
-     */
-
-    var searchQuery by remember {
-        mutableStateOf("")
-    }
-    /*
-     * ========================================================
-     * ROUTING LOGIC
-     * ========================================================
-     */
+    var menuOpen by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
 
     val controller = createMapController(
-        onLocationSelected = {}, // Not used here
+        onLocationSelected = {},
         onError = {}
     )
 
@@ -628,133 +466,45 @@ actual fun MapContent(
         }
     }
 
+    val searchFocusRequester = remember { FocusRequester() }
 
-    /*
-     * ========================================================
-     * SEARCH FOCUS
-     * ========================================================
-     */
-
-    val searchFocusRequester =
-        remember {
-            FocusRequester()
-        }
-
-
-    /*
-     * ========================================================
-     * MOVE CAMERA TO SELECTED ROOM
-     * ========================================================
-     */
-
-    LaunchedEffect(
-        selectedRoom?.id
-    ) {
-
+    LaunchedEffect(selectedRoom?.id) {
         selectedRoom?.let { room ->
-
-            if (
-                room.latitude != 0.0 &&
-                room.longitude != 0.0
-            ) {
-
+            if (room.latitude != 0.0 && room.longitude != 0.0) {
                 cameraPositionState.animate(
-
-                    CameraUpdateFactory.newLatLngZoom(
-
-                        LatLng(
-                            room.latitude,
-                            room.longitude
-                        ),
-
-                        15.5f
-                    ),
-
+                    CameraUpdateFactory.newLatLngZoom(LatLng(room.latitude, room.longitude), 15.5f),
                     700
                 )
             }
         }
     }
 
-
-    /*
-     * ========================================================
-     * MAIN ROOT
-     * ========================================================
-     */
-
-    Box(
-        modifier =
-            Modifier.fillMaxSize()
-    ) {
-
-
-        /*
-         * ====================================================
-         * GOOGLE MAP
-         * ====================================================
-         */
-
+    Box(modifier = Modifier.fillMaxSize()) {
         GoogleMap(
-
-            modifier =
-                Modifier.fillMaxSize(),
-
-            cameraPositionState =
-                cameraPositionState,
-
-            properties =
-                MapProperties(
-
-                    isBuildingEnabled =
-                        true,
-
-                    isIndoorEnabled =
-                        true,
-
-                    isTrafficEnabled =
-                        false,
-
-                    isMyLocationEnabled =
-                        false,
-                        
-                    mapStyleOptions = null // Always detailed
-                ),
-
-            uiSettings =
-                MapUiSettings(
-
-                    scrollGesturesEnabled =
-                        true,
-
-                    zoomGesturesEnabled =
-                        true,
-
-                    rotationGesturesEnabled =
-                        true,
-
-                    tiltGesturesEnabled =
-                        true,
-
-                    zoomControlsEnabled =
-                        false,
-
-                    compassEnabled =
-                        true,
-
-                    myLocationButtonEnabled =
-                        false,
-
-                    mapToolbarEnabled =
-                        false
-                ),
-
+            modifier = Modifier.fillMaxSize(),
+            cameraPositionState = cameraPositionState,
+            properties = MapProperties(
+                isBuildingEnabled = true,
+                isIndoorEnabled = true,
+                isTrafficEnabled = false,
+                isMyLocationEnabled = false,
+                mapStyleOptions = null 
+            ),
+            uiSettings = MapUiSettings(
+                scrollGesturesEnabled = true,
+                zoomGesturesEnabled = true,
+                rotationGesturesEnabled = true,
+                tiltGesturesEnabled = true,
+                zoomControlsEnabled = false,
+                compassEnabled = true,
+                myLocationButtonEnabled = false,
+                mapToolbarEnabled = false
+            ),
             onMapClick = {
                 onClearRoute()
                 onRoomCleared()
             }
         ) {
-
             if (routePoints.isNotEmpty()) {
                 Polyline(
                     points = routePoints,
@@ -763,175 +513,97 @@ actual fun MapContent(
                 )
             }
 
-
-            /*
-             * =================================================
-             * ROOM MARKERS
-             * =================================================
-             */
-
-            rooms.forEach { room ->
-
-                if (
-                    room.latitude == 0.0 ||
-                    room.longitude == 0.0
-                ) {
-
-                    return@forEach
-                }
-
-                val position =
-                    LatLng(
-                        room.latitude,
-                        room.longitude
-                    )
-
-                val isSelected =
-                    selectedRoom?.id == room.id
-
-                val markerState =
-                    remember(
-                        room.id
-                    ) {
-
-                        MarkerState(
-                            position =
-                                position
-                        )
+            val zoom = cameraPositionState.position.zoom
+            val showClusters = zoom < 10f
+            val showDots = zoom >= 10f && zoom <= 13f
+            
+            if (showClusters) {
+                val clusters = rooms.filter { it.latitude != 0.0 && it.longitude != 0.0 }
+                    .groupBy { room ->
+                        val latStep = 0.5
+                        val lngStep = 0.5
+                        val latKey = (room.latitude / latStep).roundToInt()
+                        val lngKey = (room.longitude / lngStep).roundToInt()
+                        latKey to lngKey
                     }
 
-                LaunchedEffect(
-                    position
-                ) {
-
-                    markerState.position =
-                        position
-                }
-
-                val markerIcon =
-                    remember(
-                        room.id,
-                        room.price,
-                        room.status,
-                        isSelected
-                    ) {
-
-                        createPriceMarker(
-                            room =
-                                room,
-
-                            selected =
-                                isSelected
-                        )
-                    }
-
-                Marker(
-
-                    state =
-                        markerState,
-
-                    icon =
-                        markerIcon,
-
-                    title =
-                        room.title
-                            ?.takeIf {
-                                it.isNotBlank()
+                clusters.forEach { (gridKey, clusteredRooms) ->
+                    if (clusteredRooms.size > 1) {
+                        val avgLat = clusteredRooms.map { it.latitude }.average()
+                        val avgLng = clusteredRooms.map { it.longitude }.average()
+                        
+                        Marker(
+                            state = MarkerState(position = LatLng(avgLat, avgLng)),
+                            icon = createClusterMarker(clusteredRooms.size),
+                            onClick = {
+                                cameraPositionState.animate(
+                                    CameraUpdateFactory.newLatLngZoom(LatLng(avgLat, avgLng), zoom + 2f),
+                                    500
+                                )
+                                true
                             }
-                            ?: "Room",
-
-                    tag =
-                        room,
-
-                    onClick = {
-
-                        println(
-                            "Roomify Android: marker clicked ${room.id}"
                         )
+                    } else {
+                        val room = clusteredRooms.first()
+                        val isSelected = selectedRoom?.id == room.id
+                        val isSaved = savedRoomIds.contains(room.id ?: -1L)
+                        val isViewed = viewedRoomIds.contains(room.id ?: -1L)
 
-                        onRoomSelected(
-                            room
+                        Marker(
+                            state = MarkerState(position = LatLng(room.latitude, room.longitude)),
+                            icon = createDotMarker(room, isSelected, isSaved, isViewed),
+                            onClick = {
+                                onRoomSelected(room)
+                                true
+                            }
                         )
-
-                        true
                     }
-                )
+                }
+            } else {
+                rooms.forEach { room ->
+                    if (room.latitude == 0.0 || room.longitude == 0.0) return@forEach
+
+                    val isSelected = selectedRoom?.id == room.id
+                    val isSaved = savedRoomIds.contains(room.id ?: -1L)
+                    val isViewed = viewedRoomIds.contains(room.id ?: -1L)
+
+                    val markerIcon = if (showDots) {
+                        createDotMarker(room, isSelected, isSaved, isViewed)
+                    } else {
+                        createPriceMarker(room, isSelected, isSaved, isViewed)
+                    }
+
+                    Marker(
+                        state = remember(room.id) { MarkerState(position = LatLng(room.latitude, room.longitude)) }.apply {
+                            position = LatLng(room.latitude, room.longitude)
+                        },
+                        icon = markerIcon,
+                        title = room.title ?: "Room",
+                        onClick = {
+                            onRoomSelected(room)
+                            true
+                        }
+                    )
+                }
             }
         }
 
-
-        /*
-         * ========================================================
-         * MAP HEADER
-         * ========================================================
-         *
-         * The header is positioned above the map.
-         */
-
         MapHeader(
-
-            menuOpen =
-                menuOpen,
-
-            searchQuery =
-                searchQuery,
-            
+            menuOpen = menuOpen,
+            searchQuery = searchQuery,
             currentStatusFilter = currentStatusFilter,
-            
             onStatusFilterChange = onStatusFilterChange,
-
-            onMenuClick = {
-
-                menuOpen =
-                    !menuOpen
-
-                println(
-                    "Roomify Android: menuOpen = $menuOpen"
-                )
-            },
-
-            onSearchChange = { value ->
-
-                searchQuery =
-                    value
-
-                println(
-                    "Roomify Android: search = $value"
-                )
-            },
-
-            onSearchClick = {
-
-                /*
-                 * Explicitly request focus.
-                 *
-                 * This fixes the issue where tapping
-                 * the search box did not place the cursor.
-                 */
-
-                searchFocusRequester.requestFocus()
-            },
-
-            searchFocusRequester =
-                searchFocusRequester,
-            
+            onMenuClick = { menuOpen = !menuOpen },
+            onSearchChange = { searchQuery = it },
+            onSearchClick = { searchFocusRequester.requestFocus() },
+            searchFocusRequester = searchFocusRequester,
             suggestions = areaSuggestions
         )
 
-
-        /*
-         * ========================================================
-         * ANDROID SIDEBAR
-         * ========================================================
-         */
-
         if (menuOpen) {
-
             RoomifySideBar(
                 authState = authState,
-                onClose = {
-                    menuOpen = false
-                },
+                onClose = { menuOpen = false },
                 onExplore = {
                     menuOpen = false
                     onRoomCleared()
@@ -960,44 +632,15 @@ actual fun MapContent(
             )
         }
 
-
-        /*
-         * ========================================================
-         * PROPERTY POPUP
-         * ========================================================
-         */
-
         selectedRoom?.let { room ->
-
             RoomPropertyPopup(
-
-                room =
-                    room,
-
-                onClose = {
-
-                    println(
-                        "Roomify Android: closing property popup ${room.id}"
-                    )
-
-                    onRoomCleared()
-                },
-
-                onViewProperty = {
-
-                    println(
-                        "Roomify Android: View Property ${room.id}"
-                    )
-
-                    onViewProperty(
-                        room
-                    )
-                }
+                room = room,
+                onClose = { onRoomCleared() },
+                onViewProperty = { onViewProperty(room) }
             )
         }
     }
 }
-
 
 /*
  * ============================================================
@@ -1033,386 +676,157 @@ private fun MapHeader(
         ) {
             /*
              * ====================================================
-
-
-        /*
-         * ====================================================
-         * MENU BUTTON
-         * ====================================================
-         */
-
-        Surface(
-
-            modifier =
-                Modifier
-                    .size(52.dp)
-                    .shadow(
-                        elevation = 8.dp,
-                        shape = CircleShape
-                    )
-                    .clip(
-                        CircleShape
-                    )
-                    .clickable(
-                        onClick =
-                            onMenuClick
-                    ),
-
-            shape =
-                CircleShape,
-
-            color =
-                RoomifyGradientStart
-                    .copy(
-                        alpha = 0.94f
-                    )
-        ) {
-
-            Box(
-                contentAlignment =
-                    Alignment.Center
-            ) {
-
-                Icon(
-
-                    imageVector =
-                        if (menuOpen) {
-                            Icons.Default.Close
-                        } else {
-                            Icons.Default.Menu
-                        },
-
-                    contentDescription =
-                        if (menuOpen) {
-                            "Close menu"
-                        } else {
-                            "Open menu"
-                        },
-
-                    tint =
-                        RoomifyWhite,
-
-                    modifier =
-                        Modifier.size(
-                            24.dp
-                        )
-                )
-            }
-        }
-
-
-        Spacer(
-            modifier =
-                Modifier.width(
-                    10.dp
-                )
-        )
-
-
-        /*
-         * ====================================================
-         * SEARCH BAR
-         * ====================================================
-         */
-
-        Surface(
-
-            modifier =
-                Modifier
-                    .weight(1f)
-                    .height(52.dp)
-                    .shadow(
-                        elevation = 8.dp,
-                        shape =
-                            RoundedCornerShape(
-                                18.dp
-                            )
-                    ),
-
-            shape =
-                RoundedCornerShape(
-                    18.dp
-                ),
-
-            color =
-                RoomifyWhite
-                    .copy(
-                        alpha = 0.96f
-                    ),
-
-            border = BorderStroke(1.dp, Color(0xFFBDBDBD))
-        ) {
-
-            Row(
-
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .padding(
-                            horizontal = 14.dp
-                        )
-                        .clickable(
-                            onClick =
-                                onSearchClick
-                        ),
-
-                verticalAlignment =
-                    Alignment.CenterVertically
-            ) {
-
-                Icon(
-
-                    imageVector =
-                        Icons.Default.Search,
-
-                    contentDescription =
-                        "Search",
-
-                    tint =
-                        RoomifyGradientStart
-                            .copy(
-                                alpha = 0.78f
-                            ),
-
-                    modifier =
-                        Modifier.size(
-                            22.dp
-                        )
-                )
-
-
-                Spacer(
-                    modifier =
-                        Modifier.width(
-                            10.dp
-                        )
-                )
-
-
-                /*
-                 * =================================================
-                 * REAL EDITABLE SEARCH FIELD
-                 * =================================================
-                 *
-                 * BasicTextField ensures:
-                 *
-                 * - cursor appears
-                 * - text is editable
-                 * - tapping works
-                 * - typed text is visible
-                 */
-
-                BasicTextField(
-
-                    value =
-                        searchQuery,
-
-                    onValueChange =
-                        onSearchChange,
-
-                    modifier =
-                        Modifier
-                            .weight(1f)
-                            .focusRequester(
-                                searchFocusRequester
-                            )
-                            .focusable(),
-
-                    singleLine =
-                        true,
-
-                    textStyle =
-                        androidx.compose.ui.text.TextStyle(
-
-                            color =
-                                RoomifyGradientStart,
-
-                            fontSize =
-                                14.sp,
-
-                            fontWeight =
-                                FontWeight.Medium
-                        ),
-
-                    decorationBox = { innerTextField ->
-
-                        Box {
-
-                            if (
-                                searchQuery.isEmpty()
-                            ) {
-
-                                Text(
-
-                                    text =
-                                        strings.searchPlaceholder,
-
-                                    color =
-                                        RoomifyGradientStart
-                                            .copy(
-                                                alpha = 0.52f
-                                            ),
-
-                                    fontSize =
-                                        13.sp,
-
-                                    maxLines =
-                                        1,
-
-                                    overflow =
-                                        TextOverflow.Ellipsis
-                                )
-                            }
-
-                            innerTextField()
-                        }
-                    }
-                )
-
-
-                /*
-                 * =================================================
-                 * CLEAR SEARCH BUTTON
-                 * =================================================
-                 */
-
-                if (
-                    searchQuery.isNotEmpty()
-                ) {
-
-                    Box(
-
-                        modifier =
-                            Modifier
-                                .size(
-                                    32.dp
-                                )
-                                .clip(
-                                    CircleShape
-                                )
-                                .clickable {
-
-                                    onSearchChange(
-                                        ""
-                                    )
-                                },
-
-                        contentAlignment =
-                            Alignment.Center
-                    ) {
-
-                        Icon(
-
-                            imageVector =
-                                Icons.Default.Close,
-
-                            contentDescription =
-                                "Clear search",
-
-                            tint =
-                                RoomifyGradientStart
-                                    .copy(
-                                        alpha = 0.70f
-                                    ),
-
-                            modifier =
-                                Modifier.size(
-                                    18.dp
-                                )
-                        )
-                    }
-                }
-            }
-        }
-
-
-        /*
-         * ====================================================
-         * STATUS DROPDOWN (Android)
-         * ====================================================
-         */
-
-        var statusExpanded by remember { mutableStateOf(false) }
-
-        Box {
+             * MENU BUTTON
+             * ====================================================
+             */
             Surface(
                 modifier = Modifier
+                    .size(52.dp)
+                    .shadow(elevation = 8.dp, shape = CircleShape)
+                    .clip(CircleShape)
+                    .clickable(onClick = onMenuClick),
+                shape = CircleShape,
+                color = RoomifyGradientStart.copy(alpha = 0.94f)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = if (menuOpen) Icons.Default.Close else Icons.Default.Menu,
+                        contentDescription = if (menuOpen) "Close menu" else "Open menu",
+                        tint = RoomifyWhite,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+
+            /*
+             * ====================================================
+             * SEARCH BAR
+             * ====================================================
+             */
+            Surface(
+                modifier = Modifier
+                    .weight(1f)
                     .height(52.dp)
-                    .widthIn(min = 80.dp)
-                    .shadow(elevation = 8.dp, shape = RoundedCornerShape(18.dp))
-                    .clickable { statusExpanded = true },
+                    .shadow(elevation = 8.dp, shape = RoundedCornerShape(18.dp)),
                 shape = RoundedCornerShape(18.dp),
                 color = RoomifyWhite.copy(alpha = 0.96f),
                 border = BorderStroke(1.dp, Color(0xFFBDBDBD))
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 14.dp)
+                        .clickable(onClick = onSearchClick),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = currentStatusFilter.uppercase(),
-                        color = RoomifyGradientStart,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Search",
+                        tint = RoomifyGradientStart.copy(alpha = 0.78f),
+                        modifier = Modifier.size(22.dp)
                     )
-                    Icon(Icons.Default.ArrowDropDown, null, tint = RoomifyGradientStart, modifier = Modifier.size(18.dp))
-                }
-            }
 
-            androidx.compose.material3.DropdownMenu(
-                expanded = statusExpanded,
-                onDismissRequest = { statusExpanded = false }
-            ) {
-                listOf("ALL", "AVAILABLE", "PENDING", "RENTED").forEach { status ->
-                    androidx.compose.material3.DropdownMenuItem(
-                        text = { Text(status, fontWeight = FontWeight.Bold) },
-                        onClick = {
-                            onStatusFilterChange(status)
-                            statusExpanded = false
+                    Spacer(modifier = Modifier.width(10.dp))
+
+                    BasicTextField(
+                        value = searchQuery,
+                        onValueChange = onSearchChange,
+                        modifier = Modifier
+                            .weight(1f)
+                            .focusRequester(searchFocusRequester)
+                            .focusable(),
+                        singleLine = true,
+                        textStyle = androidx.compose.ui.text.TextStyle(
+                            color = RoomifyGradientStart,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        ),
+                        decorationBox = { innerTextField ->
+                            Box {
+                                if (searchQuery.isEmpty()) {
+                                    Text(
+                                        text = strings.searchPlaceholder,
+                                        color = RoomifyGradientStart.copy(alpha = 0.52f),
+                                        fontSize = 13.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                innerTextField()
+                            }
                         }
                     )
-                }
-            }
-        }
 
-        // Suggestions Dropdown (Android)
-        val filteredSuggestions = remember(searchQuery, suggestions) {
-            if (searchQuery.length < 2) emptyList()
-            else suggestions.filter { it.contains(searchQuery, ignoreCase = true) && it != searchQuery }.take(5)
-        }
-
-        if (filteredSuggestions.isNotEmpty()) {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 70.dp) // Align with search bar
-                    .padding(top = 4.dp),
-                shape = RoundedCornerShape(12.dp),
-                color = Color.White,
-                shadowElevation = 8.dp,
-                border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.5f))
-            ) {
-                Column {
-                    filteredSuggestions.forEach { suggestion ->
-                        Row(
+                    if (searchQuery.isNotEmpty()) {
+                        Box(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onSearchChange(suggestion) }
-                                .padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .clickable { onSearchChange("") },
+                            contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Default.LocationOn, null, modifier = Modifier.size(16.dp), tint = Color.Gray)
-                            Spacer(Modifier.width(12.dp))
-                            Text(suggestion, fontSize = 13.sp, color = RoomifyGradientStart)
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Clear search",
+                                tint = RoomifyGradientStart.copy(alpha = 0.70f),
+                                modifier = Modifier.size(18.dp)
+                            )
                         }
+                    }
+                }
+            }
+
+            /*
+             * ====================================================
+             * STATUS DROPDOWN (Android)
+             * ====================================================
+             */
+            var statusExpanded by remember { mutableStateOf(false) }
+
+            Box {
+                Surface(
+                    modifier = Modifier
+                        .height(52.dp)
+                        .widthIn(min = 80.dp)
+                        .shadow(elevation = 8.dp, shape = RoundedCornerShape(18.dp))
+                        .clickable { statusExpanded = true },
+                    shape = RoundedCornerShape(18.dp),
+                    color = RoomifyWhite.copy(alpha = 0.96f),
+                    border = BorderStroke(1.dp, Color(0xFFBDBDBD))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = currentStatusFilter.uppercase(),
+                            color = RoomifyGradientStart,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null, tint = RoomifyGradientStart, modifier = Modifier.size(18.dp))
+                    }
+                }
+
+                androidx.compose.material3.DropdownMenu(
+                    expanded = statusExpanded,
+                    onDismissRequest = { statusExpanded = false }
+                ) {
+                    listOf("ALL", "AVAILABLE", "PENDING", "RENTED").forEach { status ->
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { Text(status, fontWeight = FontWeight.Bold) },
+                            onClick = {
+                                onStatusFilterChange(status)
+                                statusExpanded = false
+                            }
+                        )
                     }
                 }
             }
         }
     }
 }
-
 
 /*
  * ============================================================
@@ -1434,204 +848,67 @@ private fun RoomifySideBar(
     val strings = LocalRoomifyStrings.current
     val localizationManager = LocalLocalizationManager.current
 
-    /*
-     * ========================================================
-     * SIDEBAR ROOT
-     * ========================================================
-     *
-     * The sidebar is placed over the Android map only.
-     */
-
-    Box(
-        modifier =
-            Modifier.fillMaxSize()
-    ) {
-
-
-        /*
-         * ====================================================
-         * DARK SCRIM
-         * ====================================================
-         */
-
+    Box(modifier = Modifier.fillMaxSize()) {
         Box(
-
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .background(
-                        Color.Black
-                            .copy(
-                                alpha = 0.22f
-                            )
-                    )
-                    .clickable(
-                        onClick =
-                            onClose
-                    )
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.22f))
+                .clickable(onClick = onClose)
         )
 
-
-        /*
-         * ====================================================
-         * SIDEBAR
-         * ====================================================
-         */
-
         Surface(
-
-            modifier =
-                Modifier
-                    .fillMaxHeight()
-                    .width(
-                        315.dp
-                    )
-                    .shadow(
-                        elevation = 22.dp
-                    ),
-
-            color =
-                Color.Transparent
+            modifier = Modifier
+                .fillMaxHeight()
+                .width(315.dp)
+                .shadow(elevation = 22.dp),
+            color = Color.Transparent
         ) {
-
             Column(
-
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .background(
-                            brush =
-                                Brush.verticalGradient(
-                                    colors =
-                                        listOf(
-
-                                            RoomifyGradientStart
-                                                .copy(
-                                                    alpha = 0.98f
-                                                ),
-
-                                            RoomifyGradientEnd
-                                                .copy(
-                                                    alpha = 0.97f
-                                                )
-                                        )
-                                )
-                        )
-                        .padding(
-                            horizontal = 18.dp
-                        )
-            ) {
-
-
-                /*
-                 * =================================================
-                 * SIDEBAR HEADER - MATCHES WEB
-                 * =================================================
-                 */
-
-                Row(
-
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(
-                                top = 22.dp,
-                                bottom = 22.dp
-                            ),
-
-                    verticalAlignment =
-                        Alignment.CenterVertically
-                ) {
-
-                    /*
-                     * Brand text only - matches web
-                     */
-                    Text(
-
-                        text =
-                            "ROOMIFY",
-
-                        color =
-                            RoomifyWhite,
-
-                        fontSize =
-                            21.sp,
-
-                        fontWeight =
-                            FontWeight.ExtraBold,
-
-                        letterSpacing =
-                            1.5.sp,
-
-                        modifier =
-                            Modifier.weight(
-                                1f
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                RoomifyGradientStart.copy(alpha = 0.98f),
+                                RoomifyGradientEnd.copy(alpha = 0.97f)
                             )
+                        )
                     )
-
-
-                    /*
-                     * =================================================
-                     * WORKING X BUTTON
-                     * =================================================
-                     */
+                    .padding(horizontal = 18.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 22.dp, bottom = 22.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "ROOMIFY",
+                        color = RoomifyWhite,
+                        fontSize = 21.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 1.5.sp,
+                        modifier = Modifier.weight(1f)
+                    )
 
                     Surface(
-
-                        modifier =
-                            Modifier
-                                .size(
-                                    38.dp
-                                )
-                                .clip(
-                                    CircleShape
-                                )
-                                .clickable(
-                                    onClick =
-                                        onClose
-                                ),
-
-                        color =
-                            RoomifyWhite
-                                .copy(
-                                    alpha = 0.12f
-                                ),
-
-                        shape =
-                            CircleShape
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .clickable(onClick = onClose),
+                        color = RoomifyWhite.copy(alpha = 0.12f),
+                        shape = CircleShape
                     ) {
-
-                        Box(
-                            contentAlignment =
-                                Alignment.Center
-                        ) {
-
+                        Box(contentAlignment = Alignment.Center) {
                             Icon(
-
-                                imageVector =
-                                    Icons.Default.Close,
-
-                                contentDescription =
-                                    "Close menu",
-
-                                tint =
-                                    RoomifyWhite,
-
-                                modifier =
-                                    Modifier.size(
-                                        20.dp
-                                    )
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Close menu",
+                                tint = RoomifyWhite,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                     }
                 }
-
-
-                /*
-                 * =================================================
-                 * SECTION 1: DISCOVER / DASHBOARD
-                 * =================================================
-                 */
 
                 val user = (authState as? org.com.auth.AuthState.Authenticated)?.user
 
@@ -1644,7 +921,6 @@ private fun RoomifySideBar(
                     modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
                 )
 
-                // Common: Explore
                 SidebarItem(
                     title = "Explore",
                     subtitle = "Discover available properties",
@@ -1653,7 +929,6 @@ private fun RoomifySideBar(
                 )
 
                 if (user != null && user.isTenant()) {
-                    // Tenant Specific
                     SidebarItem(
                         title = "Dashboard",
                         subtitle = "My activity overview",
@@ -1684,22 +959,7 @@ private fun RoomifySideBar(
                         selected = false,
                         onClick = { onNavigate("messages") }
                     )
-                } else if (user == null) {
-                    // Guest Specific - Hide Saved Rooms and My Searches as per requirement
-                    // SidebarItem(
-                    //    title = strings.savedRooms,
-                    //    subtitle = "Properties you've bookmarked",
-                    //    selected = false,
-                    //    onClick = onSavedProperties
-                    // )
-                    // SidebarItem(
-                    //    title = strings.mySearches,
-                    //    subtitle = "View your search history",
-                    //    selected = false,
-                    //    onClick = onMySearches
-                    // )
                 } else if (user != null && user.isOwner()) {
-                    // Owner Specific
                     SidebarItem(
                         title = "Owner Dashboard",
                         subtitle = "Manage your properties",
@@ -1713,7 +973,6 @@ private fun RoomifySideBar(
                         onClick = { onNavigate("postroom") }
                     )
                 } else if (user != null && user.isAdmin()) {
-                    // Admin Specific
                     SidebarItem(
                         title = "Admin Panel",
                         subtitle = "System administration",
@@ -1723,12 +982,6 @@ private fun RoomifySideBar(
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))
-
-                /*
-                 * =================================================
-                 * SECTION 2: SEARCH / ACCOUNT
-                 * =================================================
-                 */
 
                 Text(
                     text = if (user != null) strings.account else strings.search,
@@ -1778,13 +1031,6 @@ private fun RoomifySideBar(
                 )
 
                 Spacer(modifier = Modifier.weight(1f))
-
-
-                /*
-                 * =================================================
-                 * SECTION 3: ACCOUNT BOX (Login/Register)
-                 * =================================================
-                 */
 
                 if (user == null) {
                     Surface(
@@ -1841,7 +1087,6 @@ private fun RoomifySideBar(
                         }
                     }
                 } else {
-                    // Show User Info box
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1891,44 +1136,8 @@ private fun RoomifySideBar(
                 }
             }
         }
-
-        // Suggestions Dropdown (Android)
-        val filteredSuggestions = remember(searchQuery, suggestions) {
-            if (searchQuery.length < 2) emptyList()
-            else suggestions.filter { it.contains(searchQuery, ignoreCase = true) && it != searchQuery }.take(5)
-        }
-
-        if (filteredSuggestions.isNotEmpty()) {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 70.dp) // Align with search bar
-                    .padding(top = 4.dp),
-                shape = RoundedCornerShape(12.dp),
-                color = Color.White,
-                shadowElevation = 8.dp,
-                border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.5f))
-            ) {
-                Column {
-                    filteredSuggestions.forEach { suggestion ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onSearchChange(suggestion) }
-                                .padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Default.LocationOn, null, modifier = Modifier.size(16.dp), tint = Color.Gray)
-                            Spacer(Modifier.width(12.dp))
-                            Text(suggestion, fontSize = 13.sp, color = RoomifyGradientStart)
-                        }
-                    }
-                }
-            }
-        }
     }
 }
-
 
 /*
  * ============================================================
@@ -1943,101 +1152,31 @@ private fun SidebarItem(
     selected: Boolean,
     onClick: () -> Unit
 ) {
-
     Row(
-
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clip(
-                    RoundedCornerShape(
-                        16.dp
-                    )
-                )
-                .background(
-
-                    if (selected) {
-
-                        RoomifyWhite
-                            .copy(
-                                alpha = 0.14f
-                            )
-
-                    } else {
-
-                        Color.Transparent
-                    }
-                )
-                .clickable(
-                    onClick =
-                        onClick
-                )
-                .padding(
-                    horizontal = 16.dp,
-                    vertical = 14.dp
-                ),
-
-        verticalAlignment =
-            Alignment.CenterVertically
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (selected) RoomifyWhite.copy(alpha = 0.14f) else Color.Transparent)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-
-        /*
-         * TEXT
-         */
-
-        Column(
-            modifier =
-                Modifier.weight(
-                    1f
-                )
-        ) {
-
+        Column(modifier = Modifier.weight(1f)) {
             Text(
-
-                text =
-                    title,
-
-                color =
-                    RoomifyWhite,
-
-                fontSize =
-                    15.sp,
-
-                fontWeight =
-                    FontWeight.Bold
+                text = title,
+                color = RoomifyWhite,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold
             )
-
-            Spacer(
-                modifier =
-                    Modifier.height(
-                        2.dp
-                    )
-            )
-
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
-
-                text =
-                    subtitle,
-
-                color =
-                    RoomifyWhite70,
-
-                fontSize =
-                    11.sp,
-
-                maxLines =
-                    1,
-
-                overflow =
-                    TextOverflow.Ellipsis
+                text = subtitle,
+                color = RoomifyWhite70,
+                fontSize = 11.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
-
-
-        /*
-         * ARROW INDICATOR - Matches web
-         */
-
         Text(
             text = "→",
             fontSize = 14.sp,
@@ -2046,7 +1185,6 @@ private fun SidebarItem(
         )
     }
 }
-
 
 /*
  * ============================================================
@@ -2060,462 +1198,158 @@ private fun RoomPropertyPopup(
     onClose: () -> Unit,
     onViewProperty: () -> Unit
 ) {
-
     Box(
-
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(
-                    start = 14.dp,
-                    end = 14.dp,
-                    bottom = 20.dp
-                ),
-
-        contentAlignment =
-            Alignment.BottomCenter
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(start = 14.dp, end = 14.dp, bottom = 20.dp),
+        contentAlignment = Alignment.BottomCenter
     ) {
-
         Card(
-
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .shadow(
-                        elevation = 18.dp,
-                        shape =
-                            RoundedCornerShape(
-                                26.dp
-                            )
-                    ),
-
-            shape =
-                RoundedCornerShape(
-                    26.dp
-                ),
-
-            colors =
-                CardDefaults.cardColors(
-                    containerColor =
-                        Color.Transparent
-                ),
-
-            elevation =
-                CardDefaults.cardElevation(
-                    defaultElevation =
-                        0.dp
-                )
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(elevation = 18.dp, shape = RoundedCornerShape(26.dp)),
+            shape = RoundedCornerShape(26.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
-
             Column(
-
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .clip(
-                            RoundedCornerShape(
-                                26.dp
-                            )
-                        )
-                        .background(
-                            brush =
-                                Brush.verticalGradient(
-                                    colors =
-                                        listOf(
-
-                                            RoomifyGradientStart
-                                                .copy(
-                                                    alpha = 0.97f
-                                                ),
-
-                                            RoomifyGradientEnd
-                                                .copy(
-                                                    alpha = 0.95f
-                                                )
-                                        )
-                                )
-                        )
-                        .border(
-                            width = 1.dp,
-
-                            color =
-                                RoomifyWhite
-                                    .copy(
-                                        alpha = 0.16f
-                                    ),
-
-                            shape =
-                                RoundedCornerShape(
-                                    26.dp
-                                )
-                        )
-                        .padding(
-                            16.dp
-                        ),
-
-                verticalArrangement =
-                    Arrangement.spacedBy(
-                        11.dp
-                    )
-            ) {
-
-                Row(
-
-                    modifier =
-                        Modifier.fillMaxWidth(),
-
-                    verticalAlignment =
-                        Alignment.CenterVertically
-                ) {
-
-                    Column(
-                        modifier =
-                            Modifier.weight(
-                                1f
-                            )
-                    ) {
-
-                        Text(
-
-                            text =
-                                room.propertyType
-                                    ?.takeIf {
-                                        it.isNotBlank()
-                                    }
-                                    ?: "Property",
-
-                            color =
-                                RoomifyWhite80,
-
-                            fontSize =
-                                11.sp,
-
-                            fontWeight =
-                                FontWeight.SemiBold,
-
-                            letterSpacing =
-                                0.6.sp
-                        )
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(
-                                    2.dp
-                                )
-                        )
-
-                        Text(
-
-                            text =
-                                room.title
-                                    ?.takeIf {
-                                        it.isNotBlank()
-                                    }
-                                    ?: "Room",
-
-                            color =
-                                RoomifyWhite,
-
-                            fontSize =
-                                18.sp,
-
-                            fontWeight =
-                                FontWeight.Bold,
-
-                            maxLines =
-                                1,
-
-                            overflow =
-                                TextOverflow.Ellipsis
-                        )
-                    }
-
-
-                    Surface(
-
-                        modifier =
-                            Modifier
-                                .size(
-                                    38.dp
-                                )
-                                .clip(
-                                    CircleShape
-                                )
-                                .clickable(
-                                    onClick =
-                                        onClose
-                                ),
-
-                        color =
-                            RoomifyWhite
-                                .copy(
-                                    alpha = 0.13f
-                                ),
-
-                        shape =
-                            CircleShape
-                    ) {
-
-                        Box(
-                            contentAlignment =
-                                Alignment.Center
-                        ) {
-
-                            Icon(
-
-                                imageVector =
-                                    Icons.Default.Close,
-
-                                contentDescription =
-                                    "Close",
-
-                                tint =
-                                    RoomifyWhite,
-
-                                modifier =
-                                    Modifier.size(
-                                        20.dp
-                                    )
-                            )
-                        }
-                    }
-                }
-
-
-                val location =
-                    room.locationSummary
-                        .takeIf {
-                            it.isNotBlank()
-                        }
-                        ?: room.address
-                            ?.takeIf {
-                                it.isNotBlank()
-                            }
-
-
-                location?.let {
-
-                    Row(
-
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .clip(
-                                    RoundedCornerShape(
-                                        13.dp
-                                    )
-                                )
-                                .background(
-                                    RoomifyWhite
-                                        .copy(
-                                            alpha = 0.09f
-                                        )
-                                )
-                                .padding(
-                                    horizontal = 11.dp,
-                                    vertical = 9.dp
-                                ),
-
-                        verticalAlignment =
-                            Alignment.CenterVertically
-                    ) {
-
-                        Icon(
-
-                            imageVector =
-                                Icons.Default.LocationOn,
-
-                            contentDescription =
-                                "Location",
-
-                            tint =
-                                RoomifyWhite90,
-
-                            modifier =
-                                Modifier.size(
-                                    18.dp
-                                )
-                        )
-
-                        Spacer(
-                            modifier =
-                                Modifier.width(
-                                    7.dp
-                                )
-                        )
-
-                        Text(
-
-                            text =
-                                it,
-
-                            color =
-                                RoomifyWhite90,
-
-                            fontSize =
-                                12.sp,
-
-                            maxLines =
-                                1,
-
-                            overflow =
-                                TextOverflow.Ellipsis
-                        )
-                    }
-                }
-
-
-                Row(
-
-                    modifier =
-                        Modifier.fillMaxWidth(),
-
-                    verticalAlignment =
-                        Alignment.CenterVertically,
-
-                    horizontalArrangement =
-                        Arrangement.SpaceBetween
-                ) {
-
-                    Column {
-
-                        Text(
-
-                            text =
-                                "MONTHLY RENT",
-
-                            color =
-                                RoomifyWhite55,
-
-                            fontSize =
-                                9.sp,
-
-                            fontWeight =
-                                FontWeight.Bold,
-
-                            letterSpacing =
-                                1.sp
-                        )
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(
-                                    2.dp
-                                )
-                        )
-
-                        Text(
-
-                            text =
-                                formatFullPrice(
-                                    room.price
-                                ),
-
-                            color =
-                                RoomifyWhite,
-
-                            fontSize =
-                                19.sp,
-
-                            fontWeight =
-                                FontWeight.ExtraBold
-                        )
-                    }
-
-
-                    StatusBadge(
-                        status =
-                            room.status
-                    )
-                }
-
-
-                PopupFeatures(
-                    room =
-                        room
-                )
-
-
-                Button(
-
-                    onClick =
-                        onViewProperty,
-
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .height(
-                                50.dp
-                            ),
-
-                    shape =
-                        RoundedCornerShape(
-                            15.dp
-                        ),
-
-                    colors =
-                        ButtonDefaults.buttonColors(
-
-                            containerColor =
-                                RoomifyWhite95,
-
-                            contentColor =
-                                RoomifyGradientStart
-                        )
-                ) {
-
-                    Text(
-
-                        text =
-                            "View Property Details",
-
-                        fontSize =
-                            14.sp,
-
-                        fontWeight =
-                            FontWeight.Bold
-                    )
-                }
-            }
-        }
-
-        // Suggestions Dropdown (Android)
-        val filteredSuggestions = remember(searchQuery, suggestions) {
-            if (searchQuery.length < 2) emptyList()
-            else suggestions.filter { it.contains(searchQuery, ignoreCase = true) && it != searchQuery }.take(5)
-        }
-
-        if (filteredSuggestions.isNotEmpty()) {
-            Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 70.dp) // Align with search bar
-                    .padding(top = 4.dp),
-                shape = RoundedCornerShape(12.dp),
-                color = Color.White,
-                shadowElevation = 8.dp,
-                border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.5f))
+                    .clip(RoundedCornerShape(26.dp))
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                RoomifyGradientStart.copy(alpha = 0.97f),
+                                RoomifyGradientEnd.copy(alpha = 0.95f)
+                            )
+                        )
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = RoomifyWhite.copy(alpha = 0.16f),
+                        shape = RoundedCornerShape(26.dp)
+                    )
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(11.dp)
             ) {
-                Column {
-                    filteredSuggestions.forEach { suggestion ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onSearchChange(suggestion) }
-                                .padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Default.LocationOn, null, modifier = Modifier.size(16.dp), tint = Color.Gray)
-                            Spacer(Modifier.width(12.dp))
-                            Text(suggestion, fontSize = 13.sp, color = RoomifyGradientStart)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = room.propertyType?.takeIf { it.isNotBlank() } ?: "Property",
+                            color = RoomifyWhite80,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 0.6.sp
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = room.title?.takeIf { it.isNotBlank() } ?: "Room",
+                            color = RoomifyWhite,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    Surface(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .clickable(onClick = onClose),
+                        color = RoomifyWhite.copy(alpha = 0.13f),
+                        shape = CircleShape
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Close",
+                                tint = RoomifyWhite,
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
                     }
+                }
+
+                val location = room.locationSummary.takeIf { it.isNotBlank() } ?: room.address?.takeIf { it.isNotBlank() }
+
+                location?.let {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(13.dp))
+                            .background(RoomifyWhite.copy(alpha = 0.09f))
+                            .padding(horizontal = 11.dp, vertical = 9.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = "Location",
+                            tint = RoomifyWhite90,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(7.dp))
+                        Text(
+                            text = it,
+                            color = RoomifyWhite90,
+                            fontSize = 12.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text(
+                            text = "MONTHLY RENT",
+                            color = RoomifyWhite55,
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = formatFullPrice(room.price),
+                            color = RoomifyWhite,
+                            fontSize = 19.sp,
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                    }
+
+                    StatusBadge(status = room.status)
+                }
+
+                PopupFeatures(room = room)
+
+                Button(
+                    onClick = onViewProperty,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(15.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = RoomifyWhite95,
+                        contentColor = RoomifyGradientStart
+                    )
+                ) {
+                    Text(
+                        text = "View Property Details",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
     }
 }
-
 
 /*
  * ============================================================
@@ -2524,109 +1358,42 @@ private fun RoomPropertyPopup(
  */
 
 @Composable
-private fun StatusBadge(
-    status: String?
-) {
-
-    val normalized =
-        status?.uppercase()
-            ?: "AVAILABLE"
-
-    val color =
-        when (normalized) {
-
-            "AVAILABLE" ->
-                RoomifyGreen
-
-            "PENDING" ->
-                RoomifyYellow
-
-            "RENTED" ->
-                RoomifyRed
-
-            else ->
-                RoomifyWhite
-        }
+private fun StatusBadge(status: String?) {
+    val normalized = status?.uppercase() ?: "AVAILABLE"
+    val color = when (normalized) {
+        "AVAILABLE" -> RoomifyGreen
+        "PENDING" -> RoomifyYellow
+        "RENTED" -> RoomifyRed
+        else -> RoomifyWhite
+    }
 
     Row(
-
-        modifier =
-            Modifier
-                .clip(
-                    RoundedCornerShape(
-                        50.dp
-                    )
-                )
-                .background(
-                    RoomifyWhite
-                        .copy(
-                            alpha = 0.10f
-                        )
-                )
-                .border(
-                    width = 1.dp,
-
-                    color =
-                        RoomifyWhite
-                            .copy(
-                                alpha = 0.17f
-                            ),
-
-                    shape =
-                        RoundedCornerShape(
-                            50.dp
-                        )
-                )
-                .padding(
-                    horizontal = 10.dp,
-                    vertical = 6.dp
-                ),
-
-        verticalAlignment =
-            Alignment.CenterVertically
+        modifier = Modifier
+            .clip(RoundedCornerShape(50.dp))
+            .background(RoomifyWhite.copy(alpha = 0.10f))
+            .border(
+                width = 1.dp,
+                color = RoomifyWhite.copy(alpha = 0.17f),
+                shape = RoundedCornerShape(50.dp)
+            )
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-
         Box(
-
-            modifier =
-                Modifier
-                    .size(
-                        7.dp
-                    )
-                    .clip(
-                        CircleShape
-                    )
-                    .background(
-                        color
-                    )
+            modifier = Modifier
+                .size(7.dp)
+                .clip(CircleShape)
+                .background(color)
         )
-
-        Spacer(
-            modifier =
-                Modifier.width(
-                    6.dp
-                )
-        )
-
+        Spacer(modifier = Modifier.width(6.dp))
         Text(
-
-            text =
-                statusText(
-                    status
-                ),
-
-            color =
-                RoomifyWhite,
-
-            fontSize =
-                11.sp,
-
-            fontWeight =
-                FontWeight.Bold
+            text = statusText(status),
+            color = RoomifyWhite,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold
         )
     }
 }
-
 
 /*
  * ============================================================
@@ -2635,76 +1402,36 @@ private fun StatusBadge(
  */
 
 @Composable
-private fun PopupFeatures(
-    room: Room
-) {
-
+private fun PopupFeatures(room: Room) {
     Row(
-
-        modifier =
-            Modifier.fillMaxWidth(),
-
-        horizontalArrangement =
-            Arrangement.spacedBy(
-                7.dp
-            )
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(7.dp)
     ) {
-
-        if (
-            room.roomsCount > 0
-        ) {
-
+        if (room.roomsCount > 0) {
             FeatureItem(
-
-                icon =
-                    Icons.Default.Bed,
-
-                value =
-                    "${room.roomsCount}",
-
-                label =
-                    "Beds"
+                icon = Icons.Default.Bed,
+                value = "${room.roomsCount}",
+                label = "Beds"
             )
         }
 
-
-        if (
-            room.bathroomsCount > 0
-        ) {
-
+        if (room.bathroomsCount > 0) {
             FeatureItem(
-
-                icon =
-                    Icons.Default.Bathtub,
-
-                value =
-                    "${room.bathroomsCount}",
-
-                label =
-                    "Baths"
+                icon = Icons.Default.Bathtub,
+                value = "${room.bathroomsCount}",
+                label = "Baths"
             )
         }
 
-
-        if (
-            room.area > 0
-        ) {
-
+        if (room.area > 0) {
             FeatureItem(
-
-                icon =
-                    Icons.Default.SquareFoot,
-
-                value =
-                    "${room.area.roundToInt()}",
-
-                label =
-                    "m²"
+                icon = Icons.Default.SquareFoot,
+                value = "${room.area.roundToInt()}",
+                label = "m²"
             )
         }
     }
 }
-
 
 /*
  * ============================================================
@@ -2718,85 +1445,39 @@ private fun FeatureItem(
     value: String,
     label: String
 ) {
-
     Row(
-
-        modifier =
-            Modifier
-                .clip(
-                    RoundedCornerShape(
-                        11.dp
-                    )
-                )
-                .background(
-                    RoomifyWhite
-                        .copy(
-                            alpha = 0.10f
-                        )
-                )
-                .border(
-                    width = 1.dp,
-
-                    color =
-                        RoomifyWhite
-                            .copy(
-                                alpha = 0.10f
-                            ),
-
-                    shape =
-                        RoundedCornerShape(
-                            11.dp
-                        )
-                )
-                .padding(
-                    horizontal = 9.dp,
-                    vertical = 7.dp
-                ),
-
-        verticalAlignment =
-            Alignment.CenterVertically
+        modifier = Modifier
+            .clip(RoundedCornerShape(11.dp))
+            .background(RoomifyWhite.copy(alpha = 0.10f))
+            .border(
+                width = 1.dp,
+                color = RoomifyWhite.copy(alpha = 0.10f),
+                shape = RoundedCornerShape(11.dp)
+            )
+            .padding(horizontal = 9.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-
         Icon(
-
-            imageVector =
-                icon,
-
-            contentDescription =
-                null,
-
-            tint =
-                RoomifyWhite80,
-
-            modifier =
-                Modifier.size(
-                    16.dp
-                )
+            imageVector = icon,
+            contentDescription = null,
+            tint = RoomifyWhite80,
+            modifier = Modifier.size(16.dp)
         )
-
-        Spacer(
-            modifier =
-                Modifier.width(
-                    5.dp
-                )
-        )
-
+        Spacer(modifier = Modifier.width(5.dp))
         Text(
-
-            text =
-                "$value $label",
-
-            fontSize =
-                11.sp,
-
-            fontWeight =
-                FontWeight.Medium,
-
-            color =
-                RoomifyWhite90
+            text = "$value $label",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+            color = RoomifyWhite90
         )
     }
 }
+
+/*
+ * ============================================================
+ * LANGUAGE SELECTOR
+ * ============================================================
+ */
 
 @Composable
 private fun LanguageSelector(
@@ -2828,41 +1509,6 @@ private fun LanguageSelector(
                         fontSize = 12.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                     )
-                }
-            }
-        }
-
-        // Suggestions Dropdown (Android)
-        val filteredSuggestions = remember(searchQuery, suggestions) {
-            if (searchQuery.length < 2) emptyList()
-            else suggestions.filter { it.contains(searchQuery, ignoreCase = true) && it != searchQuery }.take(5)
-        }
-
-        if (filteredSuggestions.isNotEmpty()) {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 70.dp) // Align with search bar
-                    .padding(top = 4.dp),
-                shape = RoundedCornerShape(12.dp),
-                color = Color.White,
-                shadowElevation = 8.dp,
-                border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.5f))
-            ) {
-                Column {
-                    filteredSuggestions.forEach { suggestion ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onSearchChange(suggestion) }
-                                .padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Default.LocationOn, null, modifier = Modifier.size(16.dp), tint = Color.Gray)
-                            Spacer(Modifier.width(12.dp))
-                            Text(suggestion, fontSize = 13.sp, color = RoomifyGradientStart)
-                        }
-                    }
                 }
             }
         }

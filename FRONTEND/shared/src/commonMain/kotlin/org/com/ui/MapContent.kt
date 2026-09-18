@@ -11,6 +11,8 @@ expect fun MapContent(
     routingDestination: Room?,
     currentStatusFilter: String = "ALL",
     shouldFitBounds: Boolean = false,
+    viewedRoomIds: Set<Long> = emptySet(),
+    savedRoomIds: Set<Long> = emptySet(),
     onStatusFilterChange: (String) -> Unit = {},
     onFitBoundsHandled: () -> Unit = {},
     onClearRoute: () -> Unit,

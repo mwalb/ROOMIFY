@@ -11,6 +11,8 @@ actual fun MapContent(
     routingDestination: Room?,
     currentStatusFilter: String,
     shouldFitBounds: Boolean,
+    viewedRoomIds: Set<Long>,
+    savedRoomIds: Set<Long>,
     onStatusFilterChange: (String) -> Unit,
     onFitBoundsHandled: () -> Unit,
     onClearRoute: () -> Unit,

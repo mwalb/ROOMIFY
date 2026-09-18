@@ -339,6 +339,14 @@ private external fun updateStatusFilter(status: String)
 @JsFun("(roomsJson) => { if (typeof window.roomifyFitMapToRooms === 'function') { window.roomifyFitMapToRooms(roomsJson); } }")
 private external fun fitMapToRooms(roomsJson: String)
 
+@OptIn(ExperimentalWasmJsInterop::class)
+@JsFun("(idsJson) => { if (typeof window.roomifyUpdateViewedRooms === 'function') { window.roomifyUpdateViewedRooms(idsJson); } }")
+private external fun updateViewedRooms(idsJson: String)
+
+@OptIn(ExperimentalWasmJsInterop::class)
+@JsFun("(idsJson) => { if (typeof window.roomifyUpdateSavedRooms === 'function') { window.roomifyUpdateSavedRooms(idsJson); } }")
+private external fun updateSavedRooms(idsJson: String)
+
 @Composable
 actual fun MapContent(
     rooms: List<Room>,
@@ -347,6 +355,8 @@ actual fun MapContent(
     routingDestination: Room?,
     currentStatusFilter: String,
     shouldFitBounds: Boolean,
+    viewedRoomIds: Set<Long>,
+    savedRoomIds: Set<Long>,
     onStatusFilterChange: (String) -> Unit,
     onFitBoundsHandled: () -> Unit,
     onClearRoute: () -> Unit,
@@ -383,12 +393,18 @@ actual fun MapContent(
 
     /*
      * ========================================================
-     * SYNC STATUS FILTER TO JS
+     * SYNC VIEWED/SAVED STATES TO JS
      * ========================================================
      */
 
-    LaunchedEffect(currentStatusFilter) {
-        updateStatusFilter(currentStatusFilter)
+    LaunchedEffect(viewedRoomIds) {
+        val json = viewedRoomIds.joinToString(prefix = "[", postfix = "]", separator = ",")
+        updateViewedRooms(json)
+    }
+
+    LaunchedEffect(savedRoomIds) {
+        val json = savedRoomIds.joinToString(prefix = "[", postfix = "]", separator = ",")
+        updateSavedRooms(json)
     }
 
     /*
@@ -832,16 +848,7 @@ actual fun MapContent(
         contentAlignment = Alignment.Center
     ) {
         if (!mapIsReady) {
-            LaunchedEffect(mapIsReady) {
-        if (mapIsReady) {
-            println("Roomify: Map is ready - showing layer")
-            showMapLayer()
-            delay(100)
-            triggerMapResize()
-        }
-    }
-
-    Box(
+            Box(
                 modifier = Modifier.fillMaxSize().background(Color.White),
                 contentAlignment = Alignment.Center
             ) {

@@ -13,6 +13,9 @@
     window.roomifyInfoOverlay = null;
     window.roomifySelectedRoomId = null;
     window.roomifyPopupPinned = false;
+    window.roomifyViewedRoomIds = new Set();
+    window.roomifySavedRoomIds = new Set();
+    window.roomifyMarkerClusterer = null;
 
     /*
      * Keep the complete room dataset.
@@ -55,6 +58,8 @@
     var ROOMIFY_YELLOW = "#F9A825";
     var ROOMIFY_RED = "#C62828";
     var ROOMIFY_ORANGE = "#FF9800";
+    var ROOMIFY_VIEWED_GRAY = "#9E9E9E";
+    var ROOMIFY_SAVED_PINK = "#E91E63";
 
 
     /*
@@ -2250,7 +2255,7 @@
                             lng: 39.2083
                         },
 
-                        zoom: 12,
+                        zoom: 11,
 
                         mapTypeId:
                             "roadmap",
@@ -2292,6 +2297,11 @@
                             MAP_STYLE_DETAILED
                     }
                 );
+
+            window.roomifyMap.addListener("zoom_changed", function() {
+                console.log("Roomify: zoom changed to " + window.roomifyMap.getZoom());
+                refreshMarkerIcons();
+            });
 
             /*
              * Click on map background:
@@ -2583,23 +2593,16 @@
         price,
         status,
         selected,
-        isComplex
+        isComplex,
+        isViewed,
+        isSaved
     ) {
+        var text = formatCompactPrice(price);
 
-        var text =
-            formatCompactPrice(
-                price
-            );
+        var color = selected ? ROOMIFY_SELECTED_ORANGE : (isSaved ? ROOMIFY_SAVED_PINK : statusColor(status));
+        if (isViewed && !selected && !isSaved) color = ROOMIFY_VIEWED_GRAY;
 
-        var color =
-            selected
-                ? ROOMIFY_SELECTED_ORANGE
-                : statusColor(status);
-
-        var alpha =
-            selected
-                ? 1.0
-                : statusAlpha(status);
+        var alpha = selected ? 1.0 : statusAlpha(status);
 
         var buildingIndicator = isComplex ?
             '<circle cx="82" cy="12" r="10" fill="#FFFFFF" stroke="' + color + '" stroke-width="1.5"/>' +
@@ -2610,78 +2613,46 @@
             '<svg xmlns="http://www.w3.org/2000/svg" ' +
             'width="100" height="50" ' +
             'viewBox="0 0 100 50">' +
-
             '<defs>' +
-
-            '<filter id="shadow" ' +
-            'x="-50%" y="-50%" ' +
-            'width="200%" height="200%">' +
-
-            '<feDropShadow ' +
-            'dx="0" dy="1.5" ' +
-            'stdDeviation="1.8" ' +
-            'flood-opacity="0.28"/>' +
-
+            '<filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">' +
+            '<feDropShadow dx="0" dy="1.5" stdDeviation="1.8" flood-opacity="0.28"/>' +
             '</filter>' +
-
             '</defs>' +
-
-            '<g ' +
-            'filter="url(#shadow)" ' +
-            'opacity="' +
-            alpha +
-            '">' +
-
-            '<rect ' +
-            'x="4" y="4" ' +
-            'rx="14" ry="14" ' +
-            'width="92" height="31" ' +
-            'fill="' +
-            color +
-            '"/>' +
-
+            '<g filter="url(#shadow)" opacity="' + alpha + '">' +
+            '<rect x="4" y="4" rx="14" ry="14" width="92" height="38" fill="' + color + '"/>' +
             buildingIndicator +
-
-            '<path ' +
-            'd="M42 35 L50 47 L58 35" ' +
-            'fill="' +
-            color +
-            '"/>' +
-
-            '<text ' +
-            'x="50" y="24" ' +
-            'text-anchor="middle" ' +
-            'font-family="Arial,sans-serif" ' +
-            'font-size="11" ' +
-            'font-weight="700" ' +
-            'fill="#ffffff">' +
-
+            '<path d="M42 42 L50 49 L58 42" fill="' + color + '"/>' +
+            '<text x="50" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="900" fill="#ffffff">' +
             escapeHtml(text) +
-
             '</text>' +
-
             '</g>' +
-
             '</svg>';
 
+        return {
+            url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg),
+            scaledSize: new google.maps.Size(100, 50),
+            anchor: new google.maps.Point(50, 49)
+        };
+    }
+
+    function createDotIcon(status, selected, hovered, isViewed, isSaved) {
+        var size = 16;
+        if (selected) size = 22;
+        else if (hovered) size = 20;
+
+        var color = selected ? ROOMIFY_SELECTED_ORANGE : (isSaved ? ROOMIFY_SAVED_PINK : statusColor(status));
+        if (isViewed && !selected && !isSaved) color = ROOMIFY_VIEWED_GRAY;
+
+        var svg =
+            '<svg xmlns="http://www.w3.org/2000/svg" width="' + (size + 8) + '" height="' + (size + 8) + '" viewBox="0 0 ' + (size + 8) + ' ' + (size + 8) + '">' +
+            '<circle cx="' + (size/2 + 4) + '" cy="' + (size/2 + 4) + '" r="' + (size/2) + '" fill="' + color + '" stroke="#FFFFFF" stroke-width="2"/>' +
+            '<circle cx="' + (size/2 + 4) + '" cy="' + (size/2 + 4) + '" r="' + (size/2 + 2) + '" fill="none" stroke="rgba(0,0,0,0.2)" stroke-width="1"/>' +
+            '</svg>';
 
         return {
-
-            url:
-                "data:image/svg+xml;charset=UTF-8," +
-                encodeURIComponent(svg),
-
-            scaledSize:
-                new google.maps.Size(
-                    100,
-                    50
-                ),
-
-            anchor:
-                new google.maps.Point(
-                    50,
-                    47
-                )
+            url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg),
+            scaledSize: new google.maps.Size(size + 8, size + 8),
+            anchor: new google.maps.Point(size/2 + 4, size/2 + 4)
         };
     }
 
@@ -3323,54 +3294,116 @@
      */
 
     function refreshMarkerIcons() {
+        if (!Array.isArray(window.roomifyMarkers) || !window.roomifyMap) return;
 
-        if (
-            !Array.isArray(
-                window.roomifyMarkers
-            )
-        ) {
-            return;
-        }
+        var zoom = window.roomifyMap.getZoom();
+        var showClusters = zoom < 10;
+        var showDots = zoom >= 10 && zoom <= 13;
+        var showPills = zoom > 13;
 
+        // If zoom < 10, we use MarkerClusterer, so markers themselves might need to be hidden or changed.
+        // But MarkerClusterer handles visibility based on cluster state.
+        // We just need to make sure individual markers have the right icon when they are NOT clustered.
 
-        window.roomifyMarkers.forEach(
-            function (entry) {
+        window.roomifyMarkers.forEach(function (entry) {
+            if (!entry) return;
 
-                if (!entry) {
-                    return;
-                }
+            var selected = String(entry.room.id) === String(window.roomifySelectedRoomId);
+            var hovered = entry.hovered || false;
+            var isViewed = window.roomifyViewedRoomIds.has(Number(entry.room.id));
+            var isSaved = window.roomifySavedRoomIds.has(Number(entry.room.id));
 
-
-                var selected =
-                    String(
-                        entry.room.id
-                    ) ===
-                    String(
-                        window.roomifySelectedRoomId
-                    );
-
-
-                entry.marker.setIcon(
-                    createPriceIcon(
-                        entry.room.price,
-                        entry.room.status,
-                        selected,
-                        !!entry.room.propertyId
-                    )
+            var icon;
+            if (showDots) {
+                icon = createDotIcon(entry.room.status, selected, hovered, isViewed, isSaved);
+            } else {
+                // For showPills OR when marker is visible in zoom < 10 (though usually it clusters)
+                icon = createPriceIcon(
+                    entry.room.price,
+                    entry.room.status,
+                    selected,
+                    !!entry.room.propertyId,
+                    isViewed,
+                    isSaved
                 );
             }
-        );
+
+            entry.marker.setIcon(icon);
+
+            // MarkerClusterer handling
+            if (showClusters) {
+                if (!window.roomifyMarkerClusterer && window.MarkerClusterer) {
+                    initMarkerClusterer();
+                }
+            } else {
+                if (window.roomifyMarkerClusterer) {
+                    window.roomifyMarkerClusterer.clearMarkers();
+                    window.roomifyMarkerClusterer = null;
+                    // Restore markers to map if they were removed by clusterer
+                    window.roomifyMarkers.forEach(m => m.marker.setMap(window.roomifyMap));
+                }
+            }
+        });
+    }
+
+    function initMarkerClusterer() {
+        if (!window.roomifyMap || !window.roomifyMarkers.length) return;
+
+        var markers = window.roomifyMarkers.map(function(m) { return m.marker; });
+
+        window.roomifyMarkerClusterer = new markerClusterer.MarkerClusterer({
+            map: window.roomifyMap,
+            markers: markers,
+            renderer: {
+                render: function(cluster, stats) {
+                    var count = cluster.count;
+                    var color = ROOMIFY_BLUE;
+                    var size = 50;
+
+                    var svg =
+                        '<svg xmlns="http://www.w3.org/2000/svg" width="' + size + '" height="' + size + '">' +
+                        '<circle cx="' + size/2 + '" cy="' + size/2 + '" r="' + (size/2 - 2) + '" fill="' + color + '" stroke="#FFFFFF" stroke-width="3"/>' +
+                        '<text x="50%" y="50%" text-anchor="middle" dy=".3em" font-family="Arial,sans-serif" font-size="16" font-weight="900" fill="#FFFFFF">' + count + '</text>' +
+                        '</svg>';
+
+                    return new google.maps.Marker({
+                        position: cluster.position,
+                        icon: {
+                            url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg),
+                            scaledSize: new google.maps.Size(size, size),
+                            anchor: new google.maps.Point(size/2, size/2)
+                        },
+                        label: "",
+                        zIndex: Number(google.maps.Marker.MAX_ZINDEX) + count
+                    });
+                }
+            }
+        });
     }
 
 
     window.roomifySelectRoom =
         function (roomId) {
-
-            window.roomifySelectedRoomId =
-                String(roomId);
-
+            window.roomifySelectedRoomId = String(roomId);
+            window.roomifyViewedRoomIds.add(Number(roomId));
             refreshMarkerIcons();
         };
+
+    window.roomifyUpdateViewedRooms = function(idsJson) {
+        try {
+            var ids = JSON.parse(idsJson);
+            window.roomifyViewedRoomIds = new Set(ids.map(Number));
+            refreshMarkerIcons();
+        } catch(e) {}
+    };
+
+    window.roomifyUpdateSavedRooms = function(idsJson) {
+        try {
+            var ids = JSON.parse(idsJson);
+            window.roomifySavedRoomIds = new Set(ids.map(Number));
+            refreshMarkerIcons();
+        } catch(e) {}
+    };
 
 
     /*
@@ -3467,11 +3500,23 @@
         marker.addListener(
             "mouseover",
             function () {
+                var entry = window.roomifyMarkers.find(m => m.marker === marker);
+                if (entry) entry.hovered = true;
+                refreshMarkerIcons();
 
                 showRoomInfo(
                     marker,
                     room
                 );
+            }
+        );
+
+        marker.addListener(
+            "mouseout",
+            function () {
+                var entry = window.roomifyMarkers.find(m => m.marker === marker);
+                if (entry) entry.hovered = false;
+                refreshMarkerIcons();
             }
         );
 
@@ -3492,6 +3537,8 @@
 
                 window.roomifySelectedRoomId =
                     String(room.id);
+
+                window.roomifyViewedRoomIds.add(Number(room.id));
 
                 /*
                  * Pin the popup when clicked.

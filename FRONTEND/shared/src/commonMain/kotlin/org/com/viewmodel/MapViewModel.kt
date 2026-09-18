@@ -40,6 +40,12 @@ class MapViewModel(
 
     var shouldFitBounds by mutableStateOf(false)
 
+    var viewedRoomIds by mutableStateOf(setOf<Long>())
+        private set
+
+    var savedRoomIds by mutableStateOf(setOf<Long>())
+        private set
+
     val filteredRooms: List<Room>
         get() {
             return rooms.filter { room ->
@@ -167,9 +173,24 @@ class MapViewModel(
     fun selectRoom(
         room: Room
     ) {
+        selectedRoom = room
+        markRoomAsViewed(room.id)
+    }
 
-        selectedRoom =
-            room
+    fun markRoomAsViewed(roomId: Long?) {
+        roomId?.let { id ->
+            viewedRoomIds = viewedRoomIds + id
+        }
+    }
+
+    fun toggleSavedRoom(roomId: Long?) {
+        roomId?.let { id ->
+            savedRoomIds = if (savedRoomIds.contains(id)) {
+                savedRoomIds - id
+            } else {
+                savedRoomIds + id
+            }
+        }
     }
 
 

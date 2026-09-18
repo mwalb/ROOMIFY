@@ -10,6 +10,8 @@ actual fun MapContent(
     routingDestination: org.com.model.Room?,
     currentStatusFilter: String,
     shouldFitBounds: Boolean,
+    viewedRoomIds: Set<Long>,
+    savedRoomIds: Set<Long>,
     onStatusFilterChange: (String) -> Unit,
     onFitBoundsHandled: () -> Unit,
     onClearRoute: () -> Unit,

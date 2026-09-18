@@ -1164,6 +1164,8 @@ private fun AppMapContainer(
             routingDestination = routingDestination,
             currentStatusFilter = viewModel.filterStatus ?: "ALL",
             shouldFitBounds = viewModel.shouldFitBounds,
+            viewedRoomIds = viewModel.viewedRoomIds,
+            savedRoomIds = viewModel.savedRoomIds,
             onStatusFilterChange = { viewModel.filterStatus = if (it == "ALL") null else it },
             onFitBoundsHandled = { viewModel.clearFitBounds() },
             onClearRoute = onClearRoute,
