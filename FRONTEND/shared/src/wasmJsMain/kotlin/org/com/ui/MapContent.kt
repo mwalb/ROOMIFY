@@ -17,6 +17,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.browser.document
 import kotlinx.coroutines.delay
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import org.com.model.*
 import kotlin.js.ExperimentalWasmJsInterop
 import org.w3c.dom.events.Event
@@ -358,8 +360,10 @@ actual fun MapContent(
     viewedRoomIds: Set<Long>,
     savedRoomIds: Set<Long>,
     onStatusFilterChange: (String) -> Unit,
+    onFiltersChange: (type: String?, area: String?, maxPrice: Double?, status: String?) -> Unit,
     onFitBoundsHandled: () -> Unit,
     onClearRoute: () -> Unit,
+    onMenuClick: () -> Unit,
     onRoomSelected: (Room) -> Unit,
     onRoomCleared: () -> Unit,
     onViewProperty: (Room) -> Unit,
@@ -756,12 +760,29 @@ actual fun MapContent(
             listener
         )
 
-        onDispose {
+        val filterListener: (Event) -> Unit = { event ->
+            val detail = getEventDetail(event)
+            if (detail != null) {
+                try {
+                    val json = Json.decodeFromString<JsonObject>(detail)
+                    val maxPrice = json["maxPrice"]?.toString()?.toDoubleOrNull()
+                    val status = json["status"]?.toString()?.replace("\"", "")
+                    val propertyType = json["propertyType"]?.toString()?.replace("\"", "")
+                    onFiltersChange(propertyType, null, maxPrice, status)
+                } catch (e: Exception) {
+                    println("Roomify: Error parsing sidebar filter: ${e.message}")
+                }
+            }
+        }
 
+        document.addEventListener("roomifySidebarFilter", filterListener)
+
+        onDispose {
             document.removeEventListener(
                 "roomViewDetails",
                 listener
             )
+            document.removeEventListener("roomifySidebarFilter", filterListener)
         }
     }
 

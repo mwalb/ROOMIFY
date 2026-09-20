@@ -82,6 +82,9 @@ public class SecurityConfig {
                         // Favorites require authentication
                         .requestMatchers("/api/favorites/**").authenticated()
 
+                        // AI endpoints require authentication
+                        .requestMatchers("/api/ai/**").authenticated()
+
                         // User endpoints require authentication
                         .requestMatchers("/api/users/profile/**").authenticated()
                         .requestMatchers("/api/users/**").hasAnyRole("ADMIN", "SUPER_ADMIN")

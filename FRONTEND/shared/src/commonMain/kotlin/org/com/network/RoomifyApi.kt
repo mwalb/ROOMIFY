@@ -304,6 +304,41 @@ object RoomifyApi {
     }
 
     // ============================================================
+    // AI ROOM ARRANGER
+    // ============================================================
+
+    suspend fun visualizeRoom(request: AIRoomRequest): ApiResponse<AIRoomResponse> {
+        return try {
+            ApiClient.post("ai/visualize", request)
+        } catch (e: Exception) {
+            ApiResponse(success = false, message = e.message ?: "AI Generation failed")
+        }
+    }
+
+    suspend fun visualizeCustomRoom(request: AIRoomRequest, imageBytes: ByteArray): ApiResponse<AIRoomResponse> {
+        return try {
+            val response = ApiClient.client.post("ai/visualize-custom") {
+                setBody(
+                    MultiPartFormDataContent(
+                        formData {
+                            append("request", kotlinx.serialization.json.Json.encodeToString(AIRoomRequest.serializer(), request), Headers.build {
+                                append(HttpHeaders.ContentType, "application/json")
+                            })
+                            append("image", imageBytes, Headers.build {
+                                append(HttpHeaders.ContentType, "image/jpeg")
+                                append(HttpHeaders.ContentDisposition, "filename=\"room.jpg\"")
+                            })
+                        }
+                    )
+                )
+            }
+            response.body()
+        } catch (e: Exception) {
+            ApiResponse(success = false, message = e.message ?: "AI Generation failed")
+        }
+    }
+
+    // ============================================================
     // CHAT
     // ============================================================
 

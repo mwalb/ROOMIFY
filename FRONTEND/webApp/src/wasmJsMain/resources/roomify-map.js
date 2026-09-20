@@ -399,18 +399,18 @@
                 position: fixed;
                 top: 0;
                 left: 0;
-                width: 310px;
-                max-width: 85vw;
+                width: 320px;
+                max-width: 90vw;
                 height: 100vh;
-                background: linear-gradient(135deg, #1A237E, #3949AB);
+                background: white;
                 z-index: 10000;
-                box-shadow: 4px 0 20px rgba(0,0,0,0.20);
+                box-shadow: 10px 0 30px rgba(0,0,0,0.1);
                 transform: translateX(-105%);
-                transition: transform 0.25s ease;
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                 display: flex;
                 flex-direction: column;
-                font-family: Arial, sans-serif;
-                color: #ffffff;
+                font-family: 'Inter', Arial, sans-serif;
+                color: #1A1A1A;
             }
 
             .roomify-sidebar.open {
@@ -418,118 +418,262 @@
             }
 
             .roomify-sidebar-header {
-                height: 78px;
-                padding: 0 20px;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+                padding: 30px 24px;
+                background: linear-gradient(135deg, #1A237E, #3949AB);
+                color: white;
+                position: relative;
+                border-radius: 0 0 24px 24px;
             }
 
             .roomify-sidebar-brand {
-                color: #ffffff;
-                font-size: 24px;
+                font-size: 26px;
                 font-weight: 900;
-                letter-spacing: 1.5px;
+                margin-bottom: 4px;
+            }
+
+            .roomify-sidebar-tagline {
+                font-size: 14px;
+                opacity: 0.8;
+                font-weight: 500;
             }
 
             .roomify-sidebar-close {
-                width: 38px;
-                height: 38px;
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                width: 32px;
+                height: 32px;
                 border: 0;
                 border-radius: 50%;
-                background: rgba(255, 255, 255, 0.12);
+                background: rgba(255, 255, 255, 0.15);
                 cursor: pointer;
-                font-size: 20px;
-                color: #ffffff;
+                font-size: 18px;
+                color: white;
                 display: flex;
                 align-items: center;
                 justify-content: center;
             }
 
-            .roomify-sidebar-close:hover {
-                background: rgba(255, 255, 255, 0.20);
-            }
-
             .roomify-sidebar-body {
                 flex: 1;
-                padding: 18px 12px;
+                padding: 24px;
                 overflow-y: auto;
             }
 
-            .roomify-sidebar-section {
-                margin-bottom: 22px;
+            .roomify-sidebar-label {
+                font-size: 14px;
+                font-weight: 700;
+                color: #1A1A1A;
+                margin-bottom: 16px;
             }
 
-            .roomify-sidebar-section-title {
-                padding: 0 12px 10px;
-                font-size: 12px;
+            .roomify-explore-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 12px;
+                margin-bottom: 24px;
+            }
+
+            .roomify-explore-card {
+                background: #F8F9FA;
+                border-radius: 20px;
+                padding: 16px;
+                cursor: pointer;
+                transition: transform 0.2s;
+                border: 1px solid transparent;
+            }
+
+            .roomify-explore-card:hover {
+                background: #F0F2F5;
+                transform: translateY(-2px);
+                border-color: #E0E0E0;
+            }
+
+            .roomify-explore-card-icon {
+                font-size: 22px;
+                color: #1A237E;
+                margin-bottom: 12px;
+            }
+
+            .roomify-explore-card-title {
+                font-size: 15px;
                 font-weight: 800;
-                color: rgba(255, 255, 255, 0.7);
-                text-transform: uppercase;
-                letter-spacing: 1.5px;
+                color: #1A1A1A;
+                margin-bottom: 2px;
             }
 
-            .roomify-sidebar-item {
-                width: 100%;
-                min-height: 52px;
-                border: 0;
-                background: transparent;
+            .roomify-explore-card-subtitle {
+                font-size: 11px;
+                color: #666;
+            }
+
+            .roomify-quick-search-box {
+                background: white;
+                border: 1px solid #E0E0E0;
                 border-radius: 16px;
+                height: 52px;
                 display: flex;
                 align-items: center;
                 padding: 0 16px;
-                margin-bottom: 5px;
-                cursor: pointer;
-                text-align: left;
-                color: rgba(255, 255, 255, 0.95);
-                font-size: 16px;
-                font-weight: 600;
-                transition: background 0.15s ease;
+                margin-bottom: 20px;
             }
 
-            .roomify-sidebar-item:hover {
-                background: rgba(255, 255, 255, 0.10);
-            }
-
-            .roomify-sidebar-item.active {
-                background: rgba(255, 255, 255, 0.14);
-                color: #ffffff;
-                font-weight: 700;
-            }
-
-            .roomify-sidebar-item-icon {
-                width: 30px;
+            .roomify-quick-search-icon {
+                color: #1A237E;
+                margin-right: 12px;
                 font-size: 18px;
-                margin-right: 9px;
-                opacity: 0.85;
             }
 
-            .roomify-sidebar-item-arrow {
-                margin-left: auto;
+            .roomify-quick-search-input {
+                border: 0;
+                outline: 0;
+                flex: 1;
+                font-size: 15px;
+                font-weight: 500;
+                color: #1A1A1A;
+            }
+
+            .roomify-advanced-filters-header {
+                display: flex;
+                align-items: center;
+                padding: 14px 16px;
+                background: #F8F9FA;
+                border-radius: 16px;
+                cursor: pointer;
+                margin-bottom: 12px;
+                border: 1px solid #F0F2F5;
+            }
+
+            .roomify-advanced-filters-icon {
+                margin-right: 12px;
+                font-size: 18px;
+                color: #1A1A1A;
+            }
+
+            .roomify-advanced-filters-label {
+                flex: 1;
                 font-size: 14px;
-                opacity: 0.30;
-                color: rgba(255, 255, 255, 0.50);
-            }
-
-            .roomify-sidebar-account {
-                margin: 0 12px 14px;
-                padding: 14px;
-                border-radius: 17px;
-                background: rgba(255, 255, 255, 0.09);
-                border: 1px solid rgba(255, 255, 255, 0.16);
-                color: white;
-            }
-
-            .roomify-sidebar-account-title {
-                font-size: 13px;
                 font-weight: 700;
+                color: #1A1A1A;
             }
 
-            .roomify-sidebar-account-subtitle {
-                margin-top: 4px;
+            .roomify-advanced-filters-chevron {
+                transition: transform 0.3s;
+                font-size: 12px;
+                color: #666;
+            }
+
+            .roomify-advanced-filters-content {
+                display: none;
+                padding: 16px;
+                background: #F8F9FA;
+                border-radius: 0 0 16px 16px;
+                margin-top: -24px;
+                margin-bottom: 20px;
+                border: 1px solid #F0F2F5;
+                border-top: 0;
+            }
+
+            .roomify-advanced-filters-content.open {
+                display: block;
+            }
+
+            .roomify-filter-group {
+                margin-bottom: 16px;
+            }
+
+            .roomify-filter-group-label {
                 font-size: 11px;
-                opacity: 0.70;
+                font-weight: 800;
+                color: #666;
+                text-transform: uppercase;
+                margin-bottom: 8px;
+                letter-spacing: 0.5px;
+            }
+
+            .roomify-budget-input-wrapper {
+                background: white;
+                border: 1px solid #E0E0E0;
+                border-radius: 12px;
+                height: 44px;
+                display: flex;
+                align-items: center;
+                padding: 0 12px;
+            }
+
+            .roomify-budget-input-icon {
+                font-size: 16px;
+                color: #666;
+                margin-right: 10px;
+            }
+
+            .roomify-budget-input {
+                border: 0;
+                outline: 0;
+                width: 100%;
+                font-size: 13px;
+                font-weight: 600;
+            }
+
+            .roomify-chip-group {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .roomify-chip {
+                padding: 8px 14px;
+                background: white;
+                border: 1px solid #E0E0E0;
+                border-radius: 10px;
+                font-size: 12px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+
+            .roomify-chip.active {
+                background: #E8EAF6;
+                color: #1A237E;
+                border-color: #1A237E;
+            }
+
+            .roomify-apply-btn {
+                width: 100%;
+                height: 48px;
+                background: #1A237E;
+                color: white;
+                border: 0;
+                border-radius: 14px;
+                font-weight: 800;
+                font-size: 14px;
+                cursor: pointer;
+                margin-top: 8px;
+                transition: opacity 0.2s;
+            }
+
+            .roomify-apply-btn:hover {
+                opacity: 0.9;
+            }
+
+            .roomify-sidebar-footer {
+                padding: 24px;
+                border-top: 1px solid #F0F2F5;
+            }
+
+            .roomify-footer-item {
+                display: flex;
+                align-items: center;
+                cursor: pointer;
+                padding: 12px 0;
+                color: #3949AB;
+                font-weight: 700;
+                font-size: 15px;
+            }
+
+            .roomify-footer-icon {
+                margin-right: 12px;
+                font-size: 18px;
             }
 
 
@@ -1309,221 +1453,149 @@
 
     function createSidebar() {
 
-        if (
-            document.getElementById(
-                "roomify-sidebar"
-            )
-        ) {
+        if (document.getElementById("roomify-sidebar")) {
             return;
         }
 
-        var backdrop =
-            document.createElement("div");
+        var backdrop = document.createElement("div");
+        backdrop.id = "roomify-sidebar-backdrop";
+        backdrop.className = "roomify-sidebar-backdrop";
 
-        backdrop.id =
-            "roomify-sidebar-backdrop";
-
-        backdrop.className =
-            "roomify-sidebar-backdrop";
-
-
-        var sidebar =
-            document.createElement("aside");
-
-        sidebar.id =
-            "roomify-sidebar";
-
-        sidebar.className =
-            "roomify-sidebar";
-
+        var sidebar = document.createElement("aside");
+        sidebar.id = "roomify-sidebar";
+        sidebar.className = "roomify-sidebar";
 
         sidebar.innerHTML = `
-
             <div class="roomify-sidebar-header">
-
-                <div class="roomify-sidebar-brand">
-                    ROOMIFY
-                </div>
-
-                <button
-                    id="roomify-sidebar-close"
-                    class="roomify-sidebar-close"
-                    type="button"
-                >
-                    ×
-                </button>
-
+                <div class="roomify-sidebar-brand">Roomify</div>
+                <div class="roomify-sidebar-tagline">Your living space partner</div>
+                <button id="roomify-sidebar-close" class="roomify-sidebar-close" type="button">×</button>
             </div>
-
 
             <div class="roomify-sidebar-body">
-
-                <div class="roomify-sidebar-section">
-
-                    <div
-                        class="roomify-sidebar-section-title"
-                    >
-                        DISCOVER
+                <div class="roomify-sidebar-label">Explore Roomify</div>
+                <div class="roomify-explore-grid">
+                    <div class="roomify-explore-card" data-roomify-menu="explore">
+                        <div class="roomify-explore-card-icon">🏠</div>
+                        <div class="roomify-explore-card-title">Rentals</div>
+                        <div class="roomify-explore-card-subtitle">Find a room</div>
                     </div>
-
-                    <button
-                        class="roomify-sidebar-item active"
-                        data-roomify-menu="explore"
-                    >
-                        <span
-                            class="roomify-sidebar-item-icon"
-                        >
-                            🏠
-                        </span>
-
-                        <span>
-                            Explore
-                        </span>
-
-                        <span class="roomify-sidebar-item-arrow">
-                            →
-                        </span>
-                    </button>
-
-
-                    <button
-                        class="roomify-sidebar-item"
-                        data-roomify-menu="saved"
-                    >
-                        <span
-                            class="roomify-sidebar-item-icon"
-                        >
-                            ♡
-                        </span>
-
-                        <span>
-                            Saved Properties
-                        </span>
-
-                        <span class="roomify-sidebar-item-arrow">
-                            →
-                        </span>
-                    </button>
-
-
-                    <button
-                        class="roomify-sidebar-item"
-                        data-roomify-menu="searches"
-                    >
-                        <span
-                            class="roomify-sidebar-item-icon"
-                        >
-                            ◷
-                        </span>
-
-                        <span>
-                            My Searches
-                        </span>
-
-                        <span class="roomify-sidebar-item-arrow">
-                            →
-                        </span>
-                    </button>
-
+                    <div class="roomify-explore-card" data-roomify-menu="furniture_dashboard">
+                        <div class="roomify-explore-card-icon">🛋️</div>
+                        <div class="roomify-explore-card-title">Furniture</div>
+                        <div class="roomify-explore-card-subtitle">Shop hub</div>
+                    </div>
                 </div>
 
-
-                <div class="roomify-sidebar-section">
-
-                    <div
-                        class="roomify-sidebar-section-title"
-                    >
-                        SEARCH
-                    </div>
-
-                    <button
-                        class="roomify-sidebar-item"
-                        data-roomify-menu="filters"
-                    >
-                        <span
-                            class="roomify-sidebar-item-icon"
-                        >
-                            ⚙
-                        </span>
-
-                        <span>
-                            Filters
-                        </span>
-
-                        <span class="roomify-sidebar-item-arrow">
-                            →
-                        </span>
-                    </button>
-
+                <div class="roomify-sidebar-label">Quick Search</div>
+                <div class="roomify-quick-search-box">
+                    <span class="roomify-quick-search-icon">🔍</span>
+                    <input type="text" class="roomify-quick-search-input" id="sidebar-quick-search" placeholder="Where to?">
                 </div>
 
-
-                <div class="roomify-sidebar-section">
-
-                    <div
-                        class="roomify-sidebar-section-title"
-                    >
-                        ACCOUNT
-                    </div>
-
-                    <button
-                        class="roomify-sidebar-item"
-                        data-roomify-menu="login"
-                    >
-                        <span
-                            class="roomify-sidebar-item-icon"
-                        >
-                            👤
-                        </span>
-
-                        <span>
-                            Login / Register
-                        </span>
-
-                        <span class="roomify-sidebar-item-arrow">
-                            →
-                        </span>
-                    </button>
-
+                <div class="roomify-advanced-filters-header" id="toggle-advanced-filters">
+                    <span class="roomify-advanced-filters-icon">Tune</span>
+                    <span class="roomify-advanced-filters-label">Advanced Filters</span>
+                    <span class="roomify-advanced-filters-chevron">▼</span>
                 </div>
 
+                <div class="roomify-advanced-filters-content" id="advanced-filters-content">
+                    <div class="roomify-filter-group">
+                        <div class="roomify-budget-input-wrapper">
+                            <span class="roomify-budget-input-icon">💵</span>
+                            <input type="number" class="roomify-budget-input" id="filter-max-budget" placeholder="Max Budget">
+                        </div>
+                    </div>
+
+                    <div class="roomify-filter-group">
+                        <div class="roomify-filter-group-label">Status</div>
+                        <div class="roomify-chip-group" id="status-chips">
+                            <div class="roomify-chip active" data-status="ALL">All Statuses</div>
+                            <div class="roomify-chip" data-status="AVAILABLE">Available</div>
+                        </div>
+                    </div>
+
+                    <div class="roomify-filter-group">
+                        <div class="roomify-filter-group-label">Property Type</div>
+                        <div class="roomify-chip-group" id="type-chips">
+                            <div class="roomify-chip active" data-type="ALL">All</div>
+                            <div class="roomify-chip" data-type="Apartment">Apartment</div>
+                            <div class="roomify-chip" data-type="Room">Room</div>
+                            <div class="roomify-chip" data-type="House">House</div>
+                        </div>
+                    </div>
+
+                    <button class="roomify-apply-btn" id="apply-sidebar-filters">Apply Filters</button>
+                </div>
+
+                <div id="dynamic-menu-items"></div>
             </div>
 
-
-            <div class="roomify-sidebar-account">
-
-                <div
-                    class="roomify-sidebar-account-title"
-                >
-                    Find your next room
-                </div>
-
-                <div
-                    class="roomify-sidebar-account-subtitle"
-                >
-                    Search properties around you
-                </div>
-
+            <div class="roomify-sidebar-footer" id="sidebar-footer-content">
+                <!-- Footer will be populated by roomifyUpdateUser -->
             </div>
         `;
 
-
-        document.body.appendChild(
-            backdrop
-        );
-
-        document.body.appendChild(
-            sidebar
-        );
+        document.body.appendChild(backdrop);
+        document.body.appendChild(sidebar);
 
         // Core Sidebar Listeners
-        document.getElementById("roomify-sidebar-close").addEventListener("click", function() {
-            closeSidebar();
+        document.getElementById("roomify-sidebar-close").addEventListener("click", closeSidebar);
+        backdrop.addEventListener("click", closeSidebar);
+
+        // Advanced Filters Toggle
+        const filterHeader = document.getElementById("toggle-advanced-filters");
+        const filterContent = document.getElementById("advanced-filters-content");
+        const chevron = filterHeader.querySelector(".roomify-advanced-filters-chevron");
+
+        filterHeader.onclick = function() {
+            const isOpen = filterContent.classList.toggle("open");
+            chevron.style.transform = isOpen ? "rotate(180deg)" : "rotate(0deg)";
+        };
+
+        // Quick Search Listener
+        const quickSearchInput = document.getElementById("sidebar-quick-search");
+        quickSearchInput.addEventListener("input", function() {
+            const query = quickSearchInput.value.trim();
+            filterRooms(query);
+            // Sync with main search if exists
+            const mainSearch = document.getElementById("roomify-search-input");
+            if (mainSearch) mainSearch.value = query;
         });
 
-        backdrop.addEventListener("click", function() {
+        // Chip selection logic
+        const setupChips = (containerId, dataAttr) => {
+            const container = document.getElementById(containerId);
+            container.onclick = (e) => {
+                const chip = e.target.closest(".roomify-chip");
+                if (!chip) return;
+                container.querySelectorAll(".roomify-chip").forEach(c => c.classList.remove("active"));
+                chip.classList.add("active");
+            };
+        };
+        setupChips("status-chips", "data-status");
+        setupChips("type-chips", "data-type");
+
+        // Apply Filters logic
+        document.getElementById("apply-sidebar-filters").onclick = function() {
+            const maxBudget = document.getElementById("filter-max-budget").value;
+            const status = document.getElementById("status-chips").querySelector(".active").getAttribute("data-status");
+            const type = document.getElementById("type-chips").querySelector(".active").getAttribute("data-type");
+
+            console.log("Applying sidebar filters:", { maxBudget, status, type });
+
+            // Dispatch event for Kotlin
+            var event = new CustomEvent("roomifySidebarFilter", {
+                detail: JSON.stringify({
+                    maxPrice: maxBudget ? parseFloat(maxBudget) : null,
+                    status: status === "ALL" ? null : status,
+                    propertyType: type === "ALL" ? null : type
+                })
+            });
+            document.dispatchEvent(event);
+
             closeSidebar();
-        });
+        };
 
         // Initial setup of sidebar content
         window.roomifyUpdateUser(null, null, null, null);
@@ -1549,164 +1621,100 @@
         var sidebar = document.getElementById("roomify-sidebar");
         if (!sidebar) return;
 
-        var sidebarBody = sidebar.querySelector(".roomify-sidebar-body");
-        var accountSection = sidebar.querySelector(".roomify-sidebar-account");
+        var dynamicBody = sidebar.querySelector("#dynamic-menu-items");
+        var footerContent = sidebar.querySelector("#sidebar-footer-content");
 
-        if (!sidebarBody || !accountSection) return;
+        if (!dynamicBody || !footerContent) return;
 
         var loc = window.roomifyLocalization;
         var bodyHtml = "";
-
-        // --- DISCOVER / MENU SECTION ---
-        bodyHtml += `
-            <div class="roomify-sidebar-section">
-                <div class="roomify-sidebar-section-title">${role ? loc.account : "DISCOVER"}</div>
-                <button class="roomify-sidebar-item active" data-roomify-menu="explore">
-                    <span>${loc.explore}</span>
-                    <span class="roomify-sidebar-item-arrow">→</span>
-                </button>
-        `;
 
         const upperRole = (role || "").toUpperCase();
 
         if (upperRole === "TENANT") {
             bodyHtml += `
-                <button class="roomify-sidebar-item" data-roomify-menu="tenant">
-                    <span>${loc.dashboard}</span>
-                    <span class="roomify-sidebar-item-arrow">→</span>
-                </button>
-                <button class="roomify-sidebar-item" data-roomify-menu="filters">
-                    <span>${loc.filters}</span>
-                    <span class="roomify-sidebar-item-arrow">→</span>
-                </button>
-                <button class="roomify-sidebar-item" data-roomify-menu="saved">
-                    <span>Favourites</span>
-                    <span class="roomify-sidebar-item-arrow">→</span>
-                </button>
-                <button class="roomify-sidebar-item" data-roomify-menu="bookings">
-                    <span>${loc.myBookings}</span>
-                    <span class="roomify-sidebar-item-arrow">→</span>
-                </button>
-                <button class="roomify-sidebar-item" data-roomify-menu="messages">
-                    <span>${loc.messages}</span>
-                    <span class="roomify-sidebar-item-arrow">→</span>
-                </button>
+                <div class="roomify-sidebar-section">
+                    <div class="roomify-sidebar-label">My Dashboard</div>
+                    <div class="roomify-chip-group">
+                        <div class="roomify-chip" data-roomify-menu="tenant">Overview</div>
+                        <div class="roomify-chip" data-roomify-menu="saved">Favourites</div>
+                        <div class="roomify-chip" data-roomify-menu="bookings">My Bookings</div>
+                        <div class="roomify-chip" data-roomify-menu="messages">Messages</div>
+                    </div>
+                </div>
             `;
         } else if (upperRole === "OWNER") {
             bodyHtml += `
-                <button class="roomify-sidebar-item" data-roomify-menu="ownerdashboard">
-                    <span>${loc.ownerDashboard}</span>
-                    <span class="roomify-sidebar-item-arrow">→</span>
-                </button>
-                <button class="roomify-sidebar-item" data-roomify-menu="postroom">
-                    <span>${loc.postARoom}</span>
-                    <span class="roomify-sidebar-item-arrow">→</span>
-                </button>
+                <div class="roomify-sidebar-section">
+                    <div class="roomify-sidebar-label">Management</div>
+                    <div class="roomify-chip-group">
+                        <div class="roomify-chip" data-roomify-menu="ownerdashboard">Dashboard</div>
+                        <div class="roomify-chip" data-roomify-menu="postroom">Post a Room</div>
+                    </div>
+                </div>
             `;
         } else if (upperRole === "DALALI") {
             bodyHtml += `
-                <button class="roomify-sidebar-item" data-roomify-menu="dalalidashboard">
-                    <span>Dalali Dashboard</span>
-                    <span class="roomify-sidebar-item-arrow">→</span>
-                </button>
+                <div class="roomify-sidebar-section">
+                    <div class="roomify-sidebar-label">Dalali Tools</div>
+                    <div class="roomify-chip-group">
+                        <div class="roomify-chip" data-roomify-menu="dalalidashboard">Dashboard</div>
+                    </div>
+                </div>
             `;
         } else if (upperRole === "ADMIN" || upperRole === "SUPER_ADMIN") {
              bodyHtml += `
-                <button class="roomify-sidebar-item" data-roomify-menu="admindashboard">
-                    <span>${loc.adminPanel}</span>
-                    <span class="roomify-sidebar-item-arrow">→</span>
-                </button>
-            `;
-        } else {
-            // Guest Mode - Remove Saved Rooms and My Searches as per requirement
-            bodyHtml += `
-            `;
-        }
-
-        bodyHtml += `</div>`;
-
-        // --- ACCOUNT SECTION ---
-        bodyHtml += `
-            <div class="roomify-sidebar-section">
-                <div class="roomify-sidebar-section-title">${role ? loc.account : loc.search}</div>
-        `;
-
-        if (!role) {
-            bodyHtml += `
-                <button class="roomify-sidebar-item" data-roomify-menu="filters">
-                    <span>${loc.filters}</span>
-                    <span class="roomify-sidebar-item-arrow">→</span>
-                </button>
-                <button class="roomify-sidebar-item" data-roomify-menu="login">
-                    <span>${loc.loginRegister}</span>
-                    <span class="roomify-sidebar-item-arrow">→</span>
-                </button>
-            `;
-        } else {
-            bodyHtml += `
-                <button class="roomify-sidebar-item" data-roomify-menu="profile">
-                    <span>${loc.profile}</span>
-                    <span class="roomify-sidebar-item-arrow">→</span>
-                </button>
-                <button class="roomify-sidebar-item" data-roomify-menu="logout">
-                    <span>${loc.logout}</span>
-                    <span class="roomify-sidebar-item-arrow">→</span>
-                </button>
-            `;
-        }
-
-        bodyHtml += `</div>`;
-
-        // --- LANGUAGE SECTION ---
-        bodyHtml += `
-            <div class="roomify-sidebar-section">
-                <div class="roomify-sidebar-section-title">${loc.language}</div>
-                <div style="display:flex; gap:8px; padding:0 12px;">
-                    <button class="roomify-sidebar-item ${loc.languageCode === 'en' ? 'active' : ''}" style="flex:1; justify-content:center; padding:8px 0;" onclick="handleLanguageChange('en')">EN</button>
-                    <button class="roomify-sidebar-item ${loc.languageCode === 'sw' ? 'active' : ''}" style="flex:1; justify-content:center; padding:8px 0;" onclick="handleLanguageChange('sw')">SW</button>
+                <div class="roomify-sidebar-section">
+                    <div class="roomify-sidebar-label">Administration</div>
+                    <div class="roomify-chip-group">
+                        <div class="roomify-chip" data-roomify-menu="admindashboard">Admin Panel</div>
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
+        }
 
-        sidebarBody.innerHTML = bodyHtml;
+        dynamicBody.innerHTML = bodyHtml;
 
-        // Update Account Box at bottom
-        if (role) {
-            var avatarContent = initials || "U";
-            // Check if profileImage is valid and not the upload endpoint
+        // Footer Content
+        if (!role) {
+            footerContent.innerHTML = `
+                <div class="roomify-footer-item" data-roomify-menu="login">
+                    <span class="roomify-footer-icon">🚪</span>
+                    <span>Login / Register</span>
+                </div>
+            `;
+        } else {
+            var avatarImg = "";
             if (profileImage && profileImage.indexOf("profile/image") === -1) {
-                // Add cache buster to profile image
-                var buster = new Date().getTime();
-                var imgUrl = profileImage.indexOf("?") > -1 ?
-                             profileImage + "&cb=" + buster :
-                             profileImage + "?cb=" + buster;
-
-                avatarContent = `<img src="${imgUrl}" style="width:100%; height:100%; border-radius:12px; object-fit:cover;" onerror="this.parentElement.innerHTML='${initials || 'U'}'" />`;
+                avatarImg = `<img src="${profileImage}" style="width:32px; height:32px; border-radius:8px; object-fit:cover; margin-right:12px;" />`;
+            } else {
+                avatarImg = `<div style="width:32px; height:32px; border-radius:8px; background:#E8EAF6; color:#1A237E; display:flex; align-items:center; justify-content:center; font-weight:800; margin-right:12px;">${initials || 'U'}</div>`;
             }
 
-            accountSection.innerHTML = `
-                <div style="display:flex; align-items:center;">
-                    <div style="width:36px; height:36px; border-radius:12px; background:rgba(255,255,255,0.18); display:flex; align-items:center; justify-content:center; font-weight:bold; margin-right:12px; font-size:14px; border:1px solid rgba(255,255,255,0.1); overflow:hidden;">
-                        ${avatarContent}
-                    </div>
+            footerContent.innerHTML = `
+                <div class="roomify-footer-item" data-roomify-menu="profile">
+                    ${avatarImg}
                     <div style="flex:1; min-width:0;">
-                        <div class="roomify-sidebar-account-title" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${name || "User"}</div>
-                        <div class="roomify-sidebar-account-subtitle" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${email || ""}</div>
+                        <div style="font-size:14px; color:#1A1A1A; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${name}</div>
+                        <div style="font-size:11px; color:#666;">Account Settings</div>
                     </div>
                 </div>
-            `;
-        } else {
-            accountSection.innerHTML = `
-                <div class="roomify-sidebar-account-title">Find your next room</div>
-                <div class="roomify-sidebar-account-subtitle">Search properties around you</div>
+                <div class="roomify-footer-item" data-roomify-menu="logout" style="margin-top:12px; color:#D32F2F;">
+                    <span class="roomify-footer-icon">🚪</span>
+                    <span>Logout</span>
+                </div>
             `;
         }
 
-        // Re-attach listeners for new items
-        var items = sidebarBody.querySelectorAll("[data-roomify-menu]");
-        items.forEach(function (item) {
-            item.addEventListener("click", function () {
-                var destination = item.getAttribute("data-roomify-menu");
+        // Re-attach listeners for ALL data-roomify-menu items (new and old)
+        var allMenuItems = sidebar.querySelectorAll("[data-roomify-menu]");
+        allMenuItems.forEach(function (item) {
+            // Remove old listener if any
+            var newItem = item.cloneNode(true);
+            item.parentNode.replaceChild(newItem, item);
+
+            newItem.addEventListener("click", function () {
+                var destination = newItem.getAttribute("data-roomify-menu");
                 handleSidebarNavigation(destination);
             });
         });
@@ -2604,34 +2612,38 @@
 
         var alpha = selected ? 1.0 : statusAlpha(status);
 
-        var buildingIndicator = isComplex ?
-            '<circle cx="82" cy="12" r="10" fill="#FFFFFF" stroke="' + color + '" stroke-width="1.5"/>' +
-            '<text x="82" y="15.5" text-anchor="middle" font-size="9" fill="' + color + '">🏢</text>'
-            : '';
+        // Growth effect for selected marker
+        var scale = selected ? 1.35 : 1.0;
+        var width = 120 * scale;
+        var height = 55 * scale;
+
+        var iconEmoji = isComplex ? "🏢" : "🏠";
 
         var svg =
             '<svg xmlns="http://www.w3.org/2000/svg" ' +
-            'width="100" height="50" ' +
-            'viewBox="0 0 100 50">' +
+            'width="' + width + '" height="' + height + '" ' +
+            'viewBox="0 0 120 55">' +
             '<defs>' +
             '<filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">' +
-            '<feDropShadow dx="0" dy="1.5" stdDeviation="1.8" flood-opacity="0.28"/>' +
+                '<feDropShadow dx="0" dy="1.5" stdDeviation="2.5" flood-opacity="0.35"/>' +
             '</filter>' +
             '</defs>' +
             '<g filter="url(#shadow)" opacity="' + alpha + '">' +
-            '<rect x="4" y="4" rx="14" ry="14" width="92" height="38" fill="' + color + '"/>' +
-            buildingIndicator +
-            '<path d="M42 42 L50 49 L58 42" fill="' + color + '"/>' +
-            '<text x="50" y="28" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="900" fill="#ffffff">' +
-            escapeHtml(text) +
-            '</text>' +
+                '<rect x="5" y="5" rx="18" ry="18" width="110" height="38" fill="' + color + '"/>' +
+                '<path d="M53 43 L60 52 L67 43" fill="' + color + '"/>' +
+                // Subtle background circle for the icon to make it pop
+                '<circle cx="28" cy="24" r="14" fill="rgba(255,255,255,0.18)"/>' +
+                '<text x="28" y="29" text-anchor="middle" font-family="Arial" font-size="16" fill="#ffffff">' + iconEmoji + '</text>' +
+                '<text x="72" y="30" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="900" fill="#ffffff">' +
+                    escapeHtml(text) +
+                '</text>' +
             '</g>' +
             '</svg>';
 
         return {
             url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg),
-            scaledSize: new google.maps.Size(100, 50),
-            anchor: new google.maps.Point(50, 49)
+            scaledSize: new google.maps.Size(width, height),
+            anchor: new google.maps.Point(width / 2, height - 2)
         };
     }
 
@@ -3484,11 +3496,15 @@
                             room.price,
                             room.status,
                             selected,
-                            !!room.propertyId
+                            !!room.propertyId,
+                            window.roomifyViewedRoomIds.has(Number(room.id)),
+                            window.roomifySavedRoomIds.has(Number(room.id))
                         ),
 
                     optimized:
-                        true
+                        true,
+
+                    animation: google.maps.Animation.DROP
                 }
             );
 

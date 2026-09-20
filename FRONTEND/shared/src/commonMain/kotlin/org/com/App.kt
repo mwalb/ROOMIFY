@@ -265,7 +265,7 @@ fun App() {
     // ============================================================
 
     var currentRoute by remember {
-        mutableStateOf("discovery")
+        mutableStateOf("map")
     }
 
     var pendingRoom by remember {
@@ -286,6 +286,10 @@ fun App() {
     var discoveryQuery by remember { mutableStateOf<String?>(null) }
 
     var showSpacePlanner by remember {
+        mutableStateOf(false)
+    }
+
+    var showAIRoomArranger by remember {
         mutableStateOf(false)
     }
 
@@ -377,6 +381,12 @@ fun App() {
                     showSpacePlanner = true
                     postLoginDestination = null
                 }
+                postLoginDestination == "ai_arranger" && pendingRoom != null -> {
+                    println("App: ✨ Opening AI arranger after login")
+                    currentRoute = "details"
+                    showAIRoomArranger = true
+                    postLoginDestination = null
+                }
                 postLoginDestination == "route" && pendingRoom != null -> {
                     println("App: 🧭 Showing route after login")
                     currentRoute = "details"
@@ -415,8 +425,8 @@ fun App() {
                 }
                 // Case 3: Default - show discovery
                 else -> {
-                    println("App: 🗺️ Navigating to Discovery")
-                    currentRoute = "discovery"
+                    println("App: 🗺️ Navigating to Map")
+                    currentRoute = "map"
                 }
             }
 
@@ -446,7 +456,7 @@ fun App() {
             "logout" -> {
                 scope.launch {
                     authManager.logout()
-                    currentRoute = "discovery"
+                    currentRoute = "map"
                 }
             }
             "analytics" -> {
@@ -564,6 +574,13 @@ fun App() {
                             },
                             showSpacePlanner = showSpacePlanner,
                             onDismissSpacePlanner = { showSpacePlanner = false },
+                            onAIRoomArranger = { room ->
+                                withAuth("ai_arranger") {
+                                    showAIRoomArranger = true
+                                }
+                            },
+                            showAIRoomArranger = showAIRoomArranger,
+                            onDismissAIRoomArranger = { showAIRoomArranger = false },
                             onEditProperty = { room ->
                                 postRoomViewModel.startEditing(room)
                                 currentRoute = "postroom"
@@ -1211,8 +1228,12 @@ private fun AppMapContainer(
                 viewedRoomIds = viewModel.viewedRoomIds,
                 savedRoomIds = viewModel.savedRoomIds,
                 onStatusFilterChange = { viewModel.filterStatus = if (it == "ALL") null else it },
+                onFiltersChange = { type, area, price, status ->
+                    viewModel.setFilters(type, area, price, status)
+                },
                 onFitBoundsHandled = { viewModel.clearFitBounds() },
                 onClearRoute = onClearRoute,
+                onMenuClick = { scope.launch { drawerState.open() } },
                 onRoomSelected = { room ->
                     viewModel.selectRoom(room)
                 },
@@ -1236,22 +1257,6 @@ private fun AppMapContainer(
                     MapLegendItem("Pending", Color(0xFFF9A825))
                     MapLegendItem("Rented", Color(0xFFC62828))
                 }
-            }
-
-            // Menu Button (Top Left)
-            IconButton(
-                onClick = { scope.launch { drawerState.open() } },
-                modifier = Modifier.padding(16.dp).align(Alignment.TopStart).size(44.dp).background(Color.White, CircleShape).shadow(4.dp, CircleShape)
-            ) {
-                Icon(Icons.Default.Menu, "Menu", tint = Color(0xFF1A237E))
-            }
-            
-            // Discovery Shortcut (Top Right)
-            IconButton(
-                onClick = { onNavigate("discovery") },
-                modifier = Modifier.padding(16.dp).align(Alignment.TopEnd).size(44.dp).background(Color.White, CircleShape).shadow(4.dp, CircleShape)
-            ) {
-                Icon(Icons.Default.Search, "Discovery", tint = Color(0xFF1A237E))
             }
         }
     }

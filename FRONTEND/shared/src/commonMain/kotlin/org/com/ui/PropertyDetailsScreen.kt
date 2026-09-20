@@ -44,6 +44,7 @@ import kotlinx.coroutines.delay
 import org.com.i18n.LocalRoomifyStrings
 import org.com.model.*
 import org.com.network.RoomifyApi
+import org.com.ui.components.AIRoomArrangerDialog
 import org.com.ui.components.SpacePlannerDialog
 
 private val PrimaryColor = Color(0xFF1A237E)
@@ -63,6 +64,9 @@ fun PropertyDetailsScreen(
     onSpacePlanner: (Room) -> Unit = {},
     showSpacePlanner: Boolean = false,
     onDismissSpacePlanner: () -> Unit = {},
+    onAIRoomArranger: (Room) -> Unit = {},
+    showAIRoomArranger: Boolean = false,
+    onDismissAIRoomArranger: () -> Unit = {},
     onEditProperty: (Room) -> Unit = {},
     onDeleteProperty: (Room) -> Unit = {},
     onViewProperty: (Room) -> Unit = {}
@@ -396,6 +400,32 @@ fun PropertyDetailsScreen(
                     SectionTitleDetails("Intelligent matching")
                     SmartMatchSection(room)
 
+                    SectionTitleDetails("AI Room Arranger")
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().clickable { onAIRoomArranger(room) },
+                        shape = RoundedCornerShape(16.dp),
+                        color = Color(0xFF6200EE).copy(alpha = 0.05f),
+                        border = BorderStroke(1.dp, Color(0xFF6200EE).copy(alpha = 0.1f))
+                    ) {
+                        Row(
+                            Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier.size(44.dp).background(Brush.linearGradient(listOf(Color(0xFF6200EE), Color(0xFF03DAC5))), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.AutoAwesome, null, tint = Color.White, modifier = Modifier.size(22.dp))
+                            }
+                            Spacer(Modifier.width(16.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text("✨ AI Arrange My Room", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF6200EE))
+                                Text("Let AI visualize your dream layout", fontSize = 12.sp, color = Color.Gray)
+                            }
+                            Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = Color(0xFF6200EE), modifier = Modifier.size(18.dp))
+                        }
+                    }
+
                     SectionTitleDetails("Living Arrangement")
                     Surface(
                         modifier = Modifier.fillMaxWidth().clickable { onSpacePlanner(room) },
@@ -582,6 +612,14 @@ fun PropertyDetailsScreen(
             roomArea = room.area,
             roomImageUrl = room.firstImageUrl,
             onDismiss = onDismissSpacePlanner
+        )
+    }
+
+    // AI Room Arranger Dialog
+    if (showAIRoomArranger) {
+        AIRoomArrangerDialog(
+            room = room,
+            onDismiss = onDismissAIRoomArranger
         )
     }
 
