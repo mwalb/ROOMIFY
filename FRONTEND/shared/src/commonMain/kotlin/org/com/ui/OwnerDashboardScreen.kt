@@ -76,165 +76,148 @@ fun OwnerDashboardScreen(
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            org.com.ui.components.RoomifySidebar(
-                user = user,
-                onNavigate = onNavigate,
-                onLogout = onLogout,
-                onSearch = onSearch,
-                onClose = { scope.launch { drawerState.close() } }
-            )
-        }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Brush.verticalGradient(listOf(PrimaryColor, PrimaryLight))),
+        contentAlignment = Alignment.Center
     ) {
-        Box(
+        // Main Centered Dashboard Card
+        Card(
             modifier = Modifier
-                .fillMaxSize()
-                .background(Brush.verticalGradient(listOf(PrimaryColor, PrimaryLight))),
-            contentAlignment = Alignment.Center
+                .fillMaxWidth(0.94f)
+                .widthIn(max = 500.dp)
+                .fillMaxHeight(0.92f)
+                .padding(vertical = 16.dp),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FA)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
         ) {
-            // Main Centered Dashboard Card
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth(0.94f)
-                    .widthIn(max = 500.dp)
-                    .fillMaxHeight(0.92f)
-                    .padding(vertical = 16.dp),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FA)),
-                elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
-            ) {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    // Dashboard Header
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(PrimaryColor)
-                            .padding(horizontal = 20.dp, vertical = 16.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(onClick = { scope.launch { drawerState.open() } }, modifier = Modifier.size(32.dp)) {
-                                Icon(Icons.Default.Menu, contentDescription = "Menu", tint = Color.White, modifier = Modifier.size(20.dp))
-                            }
-                            Spacer(Modifier.width(12.dp))
-                            Column(Modifier.weight(1f)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    @Suppress("DEPRECATION")
-                                    Text("Owner Dashboard", color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
-                                    if (isRefreshing) {
-                                        Spacer(Modifier.width(8.dp))
-                                        CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 2.dp, color = Color.White)
-                                    }
-                                }
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Dashboard Header
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(PrimaryColor)
+                        .padding(horizontal = 20.dp, vertical = 16.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
                                 @Suppress("DEPRECATION")
-                                Text(user.name, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black)
+                                Text("Owner Dashboard", color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
+                                if (isRefreshing) {
+                                    Spacer(Modifier.width(8.dp))
+                                    CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 2.dp, color = Color.White)
+                                }
                             }
-                            
-                            if (!user.profileImage.isNullOrBlank()) {
-                                val fullUrl = ApiClient.resolveUrl(user.profileImage!!)
+                            @Suppress("DEPRECATION")
+                            Text(user.name, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black)
+                        }
 
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(CircleShape)
-                                        .border(1.dp, Color.White.copy(alpha = 0.5f), CircleShape)
-                                        .clickable { onNavigate("profile") }
-                                ) {
-                                    KamelImage(
-                                        resource = { asyncPainterResource(fullUrl) },
-                                        contentDescription = "Profile",
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier.fillMaxSize(),
-                                        onLoading = { _: Float -> Box(Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.1f))) },
-                                        onFailure = { 
-                                            IconButton(onClick = onLogout, modifier = Modifier.fillMaxSize()) {
-                                                Icon(Icons.AutoMirrored.Filled.Logout, null, tint = Color.White, modifier = Modifier.size(18.dp))
-                                            }
+                        if (!user.profileImage.isNullOrBlank()) {
+                            val fullUrl = ApiClient.resolveUrl(user.profileImage!!)
+
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .border(1.dp, Color.White.copy(alpha = 0.5f), CircleShape)
+                                    .clickable { onNavigate("profile") }
+                            ) {
+                                KamelImage(
+                                    resource = { asyncPainterResource(fullUrl) },
+                                    contentDescription = "Profile",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize(),
+                                    onLoading = { _: Float -> Box(Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.1f))) },
+                                    onFailure = {
+                                        IconButton(onClick = onLogout, modifier = Modifier.fillMaxSize()) {
+                                            Icon(Icons.AutoMirrored.Filled.Logout, null, tint = Color.White, modifier = Modifier.size(18.dp))
                                         }
-                                    )
-                                }
-                            } else {
-                                IconButton(onClick = onLogout, modifier = Modifier.size(36.dp).background(Color.White.copy(alpha = 0.15f), CircleShape)) {
-                                    Icon(Icons.AutoMirrored.Filled.Logout, null, tint = Color.White, modifier = Modifier.size(18.dp))
-                                }
+                                    }
+                                )
+                            }
+                        } else {
+                            IconButton(onClick = onLogout, modifier = Modifier.size(36.dp).background(Color.White.copy(alpha = 0.15f), CircleShape)) {
+                                Icon(Icons.AutoMirrored.Filled.Logout, null, tint = Color.White, modifier = Modifier.size(18.dp))
                             }
                         }
                     }
+                }
 
-                    // Custom Tab Bar
-                    Row(
-                        modifier = Modifier.fillMaxWidth().background(Color.White).padding(horizontal = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceAround
-                    ) {
-                        DashboardTab("Overview", selectedTab == 0) { selectedTab = 0 }
-                        DashboardTab("Properties", selectedTab == 1) { selectedTab = 1 }
-                        DashboardTab("Requests", selectedTab == 2) { selectedTab = 2 }
-                        DashboardTab("Messages", selectedTab == 3) { selectedTab = 3 }
-                    }
+                // Custom Tab Bar
+                Row(
+                    modifier = Modifier.fillMaxWidth().background(Color.White).padding(horizontal = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceAround
+                ) {
+                    DashboardTab("Overview", selectedTab == 0) { selectedTab = 0 }
+                    DashboardTab("Properties", selectedTab == 1) { selectedTab = 1 }
+                    DashboardTab("Requests", selectedTab == 2) { selectedTab = 2 }
+                    DashboardTab("Messages", selectedTab == 3) { selectedTab = 3 }
+                }
 
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-                    // Scrollable Content
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                            .verticalScroll(scrollState)
-                            .padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(20.dp)
-                    ) {
-                        when (selectedTab) {
-                            0 -> {
+                // Scrollable Content
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .verticalScroll(scrollState)
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    when (selectedTab) {
+                        0 -> {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                StatCardCompact("Properties", properties.size.toString(), Icons.Default.Business, Modifier.weight(1f))
+                                StatCardCompact("Views", properties.sumOf { it.viewCount }.toString(), Icons.Default.Visibility, Modifier.weight(1f))
+                            }
+
+                            SectionHeaderOwner("Revenue Performance")
+                            RevenueChart()
+
+                            Column {
+                                SectionHeaderOwner("Quick Actions")
+                                Spacer(Modifier.height(12.dp))
                                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    StatCardCompact("Properties", properties.size.toString(), Icons.Default.Business, Modifier.weight(1f))
-                                    StatCardCompact("Views", properties.sumOf { it.viewCount }.toString(), Icons.Default.Visibility, Modifier.weight(1f))
-                                }
-
-                                SectionHeaderOwner("Revenue Performance")
-                                RevenueChart()
-
-                                Column {
-                                    SectionHeaderOwner("Quick Actions")
-                                    Spacer(Modifier.height(12.dp))
-                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                        ActionItemCompact("Add New", Icons.Default.Add, PrimaryColor, Modifier.weight(1f), onAddProperty)
-                                        ActionItemCompact("Analytics", Icons.AutoMirrored.Filled.TrendingUp, Color(0xFF00897B), Modifier.weight(1f), onViewAnalytics)
-                                        ActionItemCompact("Finances", Icons.Default.Payments, Color(0xFFF9A825), Modifier.weight(1f), onViewFinances)
-                                    }
+                                    ActionItemCompact("Add New", Icons.Default.Add, PrimaryColor, Modifier.weight(1f), onAddProperty)
+                                    ActionItemCompact("Analytics", Icons.AutoMirrored.Filled.TrendingUp, Color(0xFF00897B), Modifier.weight(1f), onViewAnalytics)
+                                    ActionItemCompact("Finances", Icons.Default.Payments, Color(0xFFF9A825), Modifier.weight(1f), onViewFinances)
                                 }
                             }
-                            1 -> {
-                                SectionHeaderOwner("My Properties")
-                                if (properties.isEmpty()) {
-                                    EmptyState("No properties listed")
-                                } else {
-                                    properties.forEach { room ->
-                                        OwnerPropertyCard(room, onClick = { onViewProperty(room) })
-                                    }
+                        }
+                        1 -> {
+                            SectionHeaderOwner("My Properties")
+                            if (properties.isEmpty()) {
+                                EmptyState("No properties listed")
+                            } else {
+                                properties.forEach { room ->
+                                    OwnerPropertyCard(room, onClick = { onViewProperty(room) })
                                 }
                             }
-                            2 -> {
-                                @Suppress("DEPRECATION")
-                                Text("Pending Requests", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Color.Gray)
-                                val pendingBookings = bookings.filter { it.status == "PENDING" }
-                                if (pendingBookings.isEmpty()) {
-                                    EmptyState("No pending requests")
-                                } else {
-                                    pendingBookings.forEach { booking ->
-                                        BookingRequestCard(booking, onAccept = { onAcceptBooking(booking) }, onReject = { onRejectBooking(booking) })
-                                    }
+                        }
+                        2 -> {
+                            @Suppress("DEPRECATION")
+                            Text("Pending Requests", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Color.Gray)
+                            val pendingBookings = bookings.filter { it.status == "PENDING" }
+                            if (pendingBookings.isEmpty()) {
+                                EmptyState("No pending requests")
+                            } else {
+                                pendingBookings.forEach { booking ->
+                                    BookingRequestCard(booking, onAccept = { onAcceptBooking(booking) }, onReject = { onRejectBooking(booking) })
                                 }
                             }
-                            3 -> {
-                                @Suppress("DEPRECATION")
-                                Text("Tenant Inquiries", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Color.Gray)
-                                if (conversations.isEmpty()) {
-                                    EmptyState("No messages yet")
-                                } else {
-                                    conversations.forEach { conversation ->
-                                        OwnerConversationItem(conversation, onClick = { onConversationClick(conversation) })
-                                    }
+                        }
+                        3 -> {
+                            @Suppress("DEPRECATION")
+                            Text("Tenant Inquiries", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Color.Gray)
+                            if (conversations.isEmpty()) {
+                                EmptyState("No messages yet")
+                            } else {
+                                conversations.forEach { conversation ->
+                                    OwnerConversationItem(conversation, onClick = { onConversationClick(conversation) })
                                 }
                             }
                         }
@@ -324,7 +307,7 @@ private fun OwnerPropertyCard(room: Room, onClick: () -> Unit) {
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
-                    onLoading = { _: Float -> 
+                    onLoading = { _: Float ->
                         Box(Modifier.fillMaxSize().background(Color(0xFFF0F2F5)), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = PrimaryColor)
                         }
@@ -353,7 +336,7 @@ private fun OwnerPropertyCard(room: Room, onClick: () -> Unit) {
                         Text(room.status, color = if (room.status == "AVAILABLE") Color(0xFF2E7D32) else Color.Red, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                     }
                 }
-                
+
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     LinearProgressIndicator(
@@ -408,7 +391,7 @@ private fun RevenueChart() {
                         targetValue = barHeight,
                         animationSpec = tween(durationMillis = 1000, delayMillis = index * 100)
                     )
-                    
+
                     LaunchedEffect(Unit) { barHeight = value / maxRevenue }
 
                     Box(
@@ -488,7 +471,7 @@ private fun BookingRequestCard(booking: Booking, onAccept: () -> Unit, onReject:
                         }
                     }
                 }
-                
+
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     @Suppress("DEPRECATION")
@@ -496,7 +479,7 @@ private fun BookingRequestCard(booking: Booking, onAccept: () -> Unit, onReject:
                     @Suppress("DEPRECATION")
                     Text(booking.roomTitle ?: "Room", fontSize = 12.sp, color = Color.Gray, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                
+
                 Surface(
                     color = PrimaryColor.copy(alpha = 0.05f),
                     shape = RoundedCornerShape(8.dp)
@@ -512,7 +495,7 @@ private fun BookingRequestCard(booking: Booking, onAccept: () -> Unit, onReject:
                 }
             }
             Spacer(Modifier.height(12.dp))
-            
+
             // Added dates information
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column {
@@ -528,7 +511,7 @@ private fun BookingRequestCard(booking: Booking, onAccept: () -> Unit, onReject:
                     Text(booking.endDate, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
             }
-            
+
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = onAccept, modifier = Modifier.weight(1f).height(38.dp), shape = RoundedCornerShape(10.dp), colors = ButtonDefaults.buttonColors(containerColor = SuccessColor)) {
