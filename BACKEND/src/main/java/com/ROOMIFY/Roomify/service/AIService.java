@@ -14,7 +14,7 @@ import java.util.*;
 @Service
 public class AIService {
 
-    @Value("${gemini.api.key}")
+    @Value("${gemini.api.key:}")
     private String apiKey;
 
     @Value("${gemini.model:gemini-3.1-flash-image-preview}")
@@ -24,6 +24,9 @@ public class AIService {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public AIRoomResponse generateRoomArrangement(AIRoomRequest request, byte[] imageBytes) throws Exception {
+        if (apiKey == null || apiKey.isBlank() || "disabled".equals(apiKey) || "none".equals(apiKey)) {
+            throw new RuntimeException("AI Features are currently disabled: GEMINI_API_KEY is not configured.");
+        }
         String prompt = constructPrompt(request);
         
         // Base64 encode the image
