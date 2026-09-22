@@ -40,23 +40,6 @@ private fun ensureMapContainer() {
         )
 
     if (existing != null) {
-
-        existing.setAttribute(
-            "style",
-            """
-            position:fixed;
-            top:0;
-            left:0;
-            width:100vw;
-            height:100vh;
-            display:block;
-            visibility:visible;
-            opacity:1;
-            touch-action:none;
-            z-index:1;
-            """.trimIndent()
-        )
-
         return
     }
 
@@ -68,6 +51,7 @@ private fun ensureMapContainer() {
     container.id =
         "google-map-container"
 
+    // Default styles for the map container
     container.setAttribute(
         "style",
         """
@@ -95,11 +79,11 @@ private fun ensureMapContainer() {
 private external fun showMapLayer()
 
 @OptIn(ExperimentalWasmJsInterop::class)
-@JsFun("() => { var map = document.getElementById('google-map-container'); if (map) { map.style.display = 'none'; map.style.visibility = 'hidden'; map.style.opacity = '0'; map.style.zIndex = '-1'; console.log('Roomify: Map layer hidden'); } }")
+@JsFun("() => { if (typeof window.roomifyHideMap === 'function') { window.roomifyHideMap(); } else { var map = document.getElementById('google-map-container'); if (map) { map.style.display = 'none'; map.style.visibility = 'hidden'; map.style.opacity = '0'; map.style.zIndex = '-1'; } console.log('Roomify: Fallback map hide used'); } }")
 private external fun hideMapLayer()
 
 @OptIn(ExperimentalWasmJsInterop::class)
-@JsFun("() => { var map = document.getElementById('google-map-container'); if (map) { map.style.display = 'block'; map.style.visibility = 'visible'; map.style.opacity = '1'; map.style.zIndex = '1'; console.log('Roomify: Map layer shown'); } }")
+@JsFun("() => { if (typeof window.roomifyShowMapDirect === 'function') { window.roomifyShowMapDirect(); } else { var map = document.getElementById('google-map-container'); if (map) { map.style.display = 'block'; map.style.visibility = 'visible'; map.style.opacity = '1'; map.style.zIndex = '1'; } console.log('Roomify: Fallback map show direct used'); } }")
 private external fun showMapLayerDirect()
 
 @OptIn(ExperimentalWasmJsInterop::class)

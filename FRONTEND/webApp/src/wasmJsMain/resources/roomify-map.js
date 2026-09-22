@@ -83,19 +83,34 @@
      */
 
     window.roomifyShowMap = function () {
+        console.log("[ROOMIFY MAP] SHOW MAP START");
 
-        var map =
-            document.getElementById(
-                "google-map-container"
-            );
+        var map = document.getElementById("google-map-container");
+        var sidebar = document.getElementById("roomify-sidebar");
+        var compose = document.getElementById("ComposeTarget");
 
         if (map) {
-
+            map.classList.add("map-mode");
             map.style.display = "block";
             map.style.visibility = "visible";
             map.style.opacity = "1";
-            map.style.zIndex = "1";
-            console.log("Roomify: Map layer shown");
+            map.style.zIndex = "9999";
+            console.log("[ROOMIFY MAP] map container shown with 'map-mode'");
+        } else {
+            console.error("[ROOMIFY MAP] map container NOT FOUND");
+        }
+
+        if (sidebar) {
+            sidebar.style.display = "flex";
+            console.log("[ROOMIFY MAP] sidebar element shown");
+        } else {
+            console.warn("[ROOMIFY MAP] sidebar element NOT FOUND");
+        }
+
+        if (compose) {
+            compose.style.left = "400px";
+            compose.style.width = "calc(100vw - 400px)";
+            console.log("[ROOMIFY MAP] ComposeTarget squeezed to right");
         }
 
         setTimeout(function () {
@@ -149,33 +164,36 @@
      */
 
     window.roomifyHideMap = function() {
-        console.log("Roomify: hideMap called");
+        console.log("[ROOMIFY MAP] HIDE MAP");
 
         var map = document.getElementById("google-map-container");
+        var sidebar = document.getElementById("roomify-sidebar");
+        var compose = document.getElementById("ComposeTarget");
+
         if (map) {
+            map.classList.remove("map-mode");
             map.style.display = "none";
             map.style.visibility = "hidden";
             map.style.opacity = "0";
             map.style.zIndex = "-1";
-            console.log("Roomify: Map hidden successfully");
-        } else {
-            console.log("Roomify: Map container not found");
+            console.log("[ROOMIFY MAP] map hidden");
+        }
+
+        if (sidebar) {
+            sidebar.style.display = "none";
+            console.log("[ROOMIFY MAP] sidebar hidden");
+        }
+
+        if (compose) {
+            compose.style.left = "0";
+            compose.style.width = "100vw";
+            console.log("[ROOMIFY MAP] ComposeTarget restored to full width");
         }
     };
 
     window.roomifyShowMapDirect = function() {
-        console.log("Roomify: showMap called");
-
-        var map = document.getElementById("google-map-container");
-        if (map) {
-            map.style.display = "block";
-            map.style.visibility = "visible";
-            map.style.opacity = "1";
-            map.style.zIndex = "1";
-            console.log("Roomify: Map shown successfully");
-        } else {
-            console.log("Roomify: Map container not found");
-        }
+        console.log("[ROOMIFY MAP] SHOW MAP DIRECT");
+        window.roomifyShowMap();
     };
 
 
@@ -395,16 +413,22 @@
              * ====================================================
              */
 
+            /*
+             * ====================================================
+             * SIDEBAR
+             * ====================================================
+             */
+
             .roomify-sidebar {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 400px;
-                height: 100vh;
-                background: white;
-                z-index: 10000;
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 400px !important;
+                height: 100vh !important;
+                background: white !important;
+                z-index: 10000 !important;
                 box-shadow: 10px 0 30px rgba(0,0,0,0.05);
-                display: flex;
+                display: none;
                 flex-direction: column;
                 font-family: 'Inter', Arial, sans-serif;
                 color: #1A1A1A;
@@ -412,9 +436,17 @@
                 transition: none !important;
             }
 
-            #google-map-container {
-                margin-left: 400px;
-                width: calc(100% - 400px) !important;
+            #google-map-container.map-mode {
+                position: fixed !important;
+                top: 0 !important;
+                left: 400px !important;
+                width: calc(100vw - 400px) !important;
+                height: 100vh !important;
+                margin: 0 !important;
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                z-index: 9999 !important;
             }
 
             .roomify-sidebar-header {
@@ -3896,7 +3928,7 @@
 
 
     console.log(
-        "Roomify: roomify-map.js loaded"
+        "[ROOMIFY MAP] roomify-map.js loaded - v3.0 (Pixel-Perfect Squeezed Layout)"
     );
 
 })();
