@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.RectF
 import android.graphics.Typeface
 import android.location.Location
 import androidx.compose.foundation.BorderStroke
@@ -295,12 +296,69 @@ private fun createPriceMarker(
     paint.color = android.graphics.Color.argb(50, 255, 255, 255)
     canvas.drawCircle(iconX, centerY, 19f * scale, paint)
 
-    paint.color = android.graphics.Color.WHITE
-    paint.textSize = 28f * scale
-    paint.textAlign = Paint.Align.CENTER
-    val iconEmoji = if (room.propertyId != null) "🏢" else "🏠"
-    // Adjust Y for emoji baseline to center it in circle
-    canvas.drawText(iconEmoji, iconX, centerY + (10f * scale), paint)
+    val isBuilding = room.propertyId != null
+    if (isBuilding) {
+        paint.color = android.graphics.Color.WHITE
+        paint.style = Paint.Style.FILL
+
+        val bWidth = 16f * scale
+        val bHeight = 22f * scale
+        val bLeft = iconX - bWidth / 2f
+        val bTop = centerY - bHeight / 2f + (1f * scale)
+        
+        val bRect = RectF(bLeft, bTop, bLeft + bWidth, bTop + bHeight)
+        canvas.drawRoundRect(bRect, 2f * scale, 2f * scale, paint)
+        
+        // Window cutouts using marker background color
+        val windowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            this.color = android.graphics.Color.argb(alpha, android.graphics.Color.red(color), android.graphics.Color.green(color), android.graphics.Color.blue(color))
+            this.style = Paint.Style.FILL
+        }
+        val wWidth = 3f * scale
+        val wHeight = 3.5f * scale
+        val wGapX = 3f * scale
+        val wGapY = 2.5f * scale
+        val wStartLeft = bLeft + 3.5f * scale
+        val wStartTop = bTop + 3f * scale
+
+        for (row in 0..2) {
+            for (col in 0..1) {
+                val wx = wStartLeft + col * (wWidth + wGapX)
+                val wy = wStartTop + row * (wHeight + wGapY)
+                canvas.drawRect(wx, wy, wx + wWidth, wy + wHeight, windowPaint)
+            }
+        }
+    } else {
+        paint.color = android.graphics.Color.WHITE
+        paint.style = Paint.Style.FILL
+
+        val hWidth = 20f * scale
+        val hHeight = 13f * scale
+        val hLeft = iconX - hWidth / 2f
+        val hBottom = centerY + 10f * scale
+        val hTop = hBottom - hHeight
+        
+        // Roof (Triangle)
+        val roofPath = Path().apply {
+            moveTo(iconX, centerY - 12f * scale)
+            lineTo(iconX - hWidth / 2f - 3f * scale, hTop + 1f * scale)
+            lineTo(iconX + hWidth / 2f + 3f * scale, hTop + 1f * scale)
+            close()
+        }
+        canvas.drawPath(roofPath, paint)
+        
+        // House body (Rectangle)
+        canvas.drawRect(hLeft, hTop + 1f * scale, hLeft + hWidth, hBottom, paint)
+        
+        // Door cutout using marker background color
+        val doorPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            this.color = android.graphics.Color.argb(alpha, android.graphics.Color.red(color), android.graphics.Color.green(color), android.graphics.Color.blue(color))
+            this.style = Paint.Style.FILL
+        }
+        val doorWidth = 5f * scale
+        val doorHeight = 7f * scale
+        canvas.drawRect(iconX - doorWidth / 2f, hBottom - doorHeight, iconX + doorWidth / 2f, hBottom, doorPaint)
+    }
 
     // Draw Text with enough spacing to avoid overlap
     paint.textSize = 22f * scale
@@ -549,8 +607,8 @@ actual fun MapContent(
             }
 
             val zoom = cameraPositionState.position.zoom
-            val showClusters = zoom < 10f
-            val showDots = zoom >= 10f && zoom <= 13f
+            val showClusters = zoom < 6f
+            val showDots = zoom <= 20f
             
             if (showClusters) {
                 val clusters = rooms.filter { it.latitude != 0.0 && it.longitude != 0.0 }

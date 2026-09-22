@@ -662,33 +662,6 @@
                 display: block;
             }
 
-            .roomify-status-legend {
-                background: white;
-                border-radius: 18px;
-                padding: 20px;
-                margin-top: 30px;
-                width: 160px;
-                box-shadow: 0 10px 25px rgba(0,0,0,0.08);
-            }
-
-            .legend-label {
-                font-size: 10px;
-                font-weight: 700;
-                color: #BDBDBD;
-                text-transform: uppercase;
-                letter-spacing: 0.8px;
-                margin-bottom: 12px;
-            }
-
-            .legend-item {
-                display: flex;
-                align-items: center;
-                font-size: 13px;
-                font-weight: 600;
-                margin-bottom: 8px;
-                color: #333;
-            }
-
             .dot { width: 9px; height: 9px; border-radius: 50%; margin-right: 10px; }
             .dot.green { background: #4CAF50; }
             .dot.yellow { background: #FFC107; }
@@ -1539,34 +1512,6 @@
                     </div>
                 </div>
 
-                <div class="roomify-advanced-filters-header" id="toggle-advanced-filters">
-                    <span class="roomify-advanced-filters-icon">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="2" y1="14" x2="6" y2="14"></line><line x1="10" y1="8" x2="14" y2="8"></line><line x1="18" y1="16" x2="22" y2="16"></line></svg>
-                    </span>
-                    <span class="roomify-advanced-filters-label">Advanced Filters</span>
-                    <span class="roomify-advanced-filters-chevron">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                    </span>
-                </div>
-
-                <div class="roomify-advanced-filters-content" id="advanced-filters-content">
-                     <!-- Dynamic content for filters -->
-                     <div class="roomify-sidebar-label">Beds Count</div>
-                     <div class="roomify-chip-group" id="beds-chips">
-                         <div class="roomify-chip active" data-beds="ALL">Any</div>
-                         <div class="roomify-chip" data-beds="1">1+</div>
-                         <div class="roomify-chip" data-beds="2">2+</div>
-                         <div class="roomify-chip" data-beds="3">3+</div>
-                     </div>
-                </div>
-
-                <div class="roomify-status-legend">
-                    <div class="legend-label">PROPERTY STATUS</div>
-                    <div class="legend-item"><span class="dot green"></span> Available</div>
-                    <div class="legend-item"><span class="dot yellow"></span> Pending</div>
-                    <div class="legend-item"><span class="dot red"></span> Rented</div>
-                </div>
-
                 <div id="dynamic-menu-items"></div>
             </div>
 
@@ -1577,29 +1522,22 @@
 
         document.body.appendChild(sidebar);
 
-        // Core Sidebar Listeners
-        const filterHeader = document.getElementById("toggle-advanced-filters");
-        const filterContent = document.getElementById("advanced-filters-content");
-        const chevron = filterHeader.querySelector(".roomify-advanced-filters-chevron");
-
-        filterHeader.onclick = function() {
-            const isOpen = filterContent.classList.toggle("open");
-            chevron.style.transform = isOpen ? "rotate(180deg)" : "rotate(0deg)";
-        };
-
         // Quick Search Listener
         const quickSearchInput = document.getElementById("sidebar-search-input");
-        quickSearchInput.addEventListener("input", function() {
-            const query = quickSearchInput.value.trim();
-            filterRooms(query);
-            // Sync with main search if exists
-            const mainSearch = document.getElementById("roomify-search-input");
-            if (mainSearch) mainSearch.value = query;
-        });
+        if (quickSearchInput) {
+            quickSearchInput.addEventListener("input", function() {
+                const query = quickSearchInput.value.trim();
+                filterRooms(query);
+                // Sync with main search if exists
+                const mainSearch = document.getElementById("roomify-search-input");
+                if (mainSearch) mainSearch.value = query;
+            });
+        }
 
         // Chip selection logic
         const setupChips = (containerId, dataAttr, callback) => {
             const container = document.getElementById(containerId);
+            if (!container) return;
             container.onclick = (e) => {
                 const chip = e.target.closest(".roomify-chip");
                 if (!chip) return;
@@ -1622,36 +1560,54 @@
         });
 
         // Budget input listener
-        document.getElementById("sidebar-budget-input").addEventListener("input", applySidebarFilters);
+        const budgetInput = document.getElementById("sidebar-budget-input");
+        if (budgetInput) {
+            budgetInput.addEventListener("input", applySidebarFilters);
+        }
 
         function applySidebarFilters() {
-            const maxBudget = document.getElementById("sidebar-budget-input").value;
-            const status = document.getElementById("status-chips").querySelector(".active").getAttribute("data-status");
-            const type = document.getElementById("type-chips").querySelector(".active").getAttribute("data-type");
-            const beds = document.getElementById("beds-chips").querySelector(".active").getAttribute("data-beds");
+            const maxBudgetEl = document.getElementById("sidebar-budget-input");
+            const maxBudget = maxBudgetEl ? maxBudgetEl.value : "";
+
+            const statusChipsEl = document.getElementById("status-chips");
+            const statusActiveEl = statusChipsEl ? statusChipsEl.querySelector(".active") : null;
+            const status = statusActiveEl ? statusActiveEl.getAttribute("data-status") : "ALL";
+
+            const typeChipsEl = document.getElementById("type-chips");
+            const typeActiveEl = typeChipsEl ? typeChipsEl.querySelector(".active") : null;
+            const type = typeActiveEl ? typeActiveEl.getAttribute("data-type") : "ALL";
+
+            const bedsChipsEl = document.getElementById("beds-chips");
+            const bedsActiveEl = bedsChipsEl ? bedsChipsEl.querySelector(".active") : null;
+            const beds = bedsActiveEl ? bedsActiveEl.getAttribute("data-beds") : "ALL";
 
             // Dispatch event for Kotlin
             var event = new CustomEvent("roomifySidebarFilter", {
                 detail: JSON.stringify({
-                    maxPrice: maxBudget ? parseFloat(maxBudget) : null,
-                    status: status === "ALL" ? null : status,
-                    propertyType: type === "ALL" ? null : type,
-                    bedsCount: beds === "ALL" ? null : parseInt(beds)
+                    maxPrice: (maxBudget && !isNaN(parseFloat(maxBudget))) ? parseFloat(maxBudget) : null,
+                    status: (status && status !== "ALL") ? status : null,
+                    propertyType: (type && type !== "ALL") ? type : null,
+                    bedsCount: (beds && beds !== "ALL" && !isNaN(parseInt(beds))) ? parseInt(beds) : null
                 })
             });
             document.dispatchEvent(event);
         }
 
         // Location button listener
-        document.getElementById("use-my-location").onclick = function() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function(position) {
-                    const lat = position.coords.latitude;
-                    const lng = position.coords.longitude;
-                    window.roomifyMoveToRoom(lat, lng);
-                });
-            }
-        };
+        const locationBtn = document.getElementById("use-my-location");
+        if (locationBtn) {
+            locationBtn.onclick = function() {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(function(position) {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        if (typeof window.roomifyMoveToRoom === "function") {
+                            window.roomifyMoveToRoom(lat, lng);
+                        }
+                    });
+                }
+            };
+        }
 
         // Initial setup of sidebar content
         window.roomifyUpdateUser(null, null, null, null);
@@ -1769,14 +1725,16 @@
         // Re-attach listeners for ALL data-roomify-menu items (new and old)
         var allMenuItems = sidebar.querySelectorAll("[data-roomify-menu]");
         allMenuItems.forEach(function (item) {
-            // Remove old listener if any
-            var newItem = item.cloneNode(true);
-            item.parentNode.replaceChild(newItem, item);
+            if (item && item.parentNode) {
+                // Remove old listener if any
+                var newItem = item.cloneNode(true);
+                item.parentNode.replaceChild(newItem, item);
 
-            newItem.addEventListener("click", function () {
-                var destination = newItem.getAttribute("data-roomify-menu");
-                handleSidebarNavigation(destination);
-            });
+                newItem.addEventListener("click", function () {
+                    var destination = newItem.getAttribute("data-roomify-menu");
+                    handleSidebarNavigation(destination);
+                });
+            }
         });
     };
 
@@ -2261,160 +2219,164 @@
                 "Roomify: createMap() called"
             );
 
-            var container =
-                document.getElementById(
-                    "google-map-container"
-                );
-
-            if (!container) {
-
-                console.error(
-                    "Roomify: map container not found"
-                );
-
-                return;
-            }
-
-            if (
-                !window.google ||
-                !window.google.maps
-            ) {
-
-                console.error(
-                    "Roomify: Google Maps API not loaded"
-                );
-
-                return;
-            }
-
-            if (
-                window.roomifyMap
-            ) {
-
-                console.log(
-                    "Roomify: map already exists"
-                );
-
-                installMapControls();
-
-                return;
-            }
-
-
-            container.style.display =
-                "block";
-
-            container.style.visibility =
-                "visible";
-
-            container.style.opacity =
-                "1";
-
-            container.style.zIndex =
-                "1";
-
-
-            window.roomifyMap =
-                new google.maps.Map(
-                    container,
-                    {
-
-                        center: {
-                            lat: -6.7924,
-                            lng: 39.2083
-                        },
-
-                        zoom: 11,
-
-                        mapTypeId:
-                            "roadmap",
-
-                        draggable:
-                            true,
-
-                        gestureHandling:
-                            "greedy",
-
-                        scrollwheel:
-                            true,
-
-                        disableDoubleClickZoom:
-                            false,
-
-                        zoomControl:
-                            true,
-
-                        fullscreenControl:
-                            true,
-
-                        streetViewControl:
-                            false,
-
-                        mapTypeControl:
-                            false,
-
-                        rotateControl:
-                            false,
-
-                        clickableIcons:
-                            false,
-
-                        tilt:
-                            0,
-
-                        styles:
-                            MAP_STYLE_DETAILED
-                    }
-                );
-
-            window.roomifyMap.addListener("zoom_changed", function() {
-                console.log("Roomify: zoom changed to " + window.roomifyMap.getZoom());
-                refreshMarkerIcons();
-            });
-
-            /*
-             * Click on map background:
-             *
-             * 1. Unpin the popup
-             * 2. Hide the info window
-             * 3. Clear selected room
-             */
-            window.roomifyMap.addListener(
-                "click",
-                function () {
-
-                    console.log(
-                        "Roomify: map clicked, closing popup"
+            try {
+                var container =
+                    document.getElementById(
+                        "google-map-container"
                     );
 
-                    window.roomifyPopupPinned = false;
+                if (!container) {
 
-                    if (
-                        window.roomifyInfoOverlay
-                    ) {
+                    console.error(
+                        "Roomify: map container not found"
+                    );
 
-                        window.roomifyInfoOverlay.hide();
-                    }
-
-                    window.roomifySelectedRoomId = null;
-
-                    refreshMarkerIcons();
+                    return;
                 }
-            );
 
-            createRoomInfoOverlay();
+                if (
+                    !window.google ||
+                    !window.google.maps
+                ) {
 
-            /*
-             * IMPORTANT:
-             *
-             * Install Search + Menu as Google Maps controls.
-             */
-            installMapControls();
+                    console.error(
+                        "Roomify: Google Maps API not loaded"
+                    );
+
+                    return;
+                }
+
+                if (
+                    window.roomifyMap
+                ) {
+
+                    console.log(
+                        "Roomify: map already exists"
+                    );
+
+                    installMapControls();
+
+                    return;
+                }
 
 
-            console.log(
-                "Roomify: Google Map created successfully"
-            );
+                container.style.display =
+                    "block";
+
+                container.style.visibility =
+                    "visible";
+
+                container.style.opacity =
+                    "1";
+
+                container.style.zIndex =
+                    "9999";
+
+
+                window.roomifyMap =
+                    new google.maps.Map(
+                        container,
+                        {
+
+                            center: {
+                                lat: -6.7924,
+                                lng: 39.2083
+                            },
+
+                            zoom: 11,
+
+                            mapTypeId:
+                                "roadmap",
+
+                            draggable:
+                                true,
+
+                            gestureHandling:
+                                "greedy",
+
+                            scrollwheel:
+                                true,
+
+                            disableDoubleClickZoom:
+                                false,
+
+                            zoomControl:
+                                true,
+
+                            fullscreenControl:
+                                true,
+
+                            streetViewControl:
+                                false,
+
+                            mapTypeControl:
+                                false,
+
+                            rotateControl:
+                                false,
+
+                            clickableIcons:
+                                false,
+
+                            tilt:
+                                0,
+
+                            styles:
+                                MAP_STYLE_DETAILED
+                        }
+                    );
+
+                window.roomifyMap.addListener("zoom_changed", function() {
+                    console.log("Roomify: zoom changed to " + window.roomifyMap.getZoom());
+                    refreshMarkerIcons();
+                });
+
+                /*
+                 * Click on map background:
+                 *
+                 * 1. Unpin the popup
+                 * 2. Hide the info window
+                 * 3. Clear selected room
+                 */
+                window.roomifyMap.addListener(
+                    "click",
+                    function () {
+
+                        console.log(
+                            "Roomify: map clicked, closing popup"
+                        );
+
+                        window.roomifyPopupPinned = false;
+
+                        if (
+                            window.roomifyInfoOverlay
+                        ) {
+
+                            window.roomifyInfoOverlay.hide();
+                        }
+
+                        window.roomifySelectedRoomId = null;
+
+                        refreshMarkerIcons();
+                    }
+                );
+
+                createRoomInfoOverlay();
+
+                /*
+                 * IMPORTANT:
+                 *
+                 * Install Search + Menu as Google Maps controls.
+                 */
+                installMapControls();
+
+
+                console.log(
+                    "Roomify: Google Map created successfully"
+                );
+            } catch (err) {
+                console.error("Roomify: Error creating Google Map:", err);
+            }
         };
 
 
@@ -2678,7 +2640,9 @@
         var width = 120 * scale;
         var height = 55 * scale;
 
-        var iconEmoji = isComplex ? "🏢" : "🏠";
+        var vectorIconSvg = isComplex
+            ? '<g transform="translate(19, 15)"><path d="M2 18V3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v15H2zm3-13h3v2.5H5V5zm0 4h3v2.5H5V9zm0 4h3v2.5H5V13zm5-8h3v2.5h-3V5zm0 4h3v2.5h-3V9zm0 4h3v2.5h-3V13z" fill="#FFFFFF"/></g>'
+            : '<g transform="translate(19, 15.5)"><path d="M9 1.5L1 8h2.5v8.5a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V8H17L9 1.5zM7 15.5v-4h4v4H7z" fill="#FFFFFF"/></g>';
 
         var svg =
             '<svg xmlns="http://www.w3.org/2000/svg" ' +
@@ -2694,7 +2658,7 @@
                 '<path d="M53 43 L60 52 L67 43" fill="' + color + '"/>' +
                 // Subtle background circle for the icon to make it pop
                 '<circle cx="28" cy="24" r="14" fill="rgba(255,255,255,0.18)"/>' +
-                '<text x="28" y="29" text-anchor="middle" font-family="Arial" font-size="16" fill="#ffffff">' + iconEmoji + '</text>' +
+                vectorIconSvg +
                 '<text x="72" y="30" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="900" fill="#ffffff">' +
                     escapeHtml(text) +
                 '</text>' +
@@ -3369,13 +3333,9 @@
         if (!Array.isArray(window.roomifyMarkers) || !window.roomifyMap) return;
 
         var zoom = window.roomifyMap.getZoom();
-        var showClusters = zoom < 8;
-        var showDots = zoom <= 15;
-        var showPills = zoom > 15;
-
-        // If zoom < 10, we use MarkerClusterer, so markers themselves might need to be hidden or changed.
-        // But MarkerClusterer handles visibility based on cluster state.
-        // We just need to make sure individual markers have the right icon when they are NOT clustered.
+        var showClusters = zoom < 7;
+        var showDots = zoom >= 7 && zoom < 11;
+        var showPills = zoom >= 11;
 
         window.roomifyMarkers.forEach(function (entry) {
             if (!entry) return;
@@ -3389,7 +3349,6 @@
             if (showDots) {
                 icon = createDotIcon(entry.room.status, selected, hovered, isViewed, isSaved);
             } else {
-                // For showPills OR when marker is visible in zoom < 10 (though usually it clusters)
                 icon = createPriceIcon(
                     entry.room.price,
                     entry.room.status,
@@ -3403,8 +3362,9 @@
             entry.marker.setIcon(icon);
 
             // MarkerClusterer handling
+            var clustererLib = window.markerClusterer || window.MarkerClusterer;
             if (showClusters) {
-                if (!window.roomifyMarkerClusterer && window.MarkerClusterer) {
+                if (!window.roomifyMarkerClusterer && clustererLib) {
                     initMarkerClusterer();
                 }
             } else {
@@ -3412,18 +3372,22 @@
                     window.roomifyMarkerClusterer.clearMarkers();
                     window.roomifyMarkerClusterer = null;
                     // Restore markers to map if they were removed by clusterer
-                    window.roomifyMarkers.forEach(m => m.marker.setMap(window.roomifyMap));
+                    window.roomifyMarkers.forEach(m => m && m.marker && m.marker.setMap(window.roomifyMap));
                 }
             }
         });
     }
 
     function initMarkerClusterer() {
-        if (!window.roomifyMap || !window.roomifyMarkers.length) return;
+        if (!window.roomifyMap || !window.roomifyMarkers || !window.roomifyMarkers.length) return;
+
+        var clustererLib = window.markerClusterer || window.MarkerClusterer;
+        if (!clustererLib) return;
 
         var markers = window.roomifyMarkers.map(function(m) { return m.marker; });
 
-        window.roomifyMarkerClusterer = new markerClusterer.MarkerClusterer({
+        var ClustererClass = clustererLib.MarkerClusterer || clustererLib;
+        window.roomifyMarkerClusterer = new ClustererClass({
             map: window.roomifyMap,
             markers: markers,
             renderer: {
@@ -3715,96 +3679,99 @@
                 "Roomify: updateMarkers() called"
             );
 
-
-            if (
-                !window.roomifyMap
-            ) {
-
-                console.warn(
-                    "Roomify: map is not ready"
-                );
-
-                return;
-            }
-
-
-            var rooms;
-
-
             try {
+                if (
+                    !window.roomifyMap
+                ) {
 
-                rooms =
-                    JSON.parse(
-                        roomsJson
+                    console.warn(
+                        "Roomify: map is not ready"
                     );
 
-            } catch (error) {
-
-                console.error(
-                    "Roomify: invalid rooms JSON",
-                    error
-                );
-
-                return;
-            }
+                    return;
+                }
 
 
-            if (
-                !Array.isArray(
-                    rooms
-                )
-            ) {
-
-                console.error(
-                    "Roomify: rooms data is not an array"
-                );
-
-                return;
-            }
+                var rooms;
 
 
-            /*
-             * IMPORTANT:
-             *
-             * Store the complete room list.
-             *
-             * Search operates on this list.
-             */
+                try {
 
-            window.roomifyAllRooms =
-                rooms;
+                    rooms =
+                        JSON.parse(
+                            roomsJson
+                        );
+
+                } catch (error) {
+
+                    console.error(
+                        "Roomify: invalid rooms JSON",
+                        error
+                    );
+
+                    return;
+                }
 
 
-            /*
-             * If a search is active,
-             * immediately apply it.
-             */
+                if (
+                    !Array.isArray(
+                        rooms
+                    )
+                ) {
 
-            if (
-                window.roomifySearchQuery
-            ) {
+                    console.error(
+                        "Roomify: rooms data is not an array"
+                    );
 
-                filterRooms(
+                    return;
+                }
+
+
+                /*
+                 * IMPORTANT:
+                 *
+                 * Store the complete room list.
+                 *
+                 * Search operates on this list.
+                 */
+
+                window.roomifyAllRooms =
+                    rooms;
+
+
+                /*
+                 * If a search is active,
+                 * immediately apply it.
+                 */
+
+                if (
                     window.roomifySearchQuery
+                ) {
+
+                    filterRooms(
+                        window.roomifySearchQuery
+                    );
+
+                    return;
+                }
+
+
+                updateVisibleMarkers(
+                    rooms
                 );
 
-                return;
+                // Re-apply status filter visibility
+                applyMarkerVisibility();
+
+
+                console.log(
+                    "Roomify: created " +
+                    (window.roomifyMarkers ? window.roomifyMarkers.length : 0) +
+                    " markers"
+                );
+            } catch (err) {
+                console.error("Roomify: Error in updateMarkers:", err);
             }
-
-
-            updateVisibleMarkers(
-                rooms
-            );
-
-            // Re-apply status filter visibility
-            applyMarkerVisibility();
-
-
-            console.log(
-                "Roomify: created " +
-                window.roomifyMarkers.length +
-                " markers"
-            );
         };
 
 

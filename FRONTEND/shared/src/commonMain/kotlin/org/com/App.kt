@@ -1243,21 +1243,6 @@ private fun AppMapContainer(
                 onViewProperty = onViewProperty,
                 onNavigate = onNavigate
             )
-
-            // Status Legend (Bottom Left)
-            Surface(
-                modifier = Modifier.align(Alignment.BottomStart).padding(16.dp).padding(bottom = 24.dp),
-                color = Color.White.copy(alpha = 0.95f),
-                shape = RoundedCornerShape(16.dp),
-                shadowElevation = 4.dp
-            ) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("PROPERTY STATUS", fontWeight = FontWeight.Black, fontSize = 10.sp, color = Color.Gray)
-                    MapLegendItem("Available", Color(0xFF2E7D32))
-                    MapLegendItem("Pending", Color(0xFFF9A825))
-                    MapLegendItem("Rented", Color(0xFFC62828))
-                }
-            }
         }
     }
 }
@@ -1273,13 +1258,4 @@ private fun FantasticBubbleContainer(
         onSearchFurniture = onSearch,
         onPostFurniture = onPost
     )
-}
-
-@Composable
-private fun MapLegendItem(label: String, color: Color) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(8.dp).background(color, CircleShape))
-        Spacer(Modifier.width(8.dp))
-        Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.DarkGray)
-    }
 }

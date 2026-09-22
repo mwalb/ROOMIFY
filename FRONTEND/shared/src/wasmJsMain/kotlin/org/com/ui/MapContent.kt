@@ -847,22 +847,4 @@ actual fun MapContent(
             triggerMapResize()
         }
     }
-
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        if (!mapIsReady) {
-            Box(
-                modifier = Modifier.fillMaxSize().background(Color.White),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(color = Color(0xFF1A237E))
-                    Spacer(Modifier.size(16.dp))
-                    Text("Loading interactive map...", color = Color(0xFF1A237E), fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-    }
 }
