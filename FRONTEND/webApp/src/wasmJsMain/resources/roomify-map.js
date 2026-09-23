@@ -1465,64 +1465,61 @@
                 <div class="roomify-sidebar-tagline">Your living space partner</div>
             </div>
 
-            <div class="roomify-sidebar-body">
-                <div class="roomify-sidebar-section">
-                    <div class="roomify-sidebar-label">LOCATION</div>
-                    <div class="roomify-search-box">
-                         <span class="roomify-search-box-icon">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                         </span>
-                         <input type="text" id="sidebar-search-input" placeholder="Enter location e.g. Mbezi, Mikocheni...">
-                    </div>
-                </div>
-
-                <div class="roomify-sidebar-section">
-                    <div class="roomify-sidebar-label">WHAT ARE YOU LOOKING FOR?</div>
-                    <div class="roomify-chip-group" id="type-chips">
-                        <div class="roomify-chip active" data-type="ALL">All</div>
-                        <div class="roomify-chip" data-type="Room">Room</div>
-                        <div class="roomify-chip" data-type="Apartment">Apartment</div>
-                        <div class="roomify-chip" data-type="Studio">Studio</div>
-                        <div class="roomify-chip" data-type="House">House</div>
-                        <div class="roomify-chip" data-type="Office">Office</div>
-                    </div>
-                </div>
-
-                <div class="roomify-sidebar-section">
-                    <div class="roomify-sidebar-label">MAX BUDGET</div>
-                    <div class="roomify-budget-box">
-                        <span class="roomify-budget-icon">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3"/><path d="M16 12h5v4h-5z"/></svg>
-                        </span>
-                        <input type="text" id="sidebar-budget-input" placeholder="Max budget e.g. 300000, 500k">
-                    </div>
-                    <div id="sidebar-filter-btn" style="display: flex; align-items: center; justify-content: center; gap: 8px; background: #1A237E; color: white; border-radius: 12px; padding: 12px; font-weight: 700; cursor: pointer; margin-top: 12px;">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
-                        <span>Filter Results</span>
-                    </div>
-                </div>
-
-                <div class="roomify-sidebar-section">
-                    <div class="roomify-location-btn" id="use-my-location">
-                        <span class="roomify-location-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
-                        </span>
+            <div class="roomify-sidebar-body" style="padding: 20px;">
+                <!-- 1. Nearby Me Button at the Top with Visible Border -->
+                <div class="roomify-sidebar-section" style="margin-bottom: 20px;">
+                    <div class="roomify-location-btn" id="use-my-location" style="border: 1.5px solid #1A237E; border-radius: 12px; background: #ffffff; padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; color: #1A237E; font-weight: 700;">
                         <span>Nearby me</span>
                     </div>
                 </div>
 
-                <div class="roomify-sidebar-section">
-                    <div class="roomify-sidebar-label">STATUS</div>
-                    <div class="roomify-chip-group" id="status-chips">
-                        <div class="roomify-chip" data-status="ALL">All</div>
-                        <div class="roomify-chip active" data-status="AVAILABLE"><span class="dot green"></span> Available</div>
-                        <div class="roomify-chip" data-status="PENDING"><span class="dot yellow"></span> Pending</div>
-                        <div class="roomify-chip" data-status="RENTED"><span class="dot red"></span> Rented</div>
+                <!-- 2. Preferences Card with Visible Outer Border -->
+                <div class="roomify-sidebar-section" style="margin-bottom: 20px;">
+                    <div style="border: 1px solid #CBD5E1; border-radius: 20px; padding: 20px; background: #ffffff;">
+                        <div style="font-size: 16px; font-weight: bold; color: #111827; margin-bottom: 16px;">Preferences</div>
+
+                        <!-- Location Field (Placeholder "Location", no separate heading above) -->
+                        <div style="margin-bottom: 16px;">
+                            <input type="text" id="sidebar-search-input" placeholder="Location" style="width: 100%; height: 48px; border: 1px solid #CBD5E1; border-radius: 14px; padding: 0 14px; outline: none; font-size: 14px; background: #ffffff;">
+                        </div>
+
+                        <!-- What are you looking for? -->
+                        <div style="font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 8px;">What are you looking for?</div>
+                        <div class="roomify-chip-group" id="type-chips" style="display: flex; gap: 8px; overflow-x: auto; margin-bottom: 16px; padding-bottom: 4px;">
+                            <div class="roomify-chip active" data-type="ALL" style="padding: 6px 12px; border-radius: 8px; background: #F1F5F9; cursor: pointer; font-size: 13px; white-space: nowrap;">All</div>
+                            <div class="roomify-chip" data-type="Room" style="padding: 6px 12px; border-radius: 8px; background: #F1F5F9; cursor: pointer; font-size: 13px; white-space: nowrap;">Room</div>
+                            <div class="roomify-chip" data-type="Apartment" style="padding: 6px 12px; border-radius: 8px; background: #F1F5F9; cursor: pointer; font-size: 13px; white-space: nowrap;">Apartment</div>
+                            <div class="roomify-chip" data-type="Studio" style="padding: 6px 12px; border-radius: 8px; background: #F1F5F9; cursor: pointer; font-size: 13px; white-space: nowrap;">Studio</div>
+                            <div class="roomify-chip" data-type="House" style="padding: 6px 12px; border-radius: 8px; background: #F1F5F9; cursor: pointer; font-size: 13px; white-space: nowrap;">House</div>
+                            <div class="roomify-chip" data-type="Office" style="padding: 6px 12px; border-radius: 8px; background: #F1F5F9; cursor: pointer; font-size: 13px; white-space: nowrap;">Office</div>
+                        </div>
+
+                        <!-- Max Budget Field (Placeholder "Max budget", no separate heading above) -->
+                        <div style="margin-bottom: 20px;">
+                            <input type="text" id="sidebar-budget-input" placeholder="Max budget" style="width: 100%; height: 48px; border: 1px solid #CBD5E1; border-radius: 14px; padding: 0 14px; outline: none; font-size: 14px; background: #ffffff;">
+                        </div>
+
+                        <!-- APPLY FILTERS Button -->
+                        <div id="sidebar-filter-btn" style="display: flex; align-items: center; justify-content: center; background: #1A237E; color: white; border-radius: 14px; height: 48px; font-weight: 700; cursor: pointer; font-size: 14px; letter-spacing: 0.5px;">
+                            APPLY FILTERS
+                        </div>
                     </div>
                 </div>
 
-                <div class="roomify-sidebar-section">
-                    <div class="roomify-sidebar-label">EXPLORE FURNITURE</div>
+                <!-- 3. Status Section (No icons/dots) -->
+                <div class="roomify-sidebar-section" style="margin-bottom: 20px;">
+                    <div class="roomify-sidebar-label" style="font-size: 11px; font-weight: bold; color: #374151; letter-spacing: 1px; margin-bottom: 8px;">STATUS</div>
+                    <div class="roomify-chip-group" id="status-chips" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <div class="roomify-chip" data-status="ALL" style="padding: 6px 12px; border-radius: 8px; background: #F1F5F9; cursor: pointer; font-size: 13px;">All</div>
+                        <div class="roomify-chip active" data-status="AVAILABLE" style="padding: 6px 12px; border-radius: 8px; background: #F1F5F9; cursor: pointer; font-size: 13px;">Available</div>
+                        <div class="roomify-chip" data-status="PENDING" style="padding: 6px 12px; border-radius: 8px; background: #F1F5F9; cursor: pointer; font-size: 13px;">Pending</div>
+                        <div class="roomify-chip" data-status="RENTED" style="padding: 6px 12px; border-radius: 8px; background: #F1F5F9; cursor: pointer; font-size: 13px;">Rented</div>
+                    </div>
+                </div>
+
+                <!-- 4. Explore Furniture -->
+                <div class="roomify-sidebar-section" style="margin-bottom: 20px;">
+                    <div class="roomify-sidebar-label" style="font-size: 11px; font-weight: bold; color: #374151; letter-spacing: 1px; margin-bottom: 8px;">EXPLORE FURNITURE</div>
                     <div class="roomify-furniture-card" data-roomify-menu="furniture_dashboard" style="display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: #E8EAF6; border-radius: 16px; border: 1px solid #C7D2FE; cursor: pointer;">
                         <span style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 12px; background: #1A237E; color: white;">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 9V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v3"/><path d="M3 16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v5z"/><line x1="6" y1="18" x2="6" y2="21"/><line x1="18" y1="18" x2="18" y2="21"/></svg>
@@ -1544,23 +1541,14 @@
 
         document.body.appendChild(sidebar);
 
-        // Quick Search Listener
+        // DO NOT filter while typing (No input event listeners on sidebar search or budget inputs)
         const quickSearchInput = document.getElementById("sidebar-search-input");
-        if (quickSearchInput) {
-            quickSearchInput.addEventListener("input", function() {
-                const query = quickSearchInput.value.trim();
-                filterRooms(query);
-                // Sync with main search if exists
-                const mainSearch = document.getElementById("roomify-search-input");
-                if (mainSearch) mainSearch.value = query;
-            });
-        }
+        const budgetInput = document.getElementById("sidebar-budget-input");
 
         const sidebarFilterBtn = document.getElementById("sidebar-filter-btn");
         if (sidebarFilterBtn) {
             sidebarFilterBtn.onclick = function() {
-                const query = quickSearchInput ? quickSearchInput.value.trim() : "";
-                filterRooms(query);
+                applySidebarFilters();
                 closeSidebar();
             };
         }
@@ -1578,23 +1566,8 @@
             };
         };
 
-        setupChips("type-chips", "data-type", (type) => {
-            applySidebarFilters();
-        });
-
-        setupChips("status-chips", "data-status", (status) => {
-            applySidebarFilters();
-        });
-
-        setupChips("beds-chips", "data-beds", (beds) => {
-            applySidebarFilters();
-        });
-
-        // Budget input listener
-        const budgetInput = document.getElementById("sidebar-budget-input");
-        if (budgetInput) {
-            budgetInput.addEventListener("input", applySidebarFilters);
-        }
+        setupChips("type-chips", "data-type", (type) => {});
+        setupChips("status-chips", "data-status", (status) => {});
 
         function applySidebarFilters() {
             const locEl = document.getElementById("sidebar-search-input");
@@ -3326,9 +3299,9 @@
         if (!Array.isArray(window.roomifyMarkers) || !window.roomifyMap) return;
 
         var zoom = window.roomifyMap.getZoom();
-        var showClusters = zoom < 7;
-        var showDots = zoom < 7;
-        var showPills = zoom >= 7;
+        var showClusters = zoom < 10;
+        var showDots = zoom < 10;
+        var showPills = zoom >= 10;
 
         window.roomifyMarkers.forEach(function (entry) {
             if (!entry) return;
