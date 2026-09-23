@@ -2,7 +2,10 @@ package com.ROOMIFY.Roomify.controller;
 
 import com.ROOMIFY.Roomify.dto.ApiResponse;
 import com.ROOMIFY.Roomify.model.Room;
+import com.ROOMIFY.Roomify.model.User;
+import com.ROOMIFY.Roomify.model.UserRole;
 import com.ROOMIFY.Roomify.repository.RoomRepository;
+import com.ROOMIFY.Roomify.repository.UserRepository;
 import com.ROOMIFY.Roomify.service.FCMService;
 import com.ROOMIFY.Roomify.service.AuditService;
 import com.ROOMIFY.Roomify.service.RoomNotifier;
@@ -10,6 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -42,8 +47,30 @@ public class RoomController {
     @Autowired
     private AuditService auditService;
 
+    @Autowired
+    private UserRepository userRepository;
+
     @Value("${file.upload.dir:uploads}")
     private String uploadDir;
+
+    private User getAuthenticatedUser() {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
+                String email = auth.getName();
+                if (email != null && !email.isBlank()) {
+                    return userRepository.findByEmail(email).orElse(null);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error getting authenticated user: " + e.getMessage());
+        }
+        return null;
+    }
+
+    private boolean isAdminRole(User user) {
+        return user != null && (UserRole.ADMIN.equals(user.getRole()) || UserRole.SUPER_ADMIN.equals(user.getRole()));
+    }
 
     // ==================== EXISTING ENDPOINTS ====================
 
@@ -201,7 +228,7 @@ public class RoomController {
 
     // ==================== FIXED METHODS ====================
 
-    // Get room by ID - FIXED with proper lazy loading handling
+    // Get room by ID - STRICT ROLE-BASED ACCESS CONTROL
     @GetMapping("/{id}")
     @Transactional(readOnly = true)
     public ResponseEntity<?> getRoomById(@PathVariable Long id) {
@@ -210,6 +237,23 @@ public class RoomController {
             if (room == null) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(new ApiResponse<>(false, null, "Room not found"));
+            }
+
+            User user = getAuthenticatedUser();
+            if (user != null && !isAdminRole(user)) {
+                if (UserRole.OWNER.equals(user.getRole())) {
+                    if (room.getPostedBy() != null && !room.getPostedBy().equals(user.getId())) {
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                .body(new ApiResponse<>(false, null, "Access denied: Owners can only view details of their own properties."));
+                    }
+                } else if (UserRole.DALALI.equals(user.getRole())) {
+                    boolean isMyDalali = room.getDalaliId() != null && room.getDalaliId().equals(user.getId());
+                    boolean isMyPosted = room.getPostedBy() != null && room.getPostedBy().equals(user.getId());
+                    if (!isMyDalali && !isMyPosted) {
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                .body(new ApiResponse<>(false, null, "Access denied: Dalalis can only view details of properties managed by them."));
+                    }
+                }
             }
 
             // Increment view count
@@ -228,11 +272,21 @@ public class RoomController {
         }
     }
 
-    // Get all rooms - FIXED
+    // Get all rooms - STRICT ROLE-BASED VISIBILITY
     @GetMapping
     @Transactional(readOnly = true)
     public ResponseEntity<?> getAllRooms() {
         try {
+            User user = getAuthenticatedUser();
+            if (user != null && !isAdminRole(user)) {
+                if (UserRole.OWNER.equals(user.getRole())) {
+                    List<Room> rooms = repo.findByPostedBy(user.getId());
+                    return ResponseEntity.ok(rooms);
+                } else if (UserRole.DALALI.equals(user.getRole())) {
+                    List<Room> rooms = repo.findByDalaliId(user.getId());
+                    return ResponseEntity.ok(rooms);
+                }
+            }
             List<Room> rooms = repo.findAll();
             return ResponseEntity.ok(rooms);
 
@@ -243,12 +297,17 @@ public class RoomController {
         }
     }
 
-    // Get all rooms posted by a specific user (owner) - FIXED
+    // Get all rooms posted by a specific user (owner) - STRICT AUTHORIZATION
     @GetMapping("/owner/{postedBy}")
     @Transactional(readOnly = true)
     public ResponseEntity<?> getRoomsByOwner(@PathVariable Long postedBy) {
         try {
-            List<Room> rooms = repo.findByPostedBy(postedBy);
+            User user = getAuthenticatedUser();
+            Long effectiveOwnerId = postedBy;
+            if (user != null && UserRole.OWNER.equals(user.getRole()) && !user.getId().equals(postedBy) && !isAdminRole(user)) {
+                effectiveOwnerId = user.getId();
+            }
+            List<Room> rooms = repo.findByPostedBy(effectiveOwnerId);
             return ResponseEntity.ok(rooms);
         } catch (Exception e) {
             e.printStackTrace();
@@ -358,12 +417,17 @@ public class RoomController {
 
     // ==================== DALALI (AGENT) ENDPOINTS ====================
 
-    // Get properties managed by a specific dalali agent
+    // Get properties managed by a specific dalali agent - STRICT AUTHORIZATION
     @GetMapping("/dalali/{dalaliId}")
     @Transactional(readOnly = true)
     public ResponseEntity<ApiResponse<List<Room>>> getRoomsByDalali(@PathVariable Long dalaliId) {
         try {
-            List<Room> rooms = repo.findByDalaliId(dalaliId);
+            User user = getAuthenticatedUser();
+            Long effectiveDalaliId = dalaliId;
+            if (user != null && UserRole.DALALI.equals(user.getRole()) && !user.getId().equals(dalaliId) && !isAdminRole(user)) {
+                effectiveDalaliId = user.getId();
+            }
+            List<Room> rooms = repo.findByDalaliId(effectiveDalaliId);
             return ResponseEntity.ok(new ApiResponse<>(true, rooms, "Properties retrieved successfully"));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

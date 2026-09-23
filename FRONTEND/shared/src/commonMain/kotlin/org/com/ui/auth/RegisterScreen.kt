@@ -1,22 +1,11 @@
 package org.com.ui.auth
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,7 +30,6 @@ import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.ContactPhone
 import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Handshake
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
@@ -63,9 +51,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -78,8 +66,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -95,28 +81,26 @@ import org.com.ui.AppColors
 
 
 /* ============================================================
-   ROOMIFY COLORS - MATCHING LOGIN SCREEN
+   ROOMIFY COLORS - HIGH CONTRAST & CLEAR READABILITY
    ============================================================ */
 
 private object RegisterColors {
-    // Same as LoginColors
     val GradientStart = AppColors.SplashGradientStart   // #1A237E
     val GradientEnd = AppColors.SplashGradientEnd       // #3949AB
 
     val White = Color(0xFFFFFFFF)
-    val White70 = Color(0xB3FFFFFF)
-    val White55 = Color(0x8CFFFFFF)
-
     val Surface = Color.White
-    val TextDark = Color(0xFF1A1A2E)
-    val TextSecondary = Color(0xFF6B7280)
-    val Border = Color(0xFF9E9E9E) // Stronger border
+    
+    // High contrast text colors
+    val TextDark = Color(0xFF111827)       // Very crisp dark grey/black
+    val TextSecondary = Color(0xFF374151)  // Dark slate (high contrast, 7:1)
+    val PlaceholderText = Color(0xFF4B5563)// High readability grey placeholder
+    val Border = Color(0xFF6B7280)         // Visible border
 
-    val Error = Color(0xFFEF4444)
+    val Error = Color(0xFFDC2626)
     val ErrorBackground = Color(0xFFFEF2F2)
     val ChipBackground = Color(0xFFF3F4F6)
 
-    // Additional Register-specific
     val InfoBackground = Color(0xFFEEF2FF)
     val InfoText = Color(0xFF1A237E)
 }
@@ -144,15 +128,18 @@ fun RegisterScreen(
     var showPassword by remember { mutableStateOf(false) }
     var showConfirmPassword by remember { mutableStateOf(false) }
 
-    // Owner fields
+    // Common Identity Field
+    var nidaNumber by remember { mutableStateOf("") }
+
+    // Owner fields (Mtendaji / Mwenyekiti wa Mtaa)
     var businessName by remember { mutableStateOf("") }
-    var baloziName by remember { mutableStateOf("") }
-    var baloziPhone by remember { mutableStateOf("") }
-    var baloziArea by remember { mutableStateOf("") }
-    var baloziVillage by remember { mutableStateOf("") }
-    var baloziWard by remember { mutableStateOf("") }
-    var baloziDistrict by remember { mutableStateOf("") }
-    var baloziRegion by remember { mutableStateOf("") }
+    var localAuthorityName by remember { mutableStateOf("") }
+    var localAuthorityPhone by remember { mutableStateOf("") }
+    var localAuthorityArea by remember { mutableStateOf("") }
+    var localAuthorityVillage by remember { mutableStateOf("") }
+    var localAuthorityWard by remember { mutableStateOf("") }
+    var localAuthorityDistrict by remember { mutableStateOf("") }
+    var localAuthorityRegion by remember { mutableStateOf("") }
 
     // Dalali fields
     var licenseNumber by remember { mutableStateOf("") }
@@ -173,19 +160,19 @@ fun RegisterScreen(
     val roleFieldsValid = when (selectedRole) {
         "tenant" -> true
         "owner" -> businessName.isNotBlank() &&
-                baloziName.isNotBlank() &&
-                baloziPhone.isNotBlank() &&
-                baloziArea.isNotBlank() &&
-                baloziVillage.isNotBlank()
+                nidaNumber.isNotBlank() &&
+                localAuthorityName.isNotBlank() &&
+                localAuthorityPhone.isNotBlank() &&
+                localAuthorityArea.isNotBlank() &&
+                localAuthorityVillage.isNotBlank()
         "dalali" -> businessName.isNotBlank() &&
-                licenseNumber.isNotBlank() &&
+                nidaNumber.isNotBlank() &&
                 locationArea.isNotBlank()
         else -> false
     }
 
     val formValid = basicFieldsValid && roleFieldsValid
 
-    // Using the same animation as LoginScreen
     val contentWidth = 320.dp
 
     Box(
@@ -202,7 +189,7 @@ fun RegisterScreen(
         contentAlignment = Alignment.Center
     ) {
 
-        // Decorative circles (same as LoginScreen)
+        // Decorative circles
         Box(
             modifier = Modifier
                 .size(200.dp)
@@ -221,7 +208,7 @@ fun RegisterScreen(
                 .align(Alignment.BottomEnd)
         )
 
-        // Main Card - same style as LoginScreen
+        // Main Card
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -245,7 +232,7 @@ fun RegisterScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
 
-                // Logo - same as LoginScreen
+                // Logo
                 Box(
                     modifier = Modifier
                         .size(60.dp)
@@ -270,7 +257,7 @@ fun RegisterScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Title - same as LoginScreen
+                // Title
                 Text(
                     text = "Create Account",
                     fontSize = 24.sp,
@@ -283,12 +270,13 @@ fun RegisterScreen(
                 Text(
                     text = "Sign up to get started",
                     fontSize = 14.sp,
-                    color = RegisterColors.TextSecondary
+                    color = RegisterColors.TextSecondary,
+                    fontWeight = FontWeight.Medium
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // NAME - same style as LoginScreen email field
+                // NAME
                 RegisterTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -300,7 +288,7 @@ fun RegisterScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // EMAIL - same style as LoginScreen
+                // EMAIL
                 RegisterTextField(
                     value = email,
                     onValueChange = { email = it },
@@ -312,7 +300,7 @@ fun RegisterScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // PHONE - same style as LoginScreen
+                // PHONE
                 RegisterTextField(
                     value = phone,
                     onValueChange = { phone = it },
@@ -324,7 +312,7 @@ fun RegisterScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // PASSWORD - same style as LoginScreen
+                // PASSWORD
                 RegisterPasswordField(
                     value = password,
                     onValueChange = { password = it },
@@ -337,7 +325,7 @@ fun RegisterScreen(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // Password Strength (simplified to match LoginScreen style)
+                // Password Strength
                 AnimatedVisibility(
                     visible = password.isNotEmpty(),
                     enter = fadeIn(),
@@ -351,7 +339,7 @@ fun RegisterScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // CONFIRM PASSWORD - same style as LoginScreen
+                // CONFIRM PASSWORD
                 RegisterPasswordField(
                     value = confirmPassword,
                     onValueChange = { confirmPassword = it },
@@ -362,7 +350,7 @@ fun RegisterScreen(
                     contentWidth = contentWidth
                 )
 
-                // Password error - same style as LoginScreen
+                // Password error
                 AnimatedVisibility(
                     visible = confirmPassword.isNotBlank() && !passwordsMatch,
                     enter = fadeIn(),
@@ -384,19 +372,20 @@ fun RegisterScreen(
                         Text(
                             text = "Passwords do not match",
                             color = RegisterColors.Error,
-                            fontSize = 12.sp
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // ROLE LABEL - same as LoginScreen
+                // ROLE LABEL
                 Text(
                     text = "Sign up as",
                     fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = RegisterColors.TextSecondary,
+                    fontWeight = FontWeight.Bold,
+                    color = RegisterColors.TextDark,
                     modifier = Modifier
                         .width(contentWidth)
                         .padding(start = 4.dp)
@@ -404,7 +393,7 @@ fun RegisterScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // ROLE CHIPS - same style as LoginScreen
+                // ROLE CHIPS
                 Row(
                     modifier = Modifier.width(contentWidth),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -460,20 +449,24 @@ fun RegisterScreen(
                         onBusinessNameChange = { businessName = it },
                         phone = phone,
                         onPhoneChange = { phone = it },
-                        baloziName = baloziName,
-                        onBaloziNameChange = { baloziName = it },
-                        baloziPhone = baloziPhone,
-                        onBaloziPhoneChange = { baloziPhone = it },
-                        baloziArea = baloziArea,
-                        onBaloziAreaChange = { baloziArea = it },
-                        baloziVillage = baloziVillage,
-                        onBaloziVillageChange = { baloziVillage = it },
-                        baloziWard = baloziWard,
-                        onBaloziWardChange = { baloziWard = it },
-                        baloziDistrict = baloziDistrict,
-                        onBaloziDistrictChange = { baloziDistrict = it },
-                        baloziRegion = baloziRegion,
-                        onBaloziRegionChange = { baloziRegion = it },
+                        nidaNumber = nidaNumber,
+                        onNidaNumberChange = { nidaNumber = it },
+                        licenseNumber = licenseNumber,
+                        onLicenseNumberChange = { licenseNumber = it },
+                        localAuthorityName = localAuthorityName,
+                        onLocalAuthorityNameChange = { localAuthorityName = it },
+                        localAuthorityPhone = localAuthorityPhone,
+                        onLocalAuthorityPhoneChange = { localAuthorityPhone = it },
+                        localAuthorityArea = localAuthorityArea,
+                        onLocalAuthorityAreaChange = { localAuthorityArea = it },
+                        localAuthorityVillage = localAuthorityVillage,
+                        onLocalAuthorityVillageChange = { localAuthorityVillage = it },
+                        localAuthorityWard = localAuthorityWard,
+                        onLocalAuthorityWardChange = { localAuthorityWard = it },
+                        localAuthorityDistrict = localAuthorityDistrict,
+                        onLocalAuthorityDistrictChange = { localAuthorityDistrict = it },
+                        localAuthorityRegion = localAuthorityRegion,
+                        onLocalAuthorityRegionChange = { localAuthorityRegion = it },
                         loading = loading,
                         contentWidth = contentWidth
                     )
@@ -489,6 +482,8 @@ fun RegisterScreen(
                         onBusinessNameChange = { businessName = it },
                         phone = phone,
                         onPhoneChange = { phone = it },
+                        nidaNumber = nidaNumber,
+                        onNidaNumberChange = { nidaNumber = it },
                         locationArea = locationArea,
                         onLocationAreaChange = { locationArea = it },
                         licenseNumber = licenseNumber,
@@ -500,7 +495,7 @@ fun RegisterScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Error Message - same style as LoginScreen
+                // Error Message
                 if (errorMessage != null) {
                     ErrorMessageRegister(
                         message = errorMessage,
@@ -509,7 +504,7 @@ fun RegisterScreen(
                     Spacer(modifier = Modifier.height(12.dp))
                 }
 
-                // REGISTER BUTTON - same style as LoginScreen
+                // REGISTER BUTTON
                 Button(
                     onClick = {
                         val request = when (selectedRole) {
@@ -525,13 +520,15 @@ fun RegisterScreen(
                                 password = password,
                                 businessName = businessName.trim(),
                                 phone = phone.trim(),
-                                baloziName = baloziName.trim(),
-                                baloziPhone = baloziPhone.trim(),
-                                baloziArea = baloziArea.trim(),
-                                baloziVillage = baloziVillage.trim(),
-                                baloziWard = baloziWard.trim(),
-                                baloziDistrict = baloziDistrict.trim(),
-                                baloziRegion = baloziRegion.trim()
+                                nidaNumber = nidaNumber.trim(),
+                                localAuthorityName = localAuthorityName.trim(),
+                                localAuthorityPhone = localAuthorityPhone.trim(),
+                                localAuthorityArea = localAuthorityArea.trim(),
+                                localAuthorityVillage = localAuthorityVillage.trim(),
+                                localAuthorityWard = localAuthorityWard.trim(),
+                                localAuthorityDistrict = localAuthorityDistrict.trim(),
+                                localAuthorityRegion = localAuthorityRegion.trim(),
+                                licenseNumber = licenseNumber.trim()
                             )
                             "dalali" -> RegisterRequest.createDalali(
                                 name = name.trim(),
@@ -539,8 +536,9 @@ fun RegisterScreen(
                                 password = password,
                                 businessName = businessName.trim(),
                                 phone = phone.trim(),
-                                licenseNumber = licenseNumber.trim(),
-                                locationArea = locationArea.trim()
+                                nidaNumber = nidaNumber.trim(),
+                                locationArea = locationArea.trim(),
+                                licenseNumber = licenseNumber.trim()
                             )
                             else -> RegisterRequest.createTenant(
                                 name = name.trim(),
@@ -580,7 +578,7 @@ fun RegisterScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // DIVIDER - same as LoginScreen
+                // DIVIDER
                 Row(
                     modifier = Modifier.width(contentWidth),
                     verticalAlignment = Alignment.CenterVertically
@@ -592,6 +590,7 @@ fun RegisterScreen(
                     Text(
                         text = "OR",
                         fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
                         color = RegisterColors.TextSecondary,
                         modifier = Modifier.padding(horizontal = 14.dp)
                     )
@@ -603,7 +602,7 @@ fun RegisterScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // GOOGLE BUTTON - same as LoginScreen
+                // GOOGLE BUTTON
                 OutlinedButton(
                     onClick = { onGoogleRegister("", selectedRole) },
                     enabled = !loading,
@@ -623,14 +622,14 @@ fun RegisterScreen(
                     Text(
                         text = "Continue with Google",
                         fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
+                        fontWeight = FontWeight.Bold,
                         color = RegisterColors.TextDark
                     )
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // LOGIN LINK - same as LoginScreen
+                // LOGIN LINK
                 Row(
                     modifier = Modifier.width(contentWidth),
                     horizontalArrangement = Arrangement.Center,
@@ -639,7 +638,8 @@ fun RegisterScreen(
                     Text(
                         text = "Already have an account?",
                         color = RegisterColors.TextSecondary,
-                        fontSize = 13.sp
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
                     )
                     TextButton(
                         onClick = onLoginClick,
@@ -657,7 +657,7 @@ fun RegisterScreen(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // BACK - same as LoginScreen
+                // BACK
                 TextButton(
                     onClick = onBack,
                     enabled = !loading,
@@ -675,6 +675,7 @@ fun RegisterScreen(
                     Text(
                         text = "Back",
                         fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
                         color = RegisterColors.TextSecondary
                     )
                 }
@@ -732,7 +733,7 @@ fun RegisterScreen(
 
 
 // ============================================================
-// COMPONENTS - MATCHING LOGIN SCREEN STYLE
+// COMPONENTS - HIGH CONTRAST & READABILITY
 // ============================================================
 
 @Composable
@@ -753,8 +754,9 @@ private fun RegisterTextField(
         placeholder = {
             Text(
                 text = placeholder,
-                color = RegisterColors.TextSecondary.copy(alpha = 0.6f),
-                fontSize = 13.sp
+                color = RegisterColors.PlaceholderText,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Normal
             )
         },
         leadingIcon = {
@@ -769,6 +771,8 @@ private fun RegisterTextField(
         enabled = enabled,
         shape = RoundedCornerShape(12.dp),
         colors = OutlinedTextFieldDefaults.colors(
+            focusedTextColor = RegisterColors.TextDark,
+            unfocusedTextColor = RegisterColors.TextDark,
             focusedBorderColor = RegisterColors.GradientStart,
             focusedLabelColor = RegisterColors.GradientStart,
             unfocusedBorderColor = RegisterColors.Border,
@@ -798,8 +802,9 @@ private fun RegisterPasswordField(
         placeholder = {
             Text(
                 text = placeholder,
-                color = RegisterColors.TextSecondary.copy(alpha = 0.6f),
-                fontSize = 13.sp
+                color = RegisterColors.PlaceholderText,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Normal
             )
         },
         leadingIcon = {
@@ -829,6 +834,8 @@ private fun RegisterPasswordField(
         enabled = enabled,
         shape = RoundedCornerShape(12.dp),
         colors = OutlinedTextFieldDefaults.colors(
+            focusedTextColor = RegisterColors.TextDark,
+            unfocusedTextColor = RegisterColors.TextDark,
             focusedBorderColor = RegisterColors.GradientStart,
             focusedLabelColor = RegisterColors.GradientStart,
             unfocusedBorderColor = RegisterColors.Border,
@@ -850,12 +857,12 @@ private fun RegisterRoleChip(
     FilterChip(
         selected = isSelected,
         onClick = onClick,
-        modifier = modifier.height(36.dp),
+        modifier = modifier.height(38.dp),
         label = {
             Text(
                 text = label,
                 fontSize = 12.sp,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold
             )
         },
         leadingIcon = {
@@ -868,9 +875,9 @@ private fun RegisterRoleChip(
         shape = RoundedCornerShape(10.dp),
         colors = FilterChipDefaults.filterChipColors(
             containerColor = RegisterColors.ChipBackground,
-            labelColor = RegisterColors.TextSecondary,
-            iconColor = RegisterColors.TextSecondary,
-            selectedContainerColor = RegisterColors.GradientStart.copy(alpha = 0.12f),
+            labelColor = RegisterColors.TextDark,
+            iconColor = RegisterColors.TextDark,
+            selectedContainerColor = RegisterColors.GradientStart.copy(alpha = 0.16f),
             selectedLabelColor = RegisterColors.GradientStart,
             selectedLeadingIconColor = RegisterColors.GradientStart
         )
@@ -909,7 +916,8 @@ private fun PasswordStrengthIndicator(
             Text(
                 text = "Password strength",
                 fontSize = 11.sp,
-                color = RegisterColors.TextSecondary
+                color = RegisterColors.TextSecondary,
+                fontWeight = FontWeight.Medium
             )
             Text(
                 text = label,
@@ -977,6 +985,7 @@ private fun RoleWelcomeCard(
                 Text(
                     text = description,
                     fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
                     color = RegisterColors.TextSecondary
                 )
             }
@@ -991,20 +1000,24 @@ private fun OwnerDetailsSection(
     onBusinessNameChange: (String) -> Unit,
     phone: String,
     onPhoneChange: (String) -> Unit,
-    baloziName: String,
-    onBaloziNameChange: (String) -> Unit,
-    baloziPhone: String,
-    onBaloziPhoneChange: (String) -> Unit,
-    baloziArea: String,
-    onBaloziAreaChange: (String) -> Unit,
-    baloziVillage: String,
-    onBaloziVillageChange: (String) -> Unit,
-    baloziWard: String,
-    onBaloziWardChange: (String) -> Unit,
-    baloziDistrict: String,
-    onBaloziDistrictChange: (String) -> Unit,
-    baloziRegion: String,
-    onBaloziRegionChange: (String) -> Unit,
+    nidaNumber: String,
+    onNidaNumberChange: (String) -> Unit,
+    licenseNumber: String,
+    onLicenseNumberChange: (String) -> Unit,
+    localAuthorityName: String,
+    onLocalAuthorityNameChange: (String) -> Unit,
+    localAuthorityPhone: String,
+    onLocalAuthorityPhoneChange: (String) -> Unit,
+    localAuthorityArea: String,
+    onLocalAuthorityAreaChange: (String) -> Unit,
+    localAuthorityVillage: String,
+    onLocalAuthorityVillageChange: (String) -> Unit,
+    localAuthorityWard: String,
+    onLocalAuthorityWardChange: (String) -> Unit,
+    localAuthorityDistrict: String,
+    onLocalAuthorityDistrictChange: (String) -> Unit,
+    localAuthorityRegion: String,
+    onLocalAuthorityRegionChange: (String) -> Unit,
     loading: Boolean,
     contentWidth: androidx.compose.ui.unit.Dp
 ) {
@@ -1031,9 +1044,31 @@ private fun OwnerDetailsSection(
             enabled = !loading,
             contentWidth = contentWidth
         )
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // NIDA Number
+        RegisterTextField(
+            value = nidaNumber,
+            onValueChange = onNidaNumberChange,
+            placeholder = "NIDA Number",
+            icon = Icons.Default.Badge,
+            enabled = !loading,
+            contentWidth = contentWidth
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Licence Number (optional)
+        RegisterTextField(
+            value = licenseNumber,
+            onValueChange = onLicenseNumberChange,
+            placeholder = "Licence Number (optional)",
+            icon = Icons.Default.Badge,
+            enabled = !loading,
+            contentWidth = contentWidth
+        )
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Balozi Card
+        // Mtendaji/Mwenyekiti wa Mtaa Card
         Card(
             modifier = Modifier
                 .width(contentWidth)
@@ -1048,7 +1083,7 @@ private fun OwnerDetailsSection(
                 modifier = Modifier.padding(14.dp)
             ) {
                 Text(
-                    text = "Balozi Details",
+                    text = "Mtendaji/Mwenyekiti wa Mtaa Details",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     color = RegisterColors.InfoText
@@ -1057,14 +1092,15 @@ private fun OwnerDetailsSection(
                 Text(
                     text = "Property location verification",
                     fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
                     color = RegisterColors.TextSecondary
                 )
                 Spacer(modifier = Modifier.height(10.dp))
 
                 RegisterTextField(
-                    value = baloziName,
-                    onValueChange = onBaloziNameChange,
-                    placeholder = "Balozi Full Name",
+                    value = localAuthorityName,
+                    onValueChange = onLocalAuthorityNameChange,
+                    placeholder = "Mtendaji/Mwenyekiti wa Mtaa Full Name",
                     icon = Icons.Default.Person,
                     enabled = !loading,
                     contentWidth = contentWidth
@@ -1072,9 +1108,9 @@ private fun OwnerDetailsSection(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 RegisterTextField(
-                    value = baloziPhone,
-                    onValueChange = onBaloziPhoneChange,
-                    placeholder = "Balozi Phone",
+                    value = localAuthorityPhone,
+                    onValueChange = onLocalAuthorityPhoneChange,
+                    placeholder = "Mtendaji/Mwenyekiti wa Mtaa Phone",
                     icon = Icons.Default.ContactPhone,
                     enabled = !loading,
                     contentWidth = contentWidth
@@ -1082,8 +1118,8 @@ private fun OwnerDetailsSection(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 RegisterTextField(
-                    value = baloziArea,
-                    onValueChange = onBaloziAreaChange,
+                    value = localAuthorityArea,
+                    onValueChange = onLocalAuthorityAreaChange,
                     placeholder = "Area Name",
                     icon = Icons.Default.LocationOn,
                     enabled = !loading,
@@ -1092,9 +1128,9 @@ private fun OwnerDetailsSection(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 RegisterTextField(
-                    value = baloziVillage,
-                    onValueChange = onBaloziVillageChange,
-                    placeholder = "Village",
+                    value = localAuthorityVillage,
+                    onValueChange = onLocalAuthorityVillageChange,
+                    placeholder = "Village / Street",
                     icon = Icons.Default.Home,
                     enabled = !loading,
                     contentWidth = contentWidth
@@ -1102,8 +1138,8 @@ private fun OwnerDetailsSection(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 RegisterTextField(
-                    value = baloziWard,
-                    onValueChange = onBaloziWardChange,
+                    value = localAuthorityWard,
+                    onValueChange = onLocalAuthorityWardChange,
                     placeholder = "Ward",
                     icon = Icons.Default.LocationOn,
                     enabled = !loading,
@@ -1112,8 +1148,8 @@ private fun OwnerDetailsSection(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 RegisterTextField(
-                    value = baloziDistrict,
-                    onValueChange = onBaloziDistrictChange,
+                    value = localAuthorityDistrict,
+                    onValueChange = onLocalAuthorityDistrictChange,
                     placeholder = "District",
                     icon = Icons.Default.LocationOn,
                     enabled = !loading,
@@ -1122,8 +1158,8 @@ private fun OwnerDetailsSection(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 RegisterTextField(
-                    value = baloziRegion,
-                    onValueChange = onBaloziRegionChange,
+                    value = localAuthorityRegion,
+                    onValueChange = onLocalAuthorityRegionChange,
                     placeholder = "Region",
                     icon = Icons.Default.LocationOn,
                     enabled = !loading,
@@ -1141,6 +1177,8 @@ private fun DalaliDetailsSection(
     onBusinessNameChange: (String) -> Unit,
     phone: String,
     onPhoneChange: (String) -> Unit,
+    nidaNumber: String,
+    onNidaNumberChange: (String) -> Unit,
     locationArea: String,
     onLocationAreaChange: (String) -> Unit,
     licenseNumber: String,
@@ -1156,6 +1194,17 @@ private fun DalaliDetailsSection(
             onValueChange = onPhoneChange,
             placeholder = "Phone Number",
             icon = Icons.Default.Phone,
+            enabled = !loading,
+            contentWidth = contentWidth
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // NIDA Number
+        RegisterTextField(
+            value = nidaNumber,
+            onValueChange = onNidaNumberChange,
+            placeholder = "NIDA Number",
+            icon = Icons.Default.Badge,
             enabled = !loading,
             contentWidth = contentWidth
         )
@@ -1181,10 +1230,11 @@ private fun DalaliDetailsSection(
         )
         Spacer(modifier = Modifier.height(10.dp))
 
+        // Licence Number (optional)
         RegisterTextField(
             value = licenseNumber,
             onValueChange = onLicenseNumberChange,
-            placeholder = "License / ID Number",
+            placeholder = "Licence Number (optional)",
             icon = Icons.Default.Badge,
             enabled = !loading,
             contentWidth = contentWidth
@@ -1214,6 +1264,7 @@ private fun DalaliDetailsSection(
                 Text(
                     text = "Dalali accounts require verification before listing rooms.",
                     fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
                     color = RegisterColors.InfoText,
                     lineHeight = 16.sp
                 )
@@ -1253,7 +1304,8 @@ private fun ErrorMessageRegister(
             text = message,
             color = RegisterColors.Error,
             fontSize = 11.sp,
-            lineHeight = 15.sp
+            lineHeight = 15.sp,
+            fontWeight = FontWeight.Medium
         )
     }
 }

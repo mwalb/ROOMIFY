@@ -13,6 +13,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.ROOMIFY.Roomify.model.UserRole;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -40,6 +43,18 @@ public class BookingController {
     @PostMapping
     public ResponseEntity<ApiResponse<BookingResponseDTO>> createBooking(@RequestBody BookingRequestDto bookingRequest) {
         try {
+            // Check authenticated user role
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
+                User currentUser = userRepository.findByEmail(auth.getName()).orElse(null);
+                if (currentUser != null) {
+                    if (UserRole.OWNER.equals(currentUser.getRole()) || UserRole.DALALI.equals(currentUser.getRole())) {
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                .body(new ApiResponse<>(false, null, "Owners and Dalalis cannot book properties. Booking is available for Tenants only."));
+                    }
+                }
+            }
+
             // FIRST: Check if room is available in Room entity
             Room room = roomRepository.findById(bookingRequest.getRoomId())
                     .orElseThrow(() -> new RuntimeException("Room not found with id: " + bookingRequest.getRoomId()));

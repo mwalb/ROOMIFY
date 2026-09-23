@@ -55,6 +55,32 @@ public class User {
     @Column(name = "fcm_token", length = 500)
     private String fcmToken;
 
+    @Column(name = "nida_number")
+    private String nidaNumber;
+
+    // ==================== MTENDAJI / MWENYEKITI WA MTAA (LOCAL AUTHORITY) FIELDS ====================
+
+    @Column(name = "local_authority_name")
+    private String localAuthorityName;
+
+    @Column(name = "local_authority_phone")
+    private String localAuthorityPhone;
+
+    @Column(name = "local_authority_area")
+    private String localAuthorityArea;
+
+    @Column(name = "local_authority_village")
+    private String localAuthorityVillage;
+
+    @Column(name = "local_authority_ward")
+    private String localAuthorityWard;
+
+    @Column(name = "local_authority_district")
+    private String localAuthorityDistrict;
+
+    @Column(name = "local_authority_region")
+    private String localAuthorityRegion;
+
     // ==================== DALALI (AGENT) FIELDS ====================
 
     @Column(name = "license_number")

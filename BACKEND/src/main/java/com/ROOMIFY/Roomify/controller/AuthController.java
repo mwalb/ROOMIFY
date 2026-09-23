@@ -246,12 +246,30 @@ public class AuthController {
             UserRole userRole = UserRole.valueOf(request.getRole().toUpperCase());
             user.setRole(userRole);
 
-            if ("owner".equalsIgnoreCase(request.getRole()) && request.getBusinessName() != null
-                    && !request.getBusinessName().isEmpty()) {
-                user.setBusinessName(request.getBusinessName());
+            user.setPhone(request.getPhone());
+            user.setNidaNumber(request.getNidaNumber());
+
+            if ("owner".equalsIgnoreCase(request.getRole())) {
+                if (request.getBusinessName() != null && !request.getBusinessName().isEmpty()) {
+                    user.setBusinessName(request.getBusinessName());
+                }
+                user.setLocalAuthorityName(request.getLocalAuthorityName() != null ? request.getLocalAuthorityName() : request.getBaloziName());
+                user.setLocalAuthorityPhone(request.getLocalAuthorityPhone() != null ? request.getLocalAuthorityPhone() : request.getBaloziPhone());
+                user.setLocalAuthorityArea(request.getLocalAuthorityArea() != null ? request.getLocalAuthorityArea() : request.getBaloziArea());
+                user.setLocalAuthorityVillage(request.getLocalAuthorityVillage() != null ? request.getLocalAuthorityVillage() : request.getBaloziVillage());
+                user.setLocalAuthorityWard(request.getLocalAuthorityWard() != null ? request.getLocalAuthorityWard() : request.getBaloziWard());
+                user.setLocalAuthorityDistrict(request.getLocalAuthorityDistrict() != null ? request.getLocalAuthorityDistrict() : request.getBaloziDistrict());
+                user.setLocalAuthorityRegion(request.getLocalAuthorityRegion() != null ? request.getLocalAuthorityRegion() : request.getBaloziRegion());
             }
 
-            user.setPhone(request.getPhone());
+            if ("dalali".equalsIgnoreCase(request.getRole())) {
+                if (request.getBusinessName() != null && !request.getBusinessName().isEmpty()) {
+                    user.setBusinessName(request.getBusinessName());
+                }
+                user.setLicenseNumber(request.getLicenseNumber());
+                user.setLocationArea(request.getLocationArea());
+            }
+
             user.setEmailVerified(false);
 
             // Use LocalDateTime.now() instead of System.currentTimeMillis()

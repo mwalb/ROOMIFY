@@ -25,6 +25,9 @@ data class RegisterRequest(
     @SerialName("phone")
     val phone: String? = null,
 
+    @SerialName("nidaNumber")
+    val nidaNumber: String? = null,
+
     @SerialName("licenseNumber")
     val licenseNumber: String? = null,
 
@@ -34,7 +37,29 @@ data class RegisterRequest(
     @SerialName("verificationStatus")
     val verificationStatus: String? = null,
 
-    // Balozi (Local Government Representative) fields
+    // Mtendaji/Mwenyekiti wa Mtaa (Local Authority) fields
+    @SerialName("localAuthorityName")
+    val localAuthorityName: String? = null,
+
+    @SerialName("localAuthorityPhone")
+    val localAuthorityPhone: String? = null,
+
+    @SerialName("localAuthorityArea")
+    val localAuthorityArea: String? = null,
+
+    @SerialName("localAuthorityVillage")
+    val localAuthorityVillage: String? = null,
+
+    @SerialName("localAuthorityWard")
+    val localAuthorityWard: String? = null,
+
+    @SerialName("localAuthorityDistrict")
+    val localAuthorityDistrict: String? = null,
+
+    @SerialName("localAuthorityRegion")
+    val localAuthorityRegion: String? = null,
+
+    // Legacy fields for backward compatibility
     @SerialName("baloziName")
     val baloziName: String? = null,
 
@@ -103,7 +128,7 @@ data class RegisterRequest(
 
         /*
          * --------------------------------------------------------
-         * LANDLORD / OWNER (with Balozi details)
+         * LANDLORD / OWNER (with Mtendaji/Mwenyekiti wa Mtaa details)
          * --------------------------------------------------------
          */
 
@@ -128,13 +153,15 @@ data class RegisterRequest(
             password: String,
             businessName: String,
             phone: String,
-            baloziName: String,
-            baloziPhone: String,
-            baloziArea: String,
-            baloziVillage: String,
-            baloziWard: String = "",
-            baloziDistrict: String = "",
-            baloziRegion: String = ""
+            nidaNumber: String,
+            localAuthorityName: String,
+            localAuthorityPhone: String,
+            localAuthorityArea: String,
+            localAuthorityVillage: String,
+            localAuthorityWard: String = "",
+            localAuthorityDistrict: String = "",
+            localAuthorityRegion: String = "",
+            licenseNumber: String? = null
         ): RegisterRequest {
             return RegisterRequest(
                 name = name,
@@ -143,13 +170,22 @@ data class RegisterRequest(
                 role = "owner",
                 businessName = businessName,
                 phone = phone,
-                baloziName = baloziName,
-                baloziPhone = baloziPhone,
-                baloziArea = baloziArea,
-                baloziVillage = baloziVillage,
-                baloziWard = baloziWard,
-                baloziDistrict = baloziDistrict,
-                baloziRegion = baloziRegion,
+                nidaNumber = nidaNumber,
+                licenseNumber = if (licenseNumber.isNullOrBlank()) null else licenseNumber,
+                localAuthorityName = localAuthorityName,
+                localAuthorityPhone = localAuthorityPhone,
+                localAuthorityArea = localAuthorityArea,
+                localAuthorityVillage = localAuthorityVillage,
+                localAuthorityWard = localAuthorityWard,
+                localAuthorityDistrict = localAuthorityDistrict,
+                localAuthorityRegion = localAuthorityRegion,
+                baloziName = localAuthorityName,
+                baloziPhone = localAuthorityPhone,
+                baloziArea = localAuthorityArea,
+                baloziVillage = localAuthorityVillage,
+                baloziWard = localAuthorityWard,
+                baloziDistrict = localAuthorityDistrict,
+                baloziRegion = localAuthorityRegion,
                 verificationStatus = "pending"
             )
         }
@@ -166,8 +202,9 @@ data class RegisterRequest(
             password: String,
             businessName: String,
             phone: String,
-            licenseNumber: String,
-            locationArea: String
+            nidaNumber: String,
+            locationArea: String,
+            licenseNumber: String? = null
         ): RegisterRequest {
             return RegisterRequest(
                 name = name,
@@ -176,7 +213,8 @@ data class RegisterRequest(
                 role = "dalali",
                 businessName = businessName,
                 phone = phone,
-                licenseNumber = licenseNumber,
+                nidaNumber = nidaNumber,
+                licenseNumber = if (licenseNumber.isNullOrBlank()) null else licenseNumber,
                 locationArea = locationArea,
                 verificationStatus = "pending"
             )
@@ -188,8 +226,9 @@ data class RegisterRequest(
             password: String,
             businessName: String,
             phone: String,
-            licenseNumber: String,
-            locationArea: String
+            nidaNumber: String,
+            locationArea: String,
+            licenseNumber: String? = null
         ): RegisterRequest {
             return createAgent(
                 name = name,
@@ -197,8 +236,9 @@ data class RegisterRequest(
                 password = password,
                 businessName = businessName,
                 phone = phone,
-                licenseNumber = licenseNumber,
-                locationArea = locationArea
+                nidaNumber = nidaNumber,
+                locationArea = locationArea,
+                licenseNumber = licenseNumber
             )
         }
     }

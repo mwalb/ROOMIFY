@@ -81,9 +81,10 @@ private object LoginColors {
     val White55 = Color(0x8CFFFFFF)
 
     val Surface = Color.White
-    val TextDark = Color(0xFF000000)
+    val TextDark = Color(0xFF111827)
     val TextSecondary = Color(0xFF374151)
-    val Border = Color(0xFF757575)
+    val PlaceholderText = Color(0xFF4B5563)
+    val Border = Color(0xFF6B7280)
 
     val Error = Color(0xFFEF4444)
     val ErrorBackground = Color(0xFFFEF2F2)
@@ -516,16 +517,13 @@ private fun DesktopLoginLayout(
                         RoundedCornerShape(12.dp),
                     colors =
                         OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor =
-                                LoginColors.GradientStart,
-                            focusedLabelColor =
-                                LoginColors.GradientStart,
-                            unfocusedBorderColor =
-                                LoginColors.Border,
-                            unfocusedLabelColor =
-                                LoginColors.TextSecondary,
-                            cursorColor =
-                                LoginColors.GradientStart
+                            focusedTextColor = LoginColors.TextDark,
+                            unfocusedTextColor = LoginColors.TextDark,
+                            focusedBorderColor = LoginColors.GradientStart,
+                            focusedLabelColor = LoginColors.GradientStart,
+                            unfocusedBorderColor = LoginColors.Border,
+                            unfocusedLabelColor = LoginColors.TextSecondary,
+                            cursorColor = LoginColors.GradientStart
                         )
                 )
 
@@ -600,16 +598,13 @@ private fun DesktopLoginLayout(
                         RoundedCornerShape(12.dp),
                     colors =
                         OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor =
-                                LoginColors.GradientStart,
-                            focusedLabelColor =
-                                LoginColors.GradientStart,
-                            unfocusedBorderColor =
-                                LoginColors.Border,
-                            unfocusedLabelColor =
-                                LoginColors.TextSecondary,
-                            cursorColor =
-                                LoginColors.GradientStart
+                            focusedTextColor = LoginColors.TextDark,
+                            unfocusedTextColor = LoginColors.TextDark,
+                            focusedBorderColor = LoginColors.GradientStart,
+                            focusedLabelColor = LoginColors.GradientStart,
+                            unfocusedBorderColor = LoginColors.Border,
+                            unfocusedLabelColor = LoginColors.TextSecondary,
+                            cursorColor = LoginColors.GradientStart
                         )
                 )
 
@@ -1095,16 +1090,13 @@ private fun LoginFormCard(
                     RoundedCornerShape(12.dp),
                 colors =
                     OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor =
-                            LoginColors.GradientStart,
-                        focusedLabelColor =
-                            LoginColors.GradientStart,
-                        unfocusedBorderColor =
-                            LoginColors.Border,
-                        unfocusedLabelColor =
-                            LoginColors.TextSecondary,
-                        cursorColor =
-                            LoginColors.GradientStart
+                        focusedTextColor = LoginColors.TextDark,
+                        unfocusedTextColor = LoginColors.TextDark,
+                        focusedBorderColor = LoginColors.GradientStart,
+                        focusedLabelColor = LoginColors.GradientStart,
+                        unfocusedBorderColor = LoginColors.Border,
+                        unfocusedLabelColor = LoginColors.TextSecondary,
+                        cursorColor = LoginColors.GradientStart
                     )
             )
 
@@ -1174,16 +1166,13 @@ private fun LoginFormCard(
                     RoundedCornerShape(12.dp),
                 colors =
                     OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor =
-                            LoginColors.GradientStart,
-                        focusedLabelColor =
-                            LoginColors.GradientStart,
-                        unfocusedBorderColor =
-                            LoginColors.Border,
-                        unfocusedLabelColor =
-                            LoginColors.TextSecondary,
-                        cursorColor =
-                            LoginColors.GradientStart
+                        focusedTextColor = LoginColors.TextDark,
+                        unfocusedTextColor = LoginColors.TextDark,
+                        focusedBorderColor = LoginColors.GradientStart,
+                        focusedLabelColor = LoginColors.GradientStart,
+                        unfocusedBorderColor = LoginColors.Border,
+                        unfocusedLabelColor = LoginColors.TextSecondary,
+                        cursorColor = LoginColors.GradientStart
                     )
             )
 

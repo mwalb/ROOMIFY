@@ -170,7 +170,7 @@ fun App() {
     var pendingFurniture by remember { mutableStateOf<Furniture?>(null) }
     var shopList by remember { mutableStateOf(emptyList<Shop>()) }
     var pendingShop by remember { mutableStateOf<Shop?>(null) }
-    var showFantasticBubble by remember { mutableStateOf(false) }
+    var showFurnitureDialog by remember { mutableStateOf(false) }
     var activeConversation by remember { mutableStateOf<Conversation?>(null) }
 
     fun loadOwnerBookings() {
@@ -231,6 +231,11 @@ fun App() {
     // ============================================================
     // LOAD ROOMS
     // ============================================================
+
+    LaunchedEffect(authState) {
+        println("Roomify: Auth state changed -> re-loading rooms for current role")
+        viewModel.loadRooms()
+    }
 
     LaunchedEffect(Unit) {
         println("Roomify: Loading rooms...")
@@ -468,8 +473,11 @@ fun App() {
                 }
                 currentRoute = "analytics"
             }
-            else -> {
-                currentRoute = route
+            "furniture", "furniture_choice" -> {
+                currentRoute = "furniture_choice"
+            }
+            "furniture_dashboard" -> {
+                currentRoute = "furniture_dashboard"
             }
         }
     }
@@ -506,12 +514,7 @@ fun App() {
     // MAIN UI
     // ============================================================
 
-    LaunchedEffect(splashFinished) {
-        if (splashFinished) {
-            delay(1500)
-            showFantasticBubble = true
-        }
-    }
+
 
     RoomifyLocalization {
             MaterialTheme(typography = roomifyTypography) {
@@ -606,11 +609,42 @@ fun App() {
                         )
                     }
 
+                    currentRoute == "furniture_choice" -> {
+                        val sampleFurniture = Furniture(
+                            id = 1,
+                            title = "Sofa ya Kisasa (Modern Sofa)",
+                            description = "Sofa ya kisasa na ya kiwango cha juu, inayofaa kwa sebule au ofisi.",
+                            price = 850000.0,
+                            category = "Sofa",
+                            condition = "NEW",
+                            ownerName = "Roomify Furniture Store",
+                            contactPhone = "+255700000000",
+                            contactEmail = "info@roomify.co.tz",
+                            address = "Kijitonyama, Dar es Salaam",
+                            latitude = -6.7783,
+                            longitude = 39.2433,
+                            images = listOf("https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80"),
+                            status = "AVAILABLE"
+                        )
+                        org.com.ui.FurnitureChoiceScreen(
+                            onOption1 = {
+                                pendingFurniture = furnitureList.firstOrNull() ?: sampleFurniture
+                                currentRoute = "furniture_detail"
+                            },
+                            onOption2 = {
+                                currentRoute = "furniture_dashboard"
+                            },
+                            onBack = {
+                                currentRoute = "map"
+                            }
+                        )
+                    }
+
                     currentRoute == "furniture_dashboard" -> {
                         org.com.ui.FurnitureDashboard(
                             furnitures = furnitureList,
                             shops = shopList,
-                            onBack = { currentRoute = "discovery" },
+                            onBack = { currentRoute = "furniture_choice" },
                             onViewDetail = {
                                 pendingFurniture = it
                                 currentRoute = "furniture_detail"
@@ -638,7 +672,7 @@ fun App() {
                     currentRoute == "furniture_detail" && pendingFurniture != null -> {
                         org.com.ui.FurnitureDetailScreen(
                             furniture = pendingFurniture!!,
-                            onBack = { currentRoute = "furniture_dashboard" }
+                            onBack = { currentRoute = "furniture_choice" }
                         )
                     }
 
@@ -776,7 +810,7 @@ fun App() {
                                     val user = (authState as AuthState.Authenticated).user
                                     OwnerDashboardScreen(
                                         user = user,
-                                        properties = viewModel.rooms.filter { it.postedBy == user.id || it.ownerName == user.name },
+                                        properties = viewModel.rooms.filter { it.postedBy == user.id },
                                         bookings = ownerBookings,
                                         conversations = ownerConversations,
                                         isRefreshing = viewModel.isLoading,
@@ -828,7 +862,7 @@ fun App() {
                                     val user = (authState as AuthState.Authenticated).user
                                     DalaliDashboardScreen(
                                         user = user,
-                                        properties = viewModel.rooms.filter { it.dalaliName == user.name || it.postedBy == user.id },
+                                        properties = viewModel.rooms.filter { it.dalaliId == user.id || it.postedBy == user.id },
                                         bookings = ownerBookings,
                                         isRefreshing = viewModel.isLoading,
                                         onAddProperty = { currentRoute = "postroom" },
@@ -1164,17 +1198,19 @@ fun App() {
                     }
                 }
                 
-                FantasticBubbleContainer(
-                    isVisible = showFantasticBubble,
-                    onSearch = {
-                        showFantasticBubble = false
-                        currentRoute = "furniture_dashboard"
-                    },
-                    onPost = {
-                        showFantasticBubble = false
-                        currentRoute = "post_furniture"
-                    }
-                )
+                if (showFurnitureDialog) {
+                    org.com.ui.components.FantasticBubble(
+                        isVisible = showFurnitureDialog,
+                        onSearchFurniture = {
+                            showFurnitureDialog = false
+                            currentRoute = "furniture_choice"
+                        },
+                        onPostFurniture = {
+                            showFurnitureDialog = false
+                            currentRoute = "post_furniture"
+                        }
+                    )
+                }
             }
         }
     }
@@ -1239,15 +1275,4 @@ private fun AppMapContainer(
     }
 }
 
-@Composable
-private fun FantasticBubbleContainer(
-    isVisible: Boolean,
-    onSearch: () -> Unit,
-    onPost: () -> Unit
-) {
-    org.com.ui.components.FantasticBubble(
-        isVisible = isVisible,
-        onSearchFurniture = onSearch,
-        onPostFurniture = onPost
-    )
-}
+

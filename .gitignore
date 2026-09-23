@@ -95,3 +95,7 @@ FRONTEND/yarn/
 FRONTEND/binaryen/
 FRONTEND/nodejs/
 FRONTEND/yarn/
+
+# Local secrets
+BACKEND/.env
+BACKEND/src/main/resources/application-local.properties

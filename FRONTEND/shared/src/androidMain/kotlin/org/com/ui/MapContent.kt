@@ -479,7 +479,7 @@ actual fun MapContent(
     }
 
     val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(LatLng(-6.7924, 39.2083), 11f)
+        position = CameraPosition.fromLatLngZoom(LatLng(-6.7924, 39.2083), 13f)
     }
 
     LaunchedEffect(rooms, shouldFitBounds) {
@@ -614,7 +614,7 @@ actual fun MapContent(
             }
 
             val zoom = cameraPositionState.position.zoom
-            val showClusters = zoom < 8f
+            val showClusters = zoom < 5f
             
             if (showClusters) {
                 val clusters = rooms.filter { it.latitude != 0.0 && it.longitude != 0.0 }

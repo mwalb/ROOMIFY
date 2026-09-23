@@ -39,19 +39,20 @@ class RoomViewModel(
     val filteredRooms: List<Room>
         get() {
             return rooms.filter { room ->
-                val matchesType = filterType == null || room.propertyType?.uppercase() == filterType?.uppercase()
+                val matchesType = filterType.isNullOrBlank() || 
+                    room.propertyType?.equals(filterType, ignoreCase = true) == true
                 
-                val matchesArea = filterArea == null || 
+                val matchesArea = filterArea.isNullOrBlank() || 
                     room.address?.contains(filterArea!!, ignoreCase = true) == true || 
                     room.title?.contains(filterArea!!, ignoreCase = true) == true
                 
                 val matchesPrice = filterMaxPrice == null || room.price <= filterMaxPrice!!
                 
-                val matchesStatus = when (filterStatus?.uppercase()) {
-                    "AVAILABLE" -> room.status.uppercase() == "AVAILABLE" || room.status.uppercase() == "RENTED"
-                    "PENDING" -> room.status.uppercase() == "PENDING" || room.status.uppercase() == "RENTED"
-                    "RENTED" -> room.status.uppercase() == "RENTED"
-                    else -> true
+                val matchesStatus = when (filterStatus?.uppercase()?.trim()) {
+                    "AVAILABLE" -> (room.status ?: "").uppercase().trim() == "AVAILABLE"
+                    "PENDING" -> (room.status ?: "").uppercase().trim() == "PENDING"
+                    "RENTED" -> (room.status ?: "").uppercase().trim() == "RENTED"
+                    else -> true // ALL
                 }
                 
                 matchesType && matchesArea && matchesPrice && matchesStatus
@@ -59,10 +60,10 @@ class RoomViewModel(
         }
 
     fun setFilters(type: String?, area: String?, maxPrice: Double?, status: String? = null) {
-        filterType = type
-        filterArea = area
+        filterType = if (type.isNullOrBlank() || type.equals("ALL", ignoreCase = true)) null else type
+        filterArea = if (area.isNullOrBlank()) null else area
         filterMaxPrice = maxPrice
-        filterStatus = status
+        filterStatus = if (status.isNullOrBlank() || status.equals("ALL", ignoreCase = true)) null else status
     }
 
     fun clearFilters() {

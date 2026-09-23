@@ -88,6 +88,9 @@
         var map = document.getElementById("google-map-container");
         var sidebar = document.getElementById("roomify-sidebar");
         var compose = document.getElementById("ComposeTarget");
+        var searchControl = document.getElementById("roomify-search-control");
+        var searchCount = document.getElementById("roomify-search-count");
+        var topRightControls = document.getElementById("roomify-top-right-controls");
 
         if (map) {
             map.classList.add("map-mode");
@@ -96,6 +99,11 @@
             map.style.opacity = "1";
             map.style.zIndex = "9999";
             console.log("[ROOMIFY MAP] map container shown with 'map-mode'");
+            setTimeout(function() {
+                if (typeof showLocationConsentPrompt === "function") {
+                    showLocationConsentPrompt();
+                }
+            }, 300);
         } else {
             console.error("[ROOMIFY MAP] map container NOT FOUND");
         }
@@ -105,6 +113,16 @@
             console.log("[ROOMIFY MAP] sidebar element shown");
         } else {
             console.warn("[ROOMIFY MAP] sidebar element NOT FOUND");
+        }
+
+        if (searchControl) {
+            searchControl.style.display = "flex";
+        }
+        if (searchCount) {
+            searchCount.style.display = "block";
+        }
+        if (topRightControls) {
+            topRightControls.style.display = "flex";
         }
 
         if (compose) {
@@ -169,6 +187,9 @@
         var map = document.getElementById("google-map-container");
         var sidebar = document.getElementById("roomify-sidebar");
         var compose = document.getElementById("ComposeTarget");
+        var searchControl = document.getElementById("roomify-search-control");
+        var searchCount = document.getElementById("roomify-search-count");
+        var topRightControls = document.getElementById("roomify-top-right-controls");
 
         if (map) {
             map.classList.remove("map-mode");
@@ -182,6 +203,16 @@
         if (sidebar) {
             sidebar.style.display = "none";
             console.log("[ROOMIFY MAP] sidebar hidden");
+        }
+
+        if (searchControl) {
+            searchControl.style.display = "none";
+        }
+        if (searchCount) {
+            searchCount.style.display = "none";
+        }
+        if (topRightControls) {
+            topRightControls.style.display = "none";
         }
 
         if (compose) {
@@ -677,10 +708,47 @@
                 display: block;
             }
 
-            .dot { width: 9px; height: 9px; border-radius: 50%; margin-right: 10px; }
-            .dot.green { background: #4CAF50; }
-            .dot.yellow { background: #FFC107; }
-            .dot.red { background: #F44336; }
+            .roomify-chip .dot {
+                width: 9px;
+                height: 9px;
+                border-radius: 50%;
+                margin-right: 10px;
+            }
+
+            /* Professional Button Hover and Active/Click States */
+            button,
+            .roomify-sidebar-filter-btn,
+            .roomify-location-btn,
+            .roomify-footer-item,
+            .roomify-popup-button,
+            .roomify-menu-button,
+            .roomify-status-control,
+            .roomify-chip {
+                transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+            }
+
+            button:hover,
+            .roomify-sidebar-filter-btn:hover,
+            .roomify-location-btn:hover,
+            .roomify-footer-item:hover,
+            .roomify-popup-button:hover,
+            .roomify-menu-button:hover,
+            .roomify-status-control:hover,
+            .roomify-chip:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+            }
+
+            button:active,
+            .roomify-sidebar-filter-btn:active,
+            .roomify-location-btn:active,
+            .roomify-footer-item:active,
+            .roomify-popup-button:active,
+            .roomify-menu-button:active,
+            .roomify-status-control:active,
+            .roomify-chip:active {
+                transform: translateY(0);
+            }
 
             .roomify-sidebar-footer {
                 padding: 25px 30px;
@@ -1351,25 +1419,129 @@
         window.roomifyUpdateFilterStatus("ALL");
     };
 
+    var ZOOM_THRESHOLD = 5;
+    var INITIAL_MAP_ZOOM = 13;
+    window.roomifyZoomListenerRegistered = false;
+    window.roomifyLocationPromptShown = false;
+
+    function normalizePropertyStatus(status) {
+        return String(status ?? "").trim().toUpperCase();
+    }
+
+    function showLocationConsentPrompt() {
+        if (window.roomifyLocationPromptShown) return;
+        window.roomifyLocationPromptShown = true;
+
+        var container = document.getElementById("google-map-container");
+        if (!container) return;
+
+        var overlay = document.createElement("div");
+        overlay.id = "roomify-location-consent-overlay";
+        overlay.style.cssText = `
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10005;
+            font-family: Arial, sans-serif;
+        `;
+
+        var card = document.createElement("div");
+        card.style.cssText = `
+            background: #ffffff;
+            border-radius: 20px;
+            padding: 28px;
+            max-width: 380px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+            text-align: left;
+            border: 1px solid #E0E0E0;
+        `;
+
+        card.innerHTML = `
+            <div style="font-size: 20px; font-weight: 800; color: #1A237E; margin-bottom: 10px;">Use Your Current Location?</div>
+            <div style="font-size: 14px; color: #4B5563; line-height: 1.5; margin-bottom: 24px;">Allow ROOMIFY to use your current location to show nearby properties and improve your map experience.</div>
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button id="roomify-location-not-now" style="padding: 10px 18px; border: 1px solid #D1D5DB; background: #ffffff; color: #374151; border-radius: 12px; font-weight: 700; cursor: pointer; font-size: 14px; transition: all 160ms ease;">Not Now</button>
+                <button id="roomify-location-use" style="padding: 10px 18px; border: 0; background: #1A237E; color: #ffffff; border-radius: 12px; font-weight: 700; cursor: pointer; font-size: 14px; transition: all 160ms ease;">Use My Location</button>
+            </div>
+            <div id="roomify-location-message" style="margin-top: 12px; font-size: 12px; color: #6B7280; display: none;"></div>
+        `;
+
+        overlay.appendChild(card);
+        container.appendChild(overlay);
+
+        var notNowBtn = card.querySelector("#roomify-location-not-now");
+        var useBtn = card.querySelector("#roomify-location-use");
+        var msgDiv = card.querySelector("#roomify-location-message");
+
+        notNowBtn.onclick = function() {
+            overlay.remove();
+        };
+
+        useBtn.onclick = function() {
+            if (!navigator.geolocation) {
+                msgDiv.textContent = "We couldn't determine your current location. Please try again or continue using the map.";
+                msgDiv.style.display = "block";
+                return;
+            }
+
+            msgDiv.textContent = "Locating...";
+            msgDiv.style.display = "block";
+            useBtn.disabled = true;
+
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    overlay.remove();
+                    var lat = position.coords.latitude;
+                    var lng = position.coords.longitude;
+                    if (window.roomifyMap) {
+                        window.roomifyMap.setCenter({ lat: lat, lng: lng });
+                        window.roomifyMap.setZoom(14);
+                    }
+                    if (typeof window.roomifyMoveToRoom === "function") {
+                        window.roomifyMoveToRoom(lat, lng);
+                    }
+                },
+                function(error) {
+                    useBtn.disabled = false;
+                    if (error.code === error.PERMISSION_DENIED) {
+                        msgDiv.textContent = "Location access was not enabled. You can continue using the map without it.";
+                    } else {
+                        msgDiv.textContent = "We couldn't determine your current location. Please try again or continue using the map.";
+                    }
+                },
+                { timeout: 10000, maximumAge: 60000 }
+            );
+        };
+    }
+
     function applyMarkerVisibility() {
         if (!Array.isArray(window.roomifyMarkers)) return;
 
-        var filter = String(window.roomifyCurrentStatusFilter || "ALL").trim().toLowerCase();
+        var filter = normalizePropertyStatus(window.roomifyCurrentStatusFilter || "ALL");
 
         window.roomifyMarkers.forEach(function(entry) {
             if (!entry || !entry.marker || !entry.room) return;
 
-            var status = String(entry.room.status || "available").trim().toLowerCase();
+            var status = normalizePropertyStatus(entry.room.status);
             var visible = true;
 
-            if (filter === "available") {
-                visible = (status === "available");
-            } else if (filter === "pending") {
-                visible = (status === "pending");
-            } else if (filter === "rented") {
-                visible = (status === "rented");
-            } else {
+            if (filter === "ALL" || filter === "") {
                 visible = true;
+            } else if (filter === "AVAILABLE") {
+                visible = (status === "AVAILABLE");
+            } else if (filter === "PENDING") {
+                visible = (status === "PENDING");
+            } else if (filter === "RENTED") {
+                visible = (status === "RENTED");
+            } else {
+                visible = (status === filter);
             }
 
             entry.marker.setVisible(visible);
@@ -1498,8 +1670,17 @@
                         </div>
 
                         <!-- Max Budget Field (Placeholder "Max budget", no separate heading above) -->
-                        <div style="margin-bottom: 20px;">
+                        <div style="margin-bottom: 16px;">
                             <input type="text" id="sidebar-budget-input" placeholder="Max budget" style="width: 100%; height: 48px; border: 1px solid #CBD5E1; border-radius: 14px; padding: 0 14px; outline: none; font-size: 14px; background: #ffffff;">
+                        </div>
+
+                        <!-- Status Section inside Preferences card -->
+                        <div style="font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 8px;">Status</div>
+                        <div class="roomify-chip-group" id="status-chips" style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px;">
+                            <div class="roomify-chip" data-status="ALL" style="padding: 6px 12px; border-radius: 8px; background: #F1F5F9; cursor: pointer; font-size: 13px;">All</div>
+                            <div class="roomify-chip active" data-status="AVAILABLE" style="padding: 6px 12px; border-radius: 8px; background: #F1F5F9; cursor: pointer; font-size: 13px;">Available</div>
+                            <div class="roomify-chip" data-status="PENDING" style="padding: 6px 12px; border-radius: 8px; background: #F1F5F9; cursor: pointer; font-size: 13px;">Pending</div>
+                            <div class="roomify-chip" data-status="RENTED" style="padding: 6px 12px; border-radius: 8px; background: #F1F5F9; cursor: pointer; font-size: 13px;">Rented</div>
                         </div>
 
                         <!-- APPLY FILTERS Button -->
@@ -1509,21 +1690,10 @@
                     </div>
                 </div>
 
-                <!-- 3. Status Section (No icons/dots) -->
-                <div class="roomify-sidebar-section" style="margin-bottom: 20px;">
-                    <div class="roomify-sidebar-label" style="font-size: 11px; font-weight: bold; color: #374151; letter-spacing: 1px; margin-bottom: 8px;">STATUS</div>
-                    <div class="roomify-chip-group" id="status-chips" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        <div class="roomify-chip" data-status="ALL" style="padding: 6px 12px; border-radius: 8px; background: #F1F5F9; cursor: pointer; font-size: 13px;">All</div>
-                        <div class="roomify-chip active" data-status="AVAILABLE" style="padding: 6px 12px; border-radius: 8px; background: #F1F5F9; cursor: pointer; font-size: 13px;">Available</div>
-                        <div class="roomify-chip" data-status="PENDING" style="padding: 6px 12px; border-radius: 8px; background: #F1F5F9; cursor: pointer; font-size: 13px;">Pending</div>
-                        <div class="roomify-chip" data-status="RENTED" style="padding: 6px 12px; border-radius: 8px; background: #F1F5F9; cursor: pointer; font-size: 13px;">Rented</div>
-                    </div>
-                </div>
-
-                <!-- 4. Explore Furniture -->
+                <!-- 3. Explore Furniture -->
                 <div class="roomify-sidebar-section" style="margin-bottom: 20px;">
                     <div class="roomify-sidebar-label" style="font-size: 11px; font-weight: bold; color: #374151; letter-spacing: 1px; margin-bottom: 8px;">EXPLORE FURNITURE</div>
-                    <div class="roomify-furniture-card" data-roomify-menu="furniture_dashboard" style="display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: #E8EAF6; border-radius: 16px; border: 1px solid #C7D2FE; cursor: pointer;">
+                    <div class="roomify-furniture-card" data-roomify-menu="furniture_choice" style="display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: #E8EAF6; border-radius: 16px; border: 1px solid #C7D2FE; cursor: pointer;">
                         <span style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 12px; background: #1A237E; color: white;">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 9V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v3"/><path d="M3 16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v5z"/><line x1="6" y1="18" x2="6" y2="21"/><line x1="18" y1="18" x2="18" y2="21"/></svg>
                         </span>
@@ -2017,6 +2187,8 @@
             locationTerms.push(trimmed);
         });
 
+        var currentStatus = normalizePropertyStatus(window.roomifyCurrentStatusFilter || "ALL");
+
         var filtered = window.roomifyAllRooms.filter(function(room) {
             if (maxBudget !== null && room.price > maxBudget) {
                 return false;
@@ -2025,6 +2197,13 @@
             if (targetType) {
                 var pType = String(room.propertyType || "").toLowerCase();
                 if (!pType.includes(targetType)) return false;
+            }
+
+            var roomStatus = normalizePropertyStatus(room.status);
+            if (currentStatus !== "ALL" && currentStatus !== "") {
+                if (roomStatus !== currentStatus) {
+                    return false;
+                }
             }
 
             if (locationTerms.length > 0) {
@@ -2303,10 +2482,14 @@
                         }
                     );
 
-                window.roomifyMap.addListener("zoom_changed", function() {
-                    console.log("Roomify: zoom changed to " + window.roomifyMap.getZoom());
-                    refreshMarkerIcons();
-                });
+                if (!window.roomifyZoomListenerRegistered && window.roomifyMap) {
+                    window.roomifyMap.addListener("zoom_changed", function() {
+                        console.log("Roomify: zoom changed to " + window.roomifyMap.getZoom());
+                        refreshMarkerIcons();
+                    });
+                    window.roomifyZoomListenerRegistered = true;
+                }
+                refreshMarkerIcons();
 
                 /*
                  * Click on map background:
@@ -3310,9 +3493,9 @@
         if (!Array.isArray(window.roomifyMarkers) || !window.roomifyMap) return;
 
         var zoom = window.roomifyMap.getZoom();
-        var showClusters = zoom < 8;
-        var showDots = zoom < 8;
-        var showPills = zoom >= 8;
+        var showClusters = zoom < ZOOM_THRESHOLD;
+        var showDots = zoom < ZOOM_THRESHOLD;
+        var showPills = zoom >= ZOOM_THRESHOLD;
 
         window.roomifyMarkers.forEach(function (entry) {
             if (!entry) return;

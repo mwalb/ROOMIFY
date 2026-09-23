@@ -582,6 +582,9 @@ fun PropertyDetailsScreen(
                         Text(room.formattedPrice, fontSize = 20.sp, fontWeight = FontWeight.Black, color = PrimaryColor)
                     }
                     
+                    val isOwnerOrDalali = currentUser?.role?.equals("owner", ignoreCase = true) == true || 
+                                         currentUser?.role?.equals("dalali", ignoreCase = true) == true
+
                     if (isMyProperty) {
                         Button(
                             onClick = { onEditProperty(room) },
@@ -591,7 +594,7 @@ fun PropertyDetailsScreen(
                         ) {
                             Text("EDIT PROPERTY", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         }
-                    } else {
+                    } else if (!isOwnerOrDalali) {
                         Button(
                             onClick = { onBookNow(room) },
                             modifier = Modifier.height(48.dp).widthIn(min = 120.dp),

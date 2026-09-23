@@ -28,6 +28,7 @@ data class Room(
     val images: List<String> = emptyList(),
     val amenities: List<String> = emptyList(),
     val rules: List<String> = emptyList(),
+    val dalaliId: Long? = null,
     val dalaliName: String? = null,
     val commission: Double? = null,
     val featured: Boolean = false,

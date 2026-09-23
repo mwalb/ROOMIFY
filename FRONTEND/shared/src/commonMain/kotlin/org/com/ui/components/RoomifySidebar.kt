@@ -104,7 +104,7 @@ fun RoomifySidebar(
                         subtitle = "Furnish Your Space",
                         icon = Icons.Default.Chair,
                         modifier = Modifier.weight(1f),
-                        onClick = { onNavigate("furniture_dashboard"); onClose() }
+                        onClick = { onNavigate("furniture_choice"); onClose() }
                     )
                 }
 
@@ -112,7 +112,7 @@ fun RoomifySidebar(
 
                 // Prominent Furniture Hub Banner
                 Surface(
-                    onClick = { onNavigate("furniture_dashboard"); onClose() },
+                    onClick = { onNavigate("furniture_choice"); onClose() },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(18.dp),
                     color = Color(0xFFE8EAF6),
@@ -315,6 +315,40 @@ fun RoomifySidebar(
                             }
                         }
 
+                        Spacer(Modifier.height(16.dp))
+
+                        // Status Section inside Preferences card (directly below Max Budget)
+                        Text(
+                            "Status",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TextDarkGray,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+
+                        val statusOptions = listOf("All", "Available", "Pending", "Rented")
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            statusOptions.forEach { status ->
+                                val isSelected = selectedStatus.equals(status, ignoreCase = true)
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = { selectedStatus = status },
+                                    label = { Text(status, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = PrimaryColor,
+                                        selectedLabelColor = Color.White,
+                                        containerColor = Color(0xFFF1F5F9),
+                                        labelColor = TextDarkGray
+                                    )
+                                )
+                            }
+                        }
+
                         Spacer(Modifier.height(20.dp))
 
                         // APPLY FILTERS Button
@@ -333,41 +367,6 @@ fun RoomifySidebar(
                                 letterSpacing = 0.5.sp
                             )
                         }
-                    }
-                }
-
-                Spacer(Modifier.height(20.dp))
-
-                // 8. STATUS Section (All, Available, Pending, Rented)
-                Text(
-                    "STATUS",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextDarkGray,
-                    letterSpacing = 1.sp,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-
-                val statusOptions = listOf("All", "Available", "Pending", "Rented")
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    statusOptions.forEach { status ->
-                        val isSelected = selectedStatus.equals(status, ignoreCase = true)
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { selectedStatus = status },
-                            label = { Text(status, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = PrimaryColor,
-                                selectedLabelColor = Color.White,
-                                containerColor = Color(0xFFF1F5F9),
-                                labelColor = TextDarkGray
-                            )
-                        )
                     }
                 }
             }
