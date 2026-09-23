@@ -1,9 +1,11 @@
 package org.com.ui.components
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -66,12 +68,27 @@ fun LocationPickerModal(
                         },
                         onDismiss = onDismiss
                     )
+
+                    FloatingActionButton(
+                        onClick = {
+                            val defaultLoc = AddressResult("Current Location", -6.7924, 39.2083, "My Current Location")
+                            tempResult = defaultLoc
+                        },
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(16.dp),
+                        containerColor = Color.White,
+                        contentColor = primaryColor,
+                        shape = CircleShape
+                    ) {
+                        Icon(Icons.Default.MyLocation, contentDescription = "Use My Current Location")
+                    }
                 }
 
                 // Footer
                 Surface(tonalElevation = 8.dp, shadowElevation = 12.dp, color = Color.White) {
                     Column(Modifier.fillMaxWidth().padding(20.dp)) {
-                        Text("Selected location:", fontSize = 12.sp, color = Color.Gray)
+                        Text("Selected location:", fontSize = 12.sp, color = Color(0xFF4B5563))
                         Text(
                             text = tempResult?.address ?: "Click on the map to pin the location",
                             fontSize = 16.sp,
@@ -82,7 +99,7 @@ fun LocationPickerModal(
                         Text(
                             text = tempResult?.formattedAddress ?: "",
                             fontSize = 12.sp,
-                            color = Color.Gray,
+                            color = Color(0xFF4B5563),
                             maxLines = 1
                         )
 

@@ -1476,7 +1476,7 @@ private fun ErrorMessage(
 
     Row(
         modifier = Modifier
-            .fillMaxWidth()
+            .width(320.dp)
             .clip(
                 RoundedCornerShape(8.dp)
             )

@@ -470,7 +470,22 @@
             }
 
             .roomify-sidebar-close {
-                display: none !important;
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.2);
+                color: white;
+                display: flex !important;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition: background 0.2s ease;
+            }
+            .roomify-sidebar-close:hover {
+                background: rgba(255, 255, 255, 0.35);
             }
 
             .roomify-sidebar-body {
@@ -486,7 +501,7 @@
             .roomify-sidebar-label {
                 font-size: 11px;
                 font-weight: 700;
-                color: #BDBDBD;
+                color: #374151;
                 text-transform: uppercase;
                 letter-spacing: 1.2px;
                 margin-bottom: 15px;
@@ -701,25 +716,23 @@
 
             @media (max-width: 900px) {
                 .roomify-sidebar {
-                    width: 320px;
+                    position: fixed !important;
+                    top: 0 !important;
+                    left: -100% !important;
+                    width: 320px !important;
+                    max-width: 85vw !important;
+                    height: 100vh !important;
+                    z-index: 99999 !important;
+                    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                    box-shadow: 4px 0 24px rgba(0,0,0,0.25) !important;
+                }
+                .roomify-sidebar.open {
+                    left: 0 !important;
                 }
                 #google-map-container {
-                    margin-left: 320px;
-                    width: calc(100% - 320px) !important;
-                }
-            }
-
-            @media (max-width: 700px) {
-                .roomify-sidebar {
-                    width: 100vw;
-                    position: relative;
-                    height: auto;
-                    box-shadow: none;
-                }
-                #google-map-container {
-                    margin-left: 0;
+                    margin-left: 0 !important;
                     width: 100% !important;
-                    height: 50vh !important;
+                    height: 100vh !important;
                 }
             }
 
@@ -1130,10 +1143,6 @@
                         ? "flex"
                         : "none";
 
-                filterRooms(
-                    query
-                );
-
                 updateAutocompleteDropdown(query);
             }
         );
@@ -1273,12 +1282,6 @@
         var wrapper = document.createElement("div");
         wrapper.id = "roomify-status-control";
         wrapper.className = "roomify-status-control";
-
-        var funnelSpan = document.createElement("span");
-        funnelSpan.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; display: flex; align-items: center;"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>`;
-        funnelSpan.style.display = "flex";
-        funnelSpan.style.alignItems = "center";
-        wrapper.appendChild(funnelSpan);
 
         var label = document.createElement("span");
         label.id = "roomify-status-label";
@@ -1464,19 +1467,12 @@
 
             <div class="roomify-sidebar-body">
                 <div class="roomify-sidebar-section">
-                    <div class="roomify-sidebar-label">FIND YOUR NEXT PLACE</div>
-                    <h2 class="roomify-sidebar-heading">Where are you looking?</h2>
+                    <div class="roomify-sidebar-label">LOCATION</div>
                     <div class="roomify-search-box">
                          <span class="roomify-search-box-icon">
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                          </span>
-                         <input type="text" id="sidebar-search-input" placeholder="Area, neighborhood or city">
-                    </div>
-                    <div class="roomify-location-btn" id="use-my-location">
-                        <span class="roomify-location-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
-                        </span>
-                        <span>Use my current location</span>
+                         <input type="text" id="sidebar-search-input" placeholder="Enter location e.g. Mbezi, Mikocheni...">
                     </div>
                 </div>
 
@@ -1498,17 +1494,43 @@
                         <span class="roomify-budget-icon">
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3"/><path d="M16 12h5v4h-5z"/></svg>
                         </span>
-                        <input type="text" id="sidebar-budget-input" placeholder="Max budget in TZS">
+                        <input type="text" id="sidebar-budget-input" placeholder="Max budget e.g. 300000, 500k">
+                    </div>
+                    <div id="sidebar-filter-btn" style="display: flex; align-items: center; justify-content: center; gap: 8px; background: #1A237E; color: white; border-radius: 12px; padding: 12px; font-weight: 700; cursor: pointer; margin-top: 12px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                        <span>Filter Results</span>
+                    </div>
+                </div>
+
+                <div class="roomify-sidebar-section">
+                    <div class="roomify-location-btn" id="use-my-location">
+                        <span class="roomify-location-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+                        </span>
+                        <span>Nearby me</span>
                     </div>
                 </div>
 
                 <div class="roomify-sidebar-section">
                     <div class="roomify-sidebar-label">STATUS</div>
                     <div class="roomify-chip-group" id="status-chips">
-                        <div class="roomify-chip" data-status="ALL">All Statuses</div>
+                        <div class="roomify-chip" data-status="ALL">All</div>
                         <div class="roomify-chip active" data-status="AVAILABLE"><span class="dot green"></span> Available</div>
                         <div class="roomify-chip" data-status="PENDING"><span class="dot yellow"></span> Pending</div>
                         <div class="roomify-chip" data-status="RENTED"><span class="dot red"></span> Rented</div>
+                    </div>
+                </div>
+
+                <div class="roomify-sidebar-section">
+                    <div class="roomify-sidebar-label">EXPLORE FURNITURE</div>
+                    <div class="roomify-furniture-card" data-roomify-menu="furniture_dashboard" style="display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: #E8EAF6; border-radius: 16px; border: 1px solid #C7D2FE; cursor: pointer;">
+                        <span style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 12px; background: #1A237E; color: white;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 9V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v3"/><path d="M3 16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v5z"/><line x1="6" y1="18" x2="6" y2="21"/><line x1="18" y1="18" x2="18" y2="21"/></svg>
+                        </span>
+                        <div>
+                            <div style="font-weight: 700; color: #1A237E; font-size: 15px;">Furniture Hub</div>
+                            <div style="font-size: 12px; color: #283593; font-weight: 600;">Furnish Your Space</div>
+                        </div>
                     </div>
                 </div>
 
@@ -1532,6 +1554,15 @@
                 const mainSearch = document.getElementById("roomify-search-input");
                 if (mainSearch) mainSearch.value = query;
             });
+        }
+
+        const sidebarFilterBtn = document.getElementById("sidebar-filter-btn");
+        if (sidebarFilterBtn) {
+            sidebarFilterBtn.onclick = function() {
+                const query = quickSearchInput ? quickSearchInput.value.trim() : "";
+                filterRooms(query);
+                closeSidebar();
+            };
         }
 
         // Chip selection logic
@@ -1566,8 +1597,21 @@
         }
 
         function applySidebarFilters() {
+            const locEl = document.getElementById("sidebar-search-input");
+            const locVal = locEl ? locEl.value.trim() : "";
+
             const maxBudgetEl = document.getElementById("sidebar-budget-input");
-            const maxBudget = maxBudgetEl ? maxBudgetEl.value : "";
+            const rawBudget = maxBudgetEl ? maxBudgetEl.value.trim() : "";
+            var clean = rawBudget.toLowerCase().replace("tzs", "").replace(/,/g, "").trim();
+            var parsedBudget = null;
+            if (clean.endsWith("k")) {
+                parsedBudget = parseFloat(clean.slice(0, -1)) * 1000;
+            } else if (clean.endsWith("m")) {
+                parsedBudget = parseFloat(clean.slice(0, -1)) * 1000000;
+            } else {
+                parsedBudget = parseFloat(clean);
+            }
+            if (isNaN(parsedBudget) || parsedBudget <= 0) parsedBudget = null;
 
             const statusChipsEl = document.getElementById("status-chips");
             const statusActiveEl = statusChipsEl ? statusChipsEl.querySelector(".active") : null;
@@ -1577,17 +1621,19 @@
             const typeActiveEl = typeChipsEl ? typeChipsEl.querySelector(".active") : null;
             const type = typeActiveEl ? typeActiveEl.getAttribute("data-type") : "ALL";
 
-            const bedsChipsEl = document.getElementById("beds-chips");
-            const bedsActiveEl = bedsChipsEl ? bedsChipsEl.querySelector(".active") : null;
-            const beds = bedsActiveEl ? bedsActiveEl.getAttribute("data-beds") : "ALL";
+            var combinedQueryParts = [];
+            if (locVal) combinedQueryParts.push(locVal);
+            if (parsedBudget) combinedQueryParts.push(parsedBudget);
+            if (type && type !== "ALL") combinedQueryParts.push(type);
 
-            // Dispatch event for Kotlin
+            filterRooms(combinedQueryParts.join(", "));
+
             var event = new CustomEvent("roomifySidebarFilter", {
                 detail: JSON.stringify({
-                    maxPrice: (maxBudget && !isNaN(parseFloat(maxBudget))) ? parseFloat(maxBudget) : null,
+                    area: locVal || null,
+                    maxPrice: parsedBudget,
                     status: (status && status !== "ALL") ? status : null,
-                    propertyType: (type && type !== "ALL") ? type : null,
-                    bedsCount: (beds && beds !== "ALL" && !isNaN(parseInt(beds))) ? parseInt(beds) : null
+                    propertyType: (type && type !== "ALL") ? type : null
                 })
             });
             document.dispatchEvent(event);
@@ -1945,139 +1991,86 @@
      */
 
     function filterRooms(query) {
-
-        var normalized =
-            String(query || "")
-                .trim()
-                .toLowerCase();
-
-
-        /*
-         * No search:
-         *
-         * display everything.
-         */
+        var normalized = String(query || "").trim().toLowerCase();
 
         if (!normalized) {
-
-            updateVisibleMarkers(
-                window.roomifyAllRooms
-            );
-
+            updateVisibleMarkers(window.roomifyAllRooms);
             hideSearchCount();
-
             return;
         }
 
+        var validTypes = ["room", "apartment", "studio", "house", "office"];
+        var targetType = null;
+        var maxBudget = null;
+        var locationTerms = [];
 
-        var words =
-            normalized
-                .split(/\s+/)
-                .filter(
-                    function (word) {
-                        return word.length > 0;
-                    }
-                );
+        var parts = normalized.includes(",") ? normalized.split(",") : normalized.split(/\s+/);
 
+        parts.forEach(function(part) {
+            var trimmed = part.trim();
+            if (!trimmed) return;
 
-        var filtered =
-            window.roomifyAllRooms.filter(
-                function (room) {
+            if (validTypes.includes(trimmed) && !targetType) {
+                targetType = trimmed;
+                return;
+            }
 
-                    var searchable =
-                        [
-                            room.title,
-                            room.address,
-                            room.propertyType,
-                            room.status,
-                            room.city,
-                            room.areaName,
-                            room.location
-                        ]
-                            .filter(
-                                function (value) {
-                                    return (
-                                        value !==
-                                        undefined &&
-                                        value !==
-                                        null
-                                    );
-                                }
-                            )
-                            .join(" ")
-                            .toLowerCase();
+            var clean = trimmed.replace("tzs", "").replace(/,/g, "").trim();
+            var priceNum = null;
+            if (clean.endsWith("k")) {
+                priceNum = parseFloat(clean.slice(0, -1)) * 1000;
+            } else if (clean.endsWith("m")) {
+                priceNum = parseFloat(clean.slice(0, -1)) * 1000000;
+            } else {
+                priceNum = parseFloat(clean);
+            }
 
+            if (!isNaN(priceNum) && priceNum > 0 && maxBudget === null) {
+                maxBudget = priceNum;
+                return;
+            }
 
-                    /*
-                     * Every typed word must exist somewhere
-                     * in the room information.
-                     *
-                     * Example:
-                     *
-                     * "Mikocheni apartment"
-                     *
-                     * both Mikocheni and apartment must match.
-                     */
+            locationTerms.push(trimmed);
+        });
 
-                    return words.every(
-                        function (word) {
+        var filtered = window.roomifyAllRooms.filter(function(room) {
+            if (maxBudget !== null && room.price > maxBudget) {
+                return false;
+            }
 
-                            return searchable
-                                .includes(word);
-                        }
-                    );
-                }
-            );
+            if (targetType) {
+                var pType = String(room.propertyType || "").toLowerCase();
+                if (!pType.includes(targetType)) return false;
+            }
 
+            if (locationTerms.length > 0) {
+                var searchable = [
+                    room.title, room.address, room.city, room.areaName, room.location
+                ].filter(Boolean).join(" ").toLowerCase();
 
-        updateVisibleMarkers(
-            filtered
-        );
-
-        showSearchCount(
-            filtered.length,
-            window.roomifyAllRooms.length
-        );
-
-
-        /*
-         * If one result exists, move the map to it.
-         */
-
-        if (
-            filtered.length === 1
-        ) {
-
-            var room =
-                filtered[0];
-
-            var lat =
-                Number(
-                    room.latitude !== undefined
-                        ? room.latitude
-                        : room.lat
-                );
-
-            var lng =
-                Number(
-                    room.longitude !== undefined
-                        ? room.longitude
-                        : room.lng
-                );
-
-            if (
-                isFinite(lat) &&
-                isFinite(lng)
-            ) {
-
-                window.roomifyMap.panTo({
-                    lat: lat,
-                    lng: lng
+                return locationTerms.every(function(term) {
+                    return searchable.includes(term);
                 });
+            }
 
-                window.roomifyMap.setZoom(
-                    15
-                );
+            return true;
+        });
+
+        updateVisibleMarkers(filtered);
+        showSearchCount(filtered.length, window.roomifyAllRooms.length);
+
+        if (filtered.length > 0 && window.roomifyMap) {
+            var bounds = new google.maps.LatLngBounds();
+            filtered.forEach(function(r) {
+                if (r.latitude && r.longitude) {
+                    bounds.extend(new google.maps.LatLng(Number(r.latitude), Number(r.longitude)));
+                }
+            });
+            if (!bounds.isEmpty()) {
+                window.roomifyMap.fitBounds(bounds);
+                if (filtered.length === 1 && window.roomifyMap.getZoom() > 16) {
+                    window.roomifyMap.setZoom(16);
+                }
             }
         }
     }
@@ -3334,8 +3327,8 @@
 
         var zoom = window.roomifyMap.getZoom();
         var showClusters = zoom < 7;
-        var showDots = zoom >= 7 && zoom < 11;
-        var showPills = zoom >= 11;
+        var showDots = zoom < 7;
+        var showPills = zoom >= 7;
 
         window.roomifyMarkers.forEach(function (entry) {
             if (!entry) return;

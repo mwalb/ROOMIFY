@@ -30,6 +30,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
@@ -38,8 +40,10 @@ import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Bathtub
 import androidx.compose.material.icons.filled.Bed
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SquareFoot
 import androidx.compose.material3.Button
@@ -48,6 +52,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -71,6 +77,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -607,8 +614,7 @@ actual fun MapContent(
             }
 
             val zoom = cameraPositionState.position.zoom
-            val showClusters = zoom < 6f
-            val showDots = zoom <= 20f
+            val showClusters = zoom < 7f
             
             if (showClusters) {
                 val clusters = rooms.filter { it.latitude != 0.0 && it.longitude != 0.0 }
@@ -660,17 +666,11 @@ actual fun MapContent(
                     val isSaved = savedRoomIds.contains(room.id ?: -1L)
                     val isViewed = viewedRoomIds.contains(room.id ?: -1L)
 
-                    val markerIcon = if (showDots) {
-                        createDotMarker(room, isSelected, isSaved, isViewed)
-                    } else {
-                        createPriceMarker(room, isSelected, isSaved, isViewed)
-                    }
-
                     Marker(
                         state = remember(room.id) { MarkerState(position = LatLng(room.latitude, room.longitude)) }.apply {
                             position = LatLng(room.latitude, room.longitude)
                         },
-                        icon = markerIcon,
+                        icon = createPriceMarker(room, isSelected, isSaved, isViewed),
                         title = room.title ?: "Room",
                         onClick = {
                             onRoomSelected(room)
@@ -681,10 +681,51 @@ actual fun MapContent(
             }
         }
 
+        // My Location Button
+        val myLocationScope = rememberCoroutineScope()
+        FloatingActionButton(
+            onClick = {
+                myLocationScope.launch {
+                    try {
+                        val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+                        @Suppress("MissingPermission")
+                        fusedLocationClient.lastLocation.addOnSuccessListener { loc ->
+                            if (loc != null) {
+                                myLocationScope.launch {
+                                    cameraPositionState.animate(
+                                        CameraUpdateFactory.newLatLngZoom(LatLng(loc.latitude, loc.longitude), 15.5f),
+                                        800
+                                    )
+                                }
+                            }
+                        }.addOnFailureListener {
+                            println("Location request failed: ${it.message}")
+                        }
+                    } catch (e: Exception) {
+                        println("Location error: ${e.message}")
+                    }
+                }
+            },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(bottom = if (selectedRoom != null) 280.dp else 90.dp, end = 16.dp),
+            containerColor = Color.White,
+            contentColor = RoomifyGradientStart,
+            shape = CircleShape,
+            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.MyLocation,
+                contentDescription = "My Location",
+                modifier = Modifier.size(24.dp)
+            )
+        }
+
         MapHeader(
             searchQuery = searchQuery,
             currentStatusFilter = currentStatusFilter,
             onStatusFilterChange = onStatusFilterChange,
+            onFiltersChange = onFiltersChange,
             onMenuClick = onMenuClick,
             onSearchChange = { searchQuery = it },
             onSearchClick = { searchFocusRequester.requestFocus() },
@@ -703,6 +744,60 @@ actual fun MapContent(
 
 /*
  * ============================================================
+ * HELPER FOR SEARCH QUERY PARSING
+ * ============================================================
+ */
+fun parseSearchQuery(query: String): Triple<String?, Double?, String?> {
+    if (query.isBlank()) return Triple(null, null, null)
+
+    val validTypes = listOf("ROOM", "APARTMENT", "STUDIO", "HOUSE", "OFFICE")
+    var extractedType: String? = null
+    var extractedPrice: Double? = null
+    val locationTokens = mutableListOf<String>()
+
+    val parts = if (query.contains(",")) {
+        query.split(",").map { it.trim() }
+    } else {
+        query.split("\\s+".toRegex()).map { it.trim() }
+    }
+
+    for (part in parts) {
+        if (part.isBlank()) continue
+
+        val matchedType = validTypes.find { it.equals(part, ignoreCase = true) }
+        if (matchedType != null && extractedType == null) {
+            extractedType = matchedType
+            continue
+        }
+
+        val cleanPart = part.replace("TZS", "", ignoreCase = true)
+            .replace(",", "")
+            .trim()
+
+        val parsedPrice = when {
+            cleanPart.lowercase().endsWith("k") -> {
+                cleanPart.dropLast(1).toDoubleOrNull()?.let { it * 1_000.0 }
+            }
+            cleanPart.lowercase().endsWith("m") -> {
+                cleanPart.dropLast(1).toDoubleOrNull()?.let { it * 1_000_000.0 }
+            }
+            else -> cleanPart.toDoubleOrNull()
+        }
+
+        if (parsedPrice != null && parsedPrice > 0 && extractedPrice == null) {
+            extractedPrice = parsedPrice
+            continue
+        }
+
+        locationTokens.add(part)
+    }
+
+    val extractedArea = locationTokens.joinToString(" ").ifBlank { null }
+    return Triple(extractedArea, extractedPrice, extractedType)
+}
+
+/*
+ * ============================================================
  * MAP HEADER
  * ============================================================
  */
@@ -712,11 +807,177 @@ private fun MapHeader(
     searchQuery: String,
     currentStatusFilter: String,
     onStatusFilterChange: (String) -> Unit,
+    onFiltersChange: (type: String?, area: String?, maxPrice: Double?, status: String?) -> Unit,
     onMenuClick: () -> Unit,
     onSearchChange: (String) -> Unit,
     onSearchClick: () -> Unit,
     searchFocusRequester: FocusRequester
 ) {
+    val strings = LocalRoomifyStrings.current
+
+    val triggerFilter = {
+        val (area, price, type) = parseSearchQuery(searchQuery)
+        onFiltersChange(type, area, price, currentStatusFilter)
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 18.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            /*
+             * ====================================================
+             * MENU BUTTON
+             * ====================================================
+             */
+            Surface(
+                modifier = Modifier
+                    .size(52.dp)
+                    .shadow(elevation = 8.dp, shape = CircleShape)
+                    .clip(CircleShape)
+                    .clickable(onClick = onMenuClick),
+                shape = CircleShape,
+                color = RoomifyGradientStart.copy(alpha = 0.94f)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.Menu,
+                        contentDescription = "Open menu",
+                        tint = RoomifyWhite,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+
+            /*
+             * ====================================================
+             * SEARCH BAR
+             * ====================================================
+             */
+            Surface(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(52.dp)
+                    .shadow(elevation = 8.dp, shape = RoundedCornerShape(18.dp)),
+                shape = RoundedCornerShape(18.dp),
+                color = RoomifyWhite.copy(alpha = 0.96f),
+                border = BorderStroke(1.dp, Color(0xFFBDBDBD))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 14.dp)
+                        .clickable(onClick = onSearchClick),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Search",
+                        tint = RoomifyGradientStart.copy(alpha = 0.78f),
+                        modifier = Modifier.size(22.dp)
+                    )
+
+                    Spacer(modifier = Modifier.width(10.dp))
+
+                    BasicTextField(
+                        value = searchQuery,
+                        onValueChange = onSearchChange,
+                        modifier = Modifier
+                            .weight(1f)
+                            .focusRequester(searchFocusRequester)
+                            .focusable(),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(onSearch = { triggerFilter() }),
+                        textStyle = TextStyle(
+                            color = RoomifyGradientStart,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        ),
+                        decorationBox = { innerTextField ->
+                            Box {
+                                if (searchQuery.isEmpty()) {
+                                    Text(
+                                        text = strings.searchPlaceholder,
+                                        color = RoomifyGradientStart.copy(alpha = 0.52f),
+                                        fontSize = 13.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                innerTextField()
+                            }
+                        }
+                    )
+
+                    if (searchQuery.isNotEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .clickable {
+                                    onSearchChange("")
+                                    onFiltersChange(null, null, null, currentStatusFilter)
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Clear search",
+                                tint = RoomifyGradientStart.copy(alpha = 0.70f),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            /*
+             * ====================================================
+             * FILTER BUTTON
+             * ====================================================
+             */
+            Surface(
+                modifier = Modifier
+                    .height(52.dp)
+                    .shadow(elevation = 8.dp, shape = RoundedCornerShape(18.dp))
+                    .clickable { triggerFilter() },
+                shape = RoundedCornerShape(18.dp),
+                color = RoomifyGradientStart
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.FilterList,
+                        contentDescription = "Filter",
+                        tint = RoomifyWhite,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Filter",
+                        color = RoomifyWhite,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            /*
+             * ====================================================
+             * STATUS DROPDOWN (Android)
+             * ====================================================
+             */
     val strings = LocalRoomifyStrings.current
 
     Column(

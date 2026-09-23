@@ -2,7 +2,6 @@ package org.com.ui.components
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -24,7 +23,8 @@ import org.com.model.User
 import org.com.model.initials
 
 private val PrimaryColor = Color(0xFF1A237E)
-private val BackgroundGray = Color(0xFFF8F9FA)
+private val BackgroundGray = Color(0xFFF1F5F9)
+private val TextDarkGray = Color(0xFF374151)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,9 +33,36 @@ fun RoomifySidebar(
     onNavigate: (String) -> Unit,
     onLogout: () -> Unit,
     onSearch: (type: String?, area: String?, maxPrice: Double?, status: String?) -> Unit,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    onMyLocationClick: (() -> Unit)? = null
 ) {
-    var areaQuery by remember { mutableStateOf("") }
+    var locationInput by remember { mutableStateOf("") }
+    var selectedType by remember { mutableStateOf("ALL") }
+    var budgetInput by remember { mutableStateOf("") }
+    var selectedStatus by remember { mutableStateOf("ALL") }
+
+    val applyFilter = {
+        val area = locationInput.trim().ifBlank { null }
+        val type = if (selectedType.uppercase() == "ALL") null else selectedType
+
+        val cleanBudget = budgetInput.replace("TZS", "", ignoreCase = true)
+            .replace(",", "")
+            .trim()
+        val parsedBudget = when {
+            cleanBudget.lowercase().endsWith("k") -> {
+                cleanBudget.dropLast(1).toDoubleOrNull()?.let { it * 1_000.0 }
+            }
+            cleanBudget.lowercase().endsWith("m") -> {
+                cleanBudget.dropLast(1).toDoubleOrNull()?.let { it * 1_000_000.0 }
+            }
+            else -> cleanBudget.toDoubleOrNull()
+        }
+
+        val status = if (selectedStatus.uppercase() == "ALL") null else selectedStatus
+
+        onSearch(type, area, parsedBudget, status)
+        onClose()
+    }
 
     ModalDrawerSheet(
         drawerContainerColor = Color.White,
@@ -46,8 +73,8 @@ fun RoomifySidebar(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // 1. Header Section
-            SidebarHeader(onClose)
+            // 1. Header Section (No X close button)
+            SidebarHeader()
             
             Column(
                 modifier = Modifier
@@ -60,7 +87,7 @@ fun RoomifySidebar(
                     "Explore Roomify",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black,
+                    color = Color(0xFF111827),
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
                 
@@ -74,56 +101,278 @@ fun RoomifySidebar(
                     )
                     ExploreActionCard(
                         title = "Furniture",
-                        subtitle = "Shop hub",
+                        subtitle = "Furnish Your Space",
                         icon = Icons.Default.Chair,
                         modifier = Modifier.weight(1f),
                         onClick = { onNavigate("furniture_dashboard"); onClose() }
                     )
                 }
-                
-                Spacer(Modifier.height(32.dp))
-                
-                // 3. Quick Search
-                Text(
-                    "Quick Search",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-                
+
+                Spacer(Modifier.height(16.dp))
+
+                // Prominent Furniture Hub Banner
                 Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    color = Color.White,
-                    border = BorderStroke(1.dp, Color(0xFFE0E0E0))
+                    onClick = { onNavigate("furniture_dashboard"); onClose() },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    color = Color(0xFFE8EAF6),
+                    border = BorderStroke(1.5.dp, PrimaryColor.copy(alpha = 0.25f))
                 ) {
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(horizontal = 16.dp)
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Search, null, tint = PrimaryColor, modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(12.dp))
-                        BasicTextField(
-                            value = areaQuery,
-                            onValueChange = { query ->
-                                areaQuery = query
-                                onSearch(null, query.ifBlank { null }, null, null)
-                            },
-                            modifier = Modifier.weight(1f),
-                            singleLine = true,
-                            decorationBox = { inner ->
-                                if (areaQuery.isEmpty()) Text("Where to?", color = Color.Gray, fontSize = 14.sp)
-                                inner()
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(PrimaryColor),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Chair,
+                                contentDescription = "Furniture Hub",
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        Spacer(Modifier.width(14.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "Furniture Hub",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp,
+                                color = PrimaryColor
+                            )
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                "Furnish Your Space",
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 12.sp,
+                                color = Color(0xFF283593)
+                            )
+                        }
+                        Icon(
+                            Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = PrimaryColor
+                        )
+                    }
+                }
+                
+                Spacer(Modifier.height(28.dp))
+                
+                // 3. Nearby Me Button at the top area of sidebar (clearly visible without scrolling)
+                OutlinedButton(
+                    onClick = {
+                        onMyLocationClick?.invoke()
+                        onClose()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.5.dp, PrimaryColor),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryColor)
+                ) {
+                    Text(
+                        text = "Nearby me",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = PrimaryColor
+                    )
+                }
+
+                Spacer(Modifier.height(20.dp))
+
+                // 4. Preferences Card
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color.White,
+                    border = BorderStroke(1.dp, Color(0xFFCBD5E1))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp)
+                    ) {
+                        Text(
+                            "Preferences",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF111827),
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        )
+
+                        // Location Field (placeholder "Location", no heading above)
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            color = Color.White,
+                            border = BorderStroke(1.dp, Color(0xFFCBD5E1))
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 14.dp)
+                            ) {
+                                BasicTextField(
+                                    value = locationInput,
+                                    onValueChange = { locationInput = it },
+                                    modifier = Modifier.weight(1f),
+                                    singleLine = true,
+                                    decorationBox = { inner ->
+                                        if (locationInput.isEmpty()) {
+                                            Text("Location", color = Color(0xFF9CA3AF), fontSize = 13.sp)
+                                        }
+                                        inner()
+                                    }
+                                )
+                                if (locationInput.isNotEmpty()) {
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = "Clear",
+                                        tint = Color.Gray,
+                                        modifier = Modifier
+                                            .size(16.dp)
+                                            .clickable { locationInput = "" }
+                                    )
+                                }
                             }
+                        }
+
+                        Spacer(Modifier.height(16.dp))
+
+                        // What are you looking for?
+                        Text(
+                            "What are you looking for?",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TextDarkGray,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+
+                        val propertyTypes = listOf("ALL", "Room", "Apartment", "Studio", "House", "Office")
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            propertyTypes.forEach { type ->
+                                val isSelected = selectedType.equals(type, ignoreCase = true)
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = { selectedType = type },
+                                    label = { Text(type, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = PrimaryColor,
+                                        selectedLabelColor = Color.White,
+                                        containerColor = Color(0xFFF1F5F9),
+                                        labelColor = TextDarkGray
+                                    )
+                                )
+                            }
+                        }
+
+                        Spacer(Modifier.height(16.dp))
+
+                        // Max Budget Field (placeholder "Max budget", no heading above)
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            color = Color.White,
+                            border = BorderStroke(1.dp, Color(0xFFCBD5E1))
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 14.dp)
+                            ) {
+                                BasicTextField(
+                                    value = budgetInput,
+                                    onValueChange = { budgetInput = it },
+                                    modifier = Modifier.weight(1f),
+                                    singleLine = true,
+                                    decorationBox = { inner ->
+                                        if (budgetInput.isEmpty()) {
+                                            Text("Max budget", color = Color(0xFF9CA3AF), fontSize = 13.sp)
+                                        }
+                                        inner()
+                                    }
+                                )
+                                if (budgetInput.isNotEmpty()) {
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = "Clear",
+                                        tint = Color.Gray,
+                                        modifier = Modifier
+                                            .size(16.dp)
+                                            .clickable { budgetInput = "" }
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(Modifier.height(20.dp))
+
+                        // APPLY FILTERS Button
+                        Button(
+                            onClick = { applyFilter() },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                        ) {
+                            Text(
+                                "APPLY FILTERS",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                letterSpacing = 0.5.sp
+                            )
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(20.dp))
+
+                // 8. STATUS Section (All, Available, Pending, Rented)
+                Text(
+                    "STATUS",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextDarkGray,
+                    letterSpacing = 1.sp,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                val statusOptions = listOf("All", "Available", "Pending", "Rented")
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    statusOptions.forEach { status ->
+                        val isSelected = selectedStatus.equals(status, ignoreCase = true)
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { selectedStatus = status },
+                            label = { Text(status, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = PrimaryColor,
+                                selectedLabelColor = Color.White,
+                                containerColor = Color(0xFFF1F5F9),
+                                labelColor = TextDarkGray
+                            )
                         )
                     }
                 }
             }
 
-            // 4. Footer (Login / Register)
+            // Footer (Login / Register / Profile)
             HorizontalDivider(color = Color(0xFFEEEEEE), thickness = 1.dp)
             Box(
                 modifier = Modifier
@@ -146,17 +395,18 @@ fun RoomifySidebar(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(32.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(PrimaryColor.copy(alpha = 0.1f)),
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(PrimaryColor.copy(alpha = 0.12f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(user.initials, color = PrimaryColor, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Text(user.initials, color = PrimaryColor, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                         }
                         Spacer(Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(user.name, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.Black)
-                            Text("Account Settings", fontSize = 11.sp, color = Color.Gray)
+                            Text(user.name, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF111827))
+                            Spacer(Modifier.height(2.dp))
+                            Text("Account Settings", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = TextDarkGray)
                         }
                         IconButton(onClick = onLogout) {
                             Icon(Icons.AutoMirrored.Filled.Logout, null, tint = Color.Red, modifier = Modifier.size(18.dp))
@@ -169,7 +419,7 @@ fun RoomifySidebar(
 }
 
 @Composable
-private fun SidebarHeader(onClose: () -> Unit) {
+private fun SidebarHeader() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -186,24 +436,13 @@ private fun SidebarHeader(onClose: () -> Unit) {
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Black
             )
+            Spacer(Modifier.height(4.dp))
             Text(
                 text = "Your living space partner",
-                color = Color.White.copy(alpha = 0.8f),
+                color = Color.White.copy(alpha = 0.95f),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium
             )
-        }
-        
-        IconButton(
-            onClick = onClose,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .offset(x = 12.dp, y = (-20).dp)
-                .size(32.dp)
-                .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.15f))
-        ) {
-            Icon(Icons.Default.Close, null, tint = Color.White, modifier = Modifier.size(18.dp))
         }
     }
 }
@@ -218,19 +457,28 @@ private fun ExploreActionCard(
 ) {
     Surface(
         onClick = onClick,
-        modifier = modifier.height(110.dp),
+        modifier = modifier.height(115.dp),
         shape = RoundedCornerShape(20.dp),
         color = BackgroundGray,
-        border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.1f))
+        border = BorderStroke(1.dp, Color(0xFFCBD5E1))
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Icon(icon, null, tint = PrimaryColor, modifier = Modifier.size(28.dp))
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(PrimaryColor.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, null, tint = PrimaryColor, modifier = Modifier.size(22.dp))
+            }
             Column {
-                Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.Black)
-                Text(subtitle, fontSize = 11.sp, color = Color.Gray)
+                Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF111827))
+                Spacer(Modifier.height(2.dp))
+                Text(subtitle, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TextDarkGray)
             }
         }
     }

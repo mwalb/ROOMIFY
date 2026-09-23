@@ -48,7 +48,6 @@ import org.com.network.RoomifyApi
 import org.com.ui.AnalyticsScreen
 import org.com.ui.SplashScreen
 import org.com.ui.TenantScreen
-import org.com.ui.DiscoveryDashboard
 import org.com.ui.MessagesScreen
 import org.com.ui.MyBookingsScreen
 import org.com.ui.FavouriteScreen
@@ -755,11 +754,7 @@ fun App() {
                         val user = (authState as AuthState.Authenticated).user
                         when (currentRoute) {
                                 "discovery" -> {
-                                    DiscoveryDashboard(initialArea = discoveryQuery) { type, area, price, status ->
-                                        viewModel.setFilters(type, area, price, status)
-                                        discoveryQuery = null
-                                        currentRoute = "map"
-                                    }
+                                    currentRoute = "map"
                                 }
                                 "map" -> {
                                     AppMapContainer(
@@ -1146,10 +1141,7 @@ fun App() {
                                 )
                             }
                             "discovery" -> {
-                                DiscoveryDashboard { type, area, price, status ->
-                                    viewModel.setFilters(type, area, price, status)
-                                    currentRoute = "map"
-                                }
+                                currentRoute = "map"
                             }
                             else -> {
                                 // Public map

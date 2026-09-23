@@ -73,8 +73,6 @@ fun OwnerDashboardScreen(
     val strings = LocalRoomifyStrings.current
     var selectedTab by remember { mutableStateOf(0) }
     val scrollState = rememberScrollState()
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
 
     Box(
         modifier = Modifier
