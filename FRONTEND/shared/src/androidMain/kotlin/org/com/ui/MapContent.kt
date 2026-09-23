@@ -614,7 +614,7 @@ actual fun MapContent(
             }
 
             val zoom = cameraPositionState.position.zoom
-            val showClusters = zoom < 10f
+            val showClusters = zoom < 8f
             
             if (showClusters) {
                 val clusters = rooms.filter { it.latitude != 0.0 && it.longitude != 0.0 }

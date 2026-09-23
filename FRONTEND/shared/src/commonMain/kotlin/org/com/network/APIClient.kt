@@ -61,15 +61,11 @@ object ApiClient {
             .replace("10.0.2.2:8080", "")
 
         // 2. Determine full URL
-        val fullUrl = when {
+        return when {
             cleanPath.startsWith("http") -> cleanPath
             cleanPath.startsWith("/") -> "$MEDIA_BASE_URL$cleanPath"
             else -> "$MEDIA_BASE_URL/$cleanPath"
         }
-        
-        // 3. Add Cache Buster to ensure fresh images
-        val separator = if (fullUrl.contains("?")) "&" else "?"
-        return "$fullUrl${separator}v=${org.com.currentTimeMillis()}"
     }
 
     fun setToken(newToken: String?) {

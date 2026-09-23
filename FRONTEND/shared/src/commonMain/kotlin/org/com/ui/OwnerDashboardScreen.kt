@@ -100,6 +100,20 @@ fun OwnerDashboardScreen(
                         .padding(horizontal = 20.dp, vertical = 16.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(
+                            onClick = onBack,
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(Color.White.copy(alpha = 0.15f), CircleShape)
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 @Suppress("DEPRECATION")

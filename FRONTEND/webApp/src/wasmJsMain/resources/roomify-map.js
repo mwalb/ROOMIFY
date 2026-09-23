@@ -1354,29 +1354,32 @@
     function applyMarkerVisibility() {
         if (!Array.isArray(window.roomifyMarkers)) return;
 
-        var filter = window.roomifyCurrentStatusFilter;
+        var filter = String(window.roomifyCurrentStatusFilter || "ALL").trim().toLowerCase();
 
         window.roomifyMarkers.forEach(function(entry) {
             if (!entry || !entry.marker || !entry.room) return;
 
-            var status = String(entry.room.status || "AVAILABLE").toUpperCase();
+            var status = String(entry.room.status || "available").trim().toLowerCase();
             var visible = true;
 
-            if (filter === "AVAILABLE") {
-                // Show AVAILABLE + RENTED
-                visible = (status === "AVAILABLE" || status === "RENTED");
-            } else if (filter === "PENDING") {
-                // Show PENDING + RENTED
-                visible = (status === "PENDING" || status === "RENTED");
-            } else if (filter === "RENTED") {
-                // Show RENTED only
-                visible = (status === "RENTED");
+            if (filter === "available") {
+                visible = (status === "available");
+            } else if (filter === "pending") {
+                visible = (status === "pending");
+            } else if (filter === "rented") {
+                visible = (status === "rented");
             } else {
-                // ALL
                 visible = true;
             }
 
             entry.marker.setVisible(visible);
+
+            if (!visible && window.roomifySelectedRoomId && String(entry.room.id) === String(window.roomifySelectedRoomId)) {
+                window.roomifySelectedRoomId = null;
+                if (window.roomifyInfoOverlay) {
+                    window.roomifyInfoOverlay.hide();
+                }
+            }
         });
     }
 
@@ -1543,7 +1546,6 @@
 
         // DO NOT filter while typing (No input event listeners on sidebar search or budget inputs)
         const quickSearchInput = document.getElementById("sidebar-search-input");
-        const budgetInput = document.getElementById("sidebar-budget-input");
 
         const sidebarFilterBtn = document.getElementById("sidebar-filter-btn");
         if (sidebarFilterBtn) {
@@ -1569,26 +1571,34 @@
         setupChips("type-chips", "data-type", (type) => {});
         setupChips("status-chips", "data-status", (status) => {});
 
+        // Max Budget Comma Formatting
+        const budgetInput = document.getElementById("sidebar-budget-input");
+        if (budgetInput) {
+            budgetInput.addEventListener("input", function(e) {
+                let numStr = e.target.value.replace(/[^0-9]/g, "");
+                if (numStr) {
+                    let num = parseInt(numStr, 10);
+                    e.target.value = num.toLocaleString();
+                } else {
+                    e.target.value = "";
+                }
+            });
+        }
+
         function applySidebarFilters() {
             const locEl = document.getElementById("sidebar-search-input");
             const locVal = locEl ? locEl.value.trim() : "";
 
             const maxBudgetEl = document.getElementById("sidebar-budget-input");
             const rawBudget = maxBudgetEl ? maxBudgetEl.value.trim() : "";
-            var clean = rawBudget.toLowerCase().replace("tzs", "").replace(/,/g, "").trim();
-            var parsedBudget = null;
-            if (clean.endsWith("k")) {
-                parsedBudget = parseFloat(clean.slice(0, -1)) * 1000;
-            } else if (clean.endsWith("m")) {
-                parsedBudget = parseFloat(clean.slice(0, -1)) * 1000000;
-            } else {
-                parsedBudget = parseFloat(clean);
-            }
+            var clean = rawBudget.toLowerCase().replace(/,/g, "").replace("tzs", "").trim();
+            var parsedBudget = parseFloat(clean);
             if (isNaN(parsedBudget) || parsedBudget <= 0) parsedBudget = null;
 
             const statusChipsEl = document.getElementById("status-chips");
             const statusActiveEl = statusChipsEl ? statusChipsEl.querySelector(".active") : null;
             const status = statusActiveEl ? statusActiveEl.getAttribute("data-status") : "ALL";
+            window.roomifyCurrentStatusFilter = status;
 
             const typeChipsEl = document.getElementById("type-chips");
             const typeActiveEl = typeChipsEl ? typeChipsEl.querySelector(".active") : null;
@@ -1600,6 +1610,7 @@
             if (type && type !== "ALL") combinedQueryParts.push(type);
 
             filterRooms(combinedQueryParts.join(", "));
+            applyMarkerVisibility();
 
             var event = new CustomEvent("roomifySidebarFilter", {
                 detail: JSON.stringify({
@@ -3299,9 +3310,9 @@
         if (!Array.isArray(window.roomifyMarkers) || !window.roomifyMap) return;
 
         var zoom = window.roomifyMap.getZoom();
-        var showClusters = zoom < 10;
-        var showDots = zoom < 10;
-        var showPills = zoom >= 10;
+        var showClusters = zoom < 8;
+        var showDots = zoom < 8;
+        var showPills = zoom >= 8;
 
         window.roomifyMarkers.forEach(function (entry) {
             if (!entry) return;
