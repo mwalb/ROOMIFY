@@ -2,6 +2,7 @@ package org.com.ui.components
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -73,7 +74,7 @@ fun RoomifySidebar(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // 1. Header Section
-            SidebarHeader()
+            SidebarHeader(onClose = onClose)
             
             Column(
                 modifier = Modifier
@@ -547,7 +548,7 @@ fun RoomifySidebar(
 }
 
 @Composable
-private fun SidebarHeader() {
+private fun SidebarHeader(onClose: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -555,10 +556,9 @@ private fun SidebarHeader() {
                 brush = Brush.verticalGradient(listOf(PrimaryColor, PrimaryColor.copy(alpha = 0.85f))),
                 shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
             )
-            .padding(top = 40.dp, bottom = 30.dp, start = 24.dp, end = 24.dp),
-        contentAlignment = Alignment.Center
+            .padding(top = 40.dp, bottom = 30.dp, start = 24.dp, end = 24.dp)
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = "Roomify",
                 color = Color.White,
@@ -572,6 +572,15 @@ private fun SidebarHeader() {
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium
             )
+        }
+        IconButton(
+            onClick = onClose,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .size(36.dp)
+                .background(Color.White.copy(alpha = 0.2f), CircleShape)
+        ) {
+            Text("✕", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
         }
     }
 }

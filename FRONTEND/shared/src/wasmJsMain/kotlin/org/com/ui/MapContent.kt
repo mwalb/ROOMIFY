@@ -752,7 +752,8 @@ actual fun MapContent(
                     val maxPrice = json["maxPrice"]?.toString()?.toDoubleOrNull()
                     val status = json["status"]?.toString()?.replace("\"", "")
                     val propertyType = json["propertyType"]?.toString()?.replace("\"", "")
-                    onFiltersChange(propertyType, null, maxPrice, status)
+                    val area = json["area"]?.toString()?.replace("\"", "")?.ifBlank { null }
+                    onFiltersChange(propertyType, area, maxPrice, status)
                 } catch (e: Exception) {
                     println("Roomify: Error parsing sidebar filter: ${e.message}")
                 }

@@ -1724,6 +1724,7 @@
             <div class="roomify-sidebar-header">
                 <div class="roomify-sidebar-brand">Roomify</div>
                 <div class="roomify-sidebar-tagline">Your living space partner</div>
+                <div class="roomify-sidebar-close" onclick="window.roomifyCloseSidebar()">✕</div>
             </div>
 
             <div class="roomify-sidebar-body" style="padding: 20px;">
@@ -2065,6 +2066,8 @@
             backdrop.style.display = "none";
         }
     }
+
+    window.roomifyCloseSidebar = closeSidebar;
 
     function createBackdrop() {
         if (document.getElementById("roomify-sidebar-backdrop")) return;
