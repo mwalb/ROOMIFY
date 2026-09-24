@@ -108,7 +108,7 @@ object ApiClient {
         defaultRequest {
 
             url(BASE_URL)
-cd
+
             accept(
                 ContentType.Application.Json
             )

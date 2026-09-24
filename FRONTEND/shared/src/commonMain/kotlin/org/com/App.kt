@@ -486,6 +486,44 @@ fun App() {
             "furniture_dashboard" -> {
                 currentRoute = "furniture_dashboard"
             }
+            "tenant" -> {
+                loadTenantBookings()
+                loadTenantConversations()
+                currentRoute = "tenant"
+            }
+            "saved" -> {
+                loadTenantBookings()
+                currentRoute = "saved"
+            }
+            "bookings" -> {
+                loadTenantBookings()
+                currentRoute = "bookings"
+            }
+            "messages" -> {
+                loadTenantConversations()
+                currentRoute = "messages"
+            }
+            "ownerdashboard" -> {
+                loadOwnerBookings()
+                loadOwnerConversations()
+                currentRoute = "ownerdashboard"
+            }
+            "dalalidashboard" -> {
+                loadOwnerBookings()
+                currentRoute = "dalalidashboard"
+            }
+            "admindashboard" -> {
+                currentRoute = "admindashboard"
+            }
+            "postroom" -> {
+                currentRoute = "postroom"
+            }
+            "profile" -> {
+                currentRoute = "profile"
+            }
+            else -> {
+                currentRoute = route
+            }
         }
     }
 
@@ -1321,16 +1359,9 @@ private fun AppMapContainer(
     onNavigate: (String) -> Unit
 ) {
     val user = (authState as? AuthState.Authenticated)?.user
+    val isAndroid = getPlatform().name.contains("Android", ignoreCase = true)
 
-    RoomifyBottomPanelShell(
-        user = user,
-        currentRoute = "map",
-        onNavigate = onNavigate,
-        onLogout = onLogout,
-        onSearch = { type, area, price, status ->
-            viewModel.setFilters(type, area, price, status)
-        }
-    ) {
+    val mapContent = @Composable {
         Box(modifier = Modifier.fillMaxSize()) {
             MapContent(
                 rooms = viewModel.filteredRooms,
@@ -1358,6 +1389,22 @@ private fun AppMapContainer(
                 onNavigate = onNavigate
             )
         }
+    }
+
+    if (isAndroid) {
+        RoomifyBottomPanelShell(
+            user = user,
+            currentRoute = "map",
+            onNavigate = onNavigate,
+            onLogout = onLogout,
+            onSearch = { type, area, price, status ->
+                viewModel.setFilters(type, area, price, status)
+            }
+        ) {
+            mapContent()
+        }
+    } else {
+        mapContent()
     }
 }
 
