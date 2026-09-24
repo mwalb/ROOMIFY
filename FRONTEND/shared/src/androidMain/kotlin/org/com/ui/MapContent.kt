@@ -64,7 +64,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
+import org.com.network.RoomifyApi
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -112,6 +115,7 @@ import kotlin.math.roundToInt
  */
 
 private const val ROOMIFY_BLUE = 0xFF1976D2
+private const val ROOMIFY_GREEN = 0xFF2E7D32
 private val RoomifyGradientStart = Color(0xFF1A237E)
 private val RoomifyGradientEnd = Color(0xFF3949AB)
 private val RoomifyWhite = Color(0xFFFFFFFF)
@@ -255,7 +259,7 @@ private fun createPriceMarker(
 ): BitmapDescriptor {
     val color = statusColor(status = room.status, selected = selected, isSaved = isSaved, isViewed = isViewed)
     val status = room.status?.uppercase() ?: "AVAILABLE"
-    val alpha = if (!selected && status == "RENTED") 140 else 255
+    val alpha = 255
     val text = formatCompactPrice(room.price)
     
     // Scale up for selected marker to make it "grow" and more noticeable
@@ -481,6 +485,7 @@ actual fun MapContent(
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(LatLng(-6.7924, 39.2083), 13f)
     }
+    val mapScope = rememberCoroutineScope()
 
     LaunchedEffect(rooms, shouldFitBounds) {
         if (shouldFitBounds && rooms.isNotEmpty()) {
@@ -614,7 +619,7 @@ actual fun MapContent(
             }
 
             val zoom = cameraPositionState.position.zoom
-            val showClusters = zoom < 5f
+            val showClusters = zoom < 12f
             
             if (showClusters) {
                 val clusters = rooms.filter { it.latitude != 0.0 && it.longitude != 0.0 }
@@ -635,10 +640,12 @@ actual fun MapContent(
                             state = MarkerState(position = LatLng(avgLat, avgLng)),
                             icon = createClusterMarker(clusteredRooms.size),
                             onClick = {
-                                cameraPositionState.animate(
-                                    CameraUpdateFactory.newLatLngZoom(LatLng(avgLat, avgLng), zoom + 2f),
-                                    500
-                                )
+                                mapScope.launch {
+                                    cameraPositionState.animate(
+                                        CameraUpdateFactory.newLatLngZoom(LatLng(avgLat, avgLng), zoom + 2f),
+                                        500
+                                    )
+                                }
                                 true
                             }
                         )
@@ -832,35 +839,7 @@ private fun MapHeader(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            /*
-             * ====================================================
-             * MENU BUTTON
-             * ====================================================
-             */
-            Surface(
-                modifier = Modifier
-                    .size(52.dp)
-                    .shadow(elevation = 8.dp, shape = CircleShape)
-                    .clip(CircleShape)
-                    .clickable(onClick = onMenuClick),
-                shape = CircleShape,
-                color = RoomifyGradientStart.copy(alpha = 0.94f)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Default.Menu,
-                        contentDescription = "Open menu",
-                        tint = RoomifyWhite,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-
-            /*
-             * ====================================================
-             * SEARCH BAR
-             * ====================================================
-             */
+            /* SEARCH BAR */
             Surface(
                 modifier = Modifier
                     .weight(1f)
@@ -939,166 +918,7 @@ private fun MapHeader(
                 }
             }
 
-            /*
-             * ====================================================
-             * FILTER BUTTON
-             * ====================================================
-             */
-            Surface(
-                modifier = Modifier
-                    .height(52.dp)
-                    .shadow(elevation = 8.dp, shape = RoundedCornerShape(18.dp))
-                    .clickable { triggerFilter() },
-                shape = RoundedCornerShape(18.dp),
-                color = RoomifyGradientStart
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.FilterList,
-                        contentDescription = "Filter",
-                        tint = RoomifyWhite,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Filter",
-                        color = RoomifyWhite,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
-            /*
-             * ====================================================
-             * STATUS DROPDOWN (Android)
-             * ====================================================
-             */
-    val strings = LocalRoomifyStrings.current
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 18.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            /*
-             * ====================================================
-             * MENU BUTTON
-             * ====================================================
-             */
-            Surface(
-                modifier = Modifier
-                    .size(52.dp)
-                    .shadow(elevation = 8.dp, shape = CircleShape)
-                    .clip(CircleShape)
-                    .clickable(onClick = onMenuClick),
-                shape = CircleShape,
-                color = RoomifyGradientStart.copy(alpha = 0.94f)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Default.Menu,
-                        contentDescription = "Open menu",
-                        tint = RoomifyWhite,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-
-            /*
-             * ====================================================
-             * SEARCH BAR
-             * ====================================================
-             */
-            Surface(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(52.dp)
-                    .shadow(elevation = 8.dp, shape = RoundedCornerShape(18.dp)),
-                shape = RoundedCornerShape(18.dp),
-                color = RoomifyWhite.copy(alpha = 0.96f),
-                border = BorderStroke(1.dp, Color(0xFFBDBDBD))
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 14.dp)
-                        .clickable(onClick = onSearchClick),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Search",
-                        tint = RoomifyGradientStart.copy(alpha = 0.78f),
-                        modifier = Modifier.size(22.dp)
-                    )
-
-                    Spacer(modifier = Modifier.width(10.dp))
-
-                    BasicTextField(
-                        value = searchQuery,
-                        onValueChange = onSearchChange,
-                        modifier = Modifier
-                            .weight(1f)
-                            .focusRequester(searchFocusRequester)
-                            .focusable(),
-                        singleLine = true,
-                        textStyle = TextStyle(
-                            color = RoomifyGradientStart,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
-                        ),
-                        decorationBox = { innerTextField ->
-                            Box {
-                                if (searchQuery.isEmpty()) {
-                                    Text(
-                                        text = strings.searchPlaceholder,
-                                        color = RoomifyGradientStart.copy(alpha = 0.52f),
-                                        fontSize = 13.sp,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                                innerTextField()
-                            }
-                        }
-                    )
-
-                    if (searchQuery.isNotEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .clickable { onSearchChange("") },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Clear search",
-                                tint = RoomifyGradientStart.copy(alpha = 0.70f),
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
-                }
-            }
-
-            /*
-             * ====================================================
-             * STATUS DROPDOWN (Android)
-             * ====================================================
-             */
+            /* STATUS DROPDOWN (Android) */
             var statusExpanded by remember { mutableStateOf(false) }
 
             Box {

@@ -64,78 +64,60 @@ fun TenantScreen(
     onNavigate: (String) -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            org.com.ui.components.RoomifySidebar(
-                user = user,
-                onNavigate = onNavigate,
-                onLogout = onLogout,
-                onSearch = onSearch,
-                onClose = { scope.launch { drawerState.close() } }
-            )
-        }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF8F9FA))
     ) {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFFF8F9FA))
+                .verticalScroll(scrollState)
         ) {
-            Column(
+            // HEADER (Blue Background)
+            Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scrollState)
-            ) {
-                // HEADER (Blue Background)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            brush = Brush.verticalGradient(
-                                listOf(PrimaryColor, PrimaryLight)
-                            ),
-                            shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
+                    .fillMaxWidth()
+                    .background(
+                        brush = Brush.verticalGradient(
+                            listOf(PrimaryColor, PrimaryLight)
                         ),
-                    contentAlignment = Alignment.Center
+                        shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    modifier = Modifier
+                        .widthIn(max = 800.dp)
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp)
+                        .padding(top = 48.dp, bottom = 48.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .widthIn(max = 800.dp)
-                            .fillMaxWidth()
-                            .padding(horizontal = 24.dp)
-                            .padding(top = 48.dp, bottom = 48.dp),
-                        verticalArrangement = Arrangement.spacedBy(20.dp)
+                    // Top row with Profile info (Hamburger removed)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        // Top row with Menu and Profile info
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                                    Icon(Icons.Default.Menu, null, tint = Color.White)
-                                }
-                                Spacer(Modifier.width(8.dp))
-                                Column {
-                                    @Suppress("DEPRECATION")
-                                    Text(
-                                        "${user.name} 👋", 
-                                        color = Color.White, 
-                                        fontSize = 24.sp, 
-                                        fontWeight = FontWeight.Black
-                                    )
-                                    @Suppress("DEPRECATION")
-                                    Text(
-                                        "Find a place that feels like home.", 
-                                        color = Color.White.copy(alpha = 0.7f), 
-                                        fontSize = 14.sp
-                                    )
-                                }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column {
+                                @Suppress("DEPRECATION")
+                                Text(
+                                    "${user.name} 👋", 
+                                    color = Color.White, 
+                                    fontSize = 24.sp, 
+                                    fontWeight = FontWeight.Black
+                                )
+                                @Suppress("DEPRECATION")
+                                Text(
+                                    "Find a place that feels like home.", 
+                                    color = Color.White.copy(alpha = 0.7f), 
+                                    fontSize = 14.sp
+                                )
                             }
+                        }
 
                             if (!user.profileImage.isNullOrBlank() && !user.profileImage!!.contains("profile/image")) {
                                 val fullUrl = ApiClient.resolveUrl(user.profileImage!!)
@@ -401,7 +383,6 @@ fun TenantScreen(
             }
         }
     }
-}
 
 @Composable
 private fun QuickActionItem(title: String, icon: ImageVector, color: Color, modifier: Modifier = Modifier, onClick: () -> Unit) {

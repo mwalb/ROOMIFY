@@ -24,26 +24,14 @@ import org.com.model.ApiResponse
 
 object ApiClient {
 
-    /*
-     * IMPORTANT:
-     * http://10.0.2.2:8080/api/
-     * Keep the trailing slash.
-     *
-     * Base URL:
-     * http://localhost:8080/
-     *
-     * Endpoints:
-     * api/rooms
-     * api/auth/login
-     * api/bookings
-     *
-     * Result:
-     * http://localhost:8080/api/rooms
-     */
-
     val MEDIA_BASE_URL = "http://${getPlatformHost()}:8080"
-    private val BASE_URL = "$MEDIA_BASE_URL/api/"
+    val BASE_URL = "$MEDIA_BASE_URL/api/"
     private var token: String? = null
+
+    init {
+        println("Roomify API base URL: $BASE_URL")
+        println("Roomify Media base URL: $MEDIA_BASE_URL")
+    }
 
     /**
      * Resolves a potentially relative path from the backend into a full URL.
@@ -51,18 +39,21 @@ object ApiClient {
      */
     fun resolveUrl(path: String?): String {
         if (path.isNullOrBlank()) return ""
-        
-        // 1. Clean path - Remove any hardcoded or stale hostnames
-        val cleanPath = path
-            .replace("http:/192.168.3.25:8080", "")
+
+        // Clean path - Remove any hardcoded or stale hostnames
+        var cleanPath = path
+            .replace("http://192.168.3.25:8080", "")
             .replace("https://192.168.3.25:8080", "")
-            .replace("localhost:8080", "")
+            .replace("http://localhost:8080", "")
+            .replace("https://localhost:8080", "")
+            .replace("http://127.0.0.1:8080", "")
             .replace("http://10.0.2.2:8080", "")
             .replace("10.0.2.2:8080", "")
+            .replace("localhost:8080", "")
+            .replace("127.0.0.1:8080", "")
 
-        // 2. Determine full URL
         return when {
-            cleanPath.startsWith("http") -> cleanPath
+            cleanPath.startsWith("http://", ignoreCase = true) || cleanPath.startsWith("https://", ignoreCase = true) -> cleanPath
             cleanPath.startsWith("/") -> "$MEDIA_BASE_URL$cleanPath"
             else -> "$MEDIA_BASE_URL/$cleanPath"
         }
@@ -117,7 +108,7 @@ object ApiClient {
         defaultRequest {
 
             url(BASE_URL)
-
+cd
             accept(
                 ContentType.Application.Json
             )

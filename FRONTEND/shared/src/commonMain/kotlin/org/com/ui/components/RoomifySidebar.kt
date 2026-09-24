@@ -64,53 +64,391 @@ fun RoomifySidebar(
         onClose()
     }
 
-    ModalDrawerSheet(
-        drawerContainerColor = Color.White,
-        drawerTonalElevation = 0.dp,
-        modifier = Modifier.width(320.dp).fillMaxHeight(),
-        drawerShape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp)
+    Surface(
+        modifier = Modifier.fillMaxWidth().fillMaxHeight(),
+        color = Color.White
     ) {
         Column(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 1. Header Section (No X close button)
+            // 1. Header Section
             SidebarHeader()
             
             Column(
                 modifier = Modifier
+                    .fillMaxWidth()
                     .weight(1f)
                     .verticalScroll(rememberScrollState())
-                    .padding(24.dp)
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // 2. Explore Roomify
-                Text(
-                    "Explore Roomify",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF111827),
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-                
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    ExploreActionCard(
-                        title = "Rentals",
-                        subtitle = "Find a room",
-                        icon = Icons.Default.Home,
-                        modifier = Modifier.weight(1f),
-                        onClick = { onNavigate("map"); onClose() }
-                    )
-                    ExploreActionCard(
-                        title = "Furniture",
-                        subtitle = "Furnish Your Space",
-                        icon = Icons.Default.Chair,
-                        modifier = Modifier.weight(1f),
-                        onClick = { onNavigate("furniture_choice"); onClose() }
+                // Role-Specific Navigation Section matching Web
+                val upperRole = (user?.role ?: "").uppercase()
+                when (upperRole) {
+                    "TENANT" -> {
+                        Text(
+                            "My Dashboard",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF111827),
+                            modifier = Modifier.padding(bottom = 12.dp).align(Alignment.Start)
+                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = false,
+                                onClick = { onNavigate("tenant"); onClose() },
+                                label = { Text("Overview", fontWeight = FontWeight.Bold) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    containerColor = Color(0xFFF1F5F9),
+                                    labelColor = TextDarkGray
+                                )
+                            )
+                            FilterChip(
+                                selected = false,
+                                onClick = { onNavigate("saved"); onClose() },
+                                label = { Text("Favourites", fontWeight = FontWeight.Bold) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    containerColor = Color(0xFFF1F5F9),
+                                    labelColor = TextDarkGray
+                                )
+                            )
+                            FilterChip(
+                                selected = false,
+                                onClick = { onNavigate("bookings"); onClose() },
+                                label = { Text("My Bookings", fontWeight = FontWeight.Bold) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    containerColor = Color(0xFFF1F5F9),
+                                    labelColor = TextDarkGray
+                                )
+                            )
+                            FilterChip(
+                                selected = false,
+                                onClick = { onNavigate("messages"); onClose() },
+                                label = { Text("Messages", fontWeight = FontWeight.Bold) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    containerColor = Color(0xFFF1F5F9),
+                                    labelColor = TextDarkGray
+                                )
+                            )
+                        }
+                        Spacer(Modifier.height(20.dp))
+                    }
+                    "OWNER" -> {
+                        Text(
+                            "Management",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF111827),
+                            modifier = Modifier.padding(bottom = 12.dp).align(Alignment.Start)
+                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = false,
+                                onClick = { onNavigate("ownerdashboard"); onClose() },
+                                label = { Text("Dashboard", fontWeight = FontWeight.Bold) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    containerColor = Color(0xFFF1F5F9),
+                                    labelColor = TextDarkGray
+                                )
+                            )
+                            FilterChip(
+                                selected = false,
+                                onClick = { onNavigate("postroom"); onClose() },
+                                label = { Text("Post a Room", fontWeight = FontWeight.Bold) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    containerColor = Color(0xFFF1F5F9),
+                                    labelColor = TextDarkGray
+                                )
+                            )
+                        }
+                        Spacer(Modifier.height(20.dp))
+                    }
+                    "DALALI" -> {
+                        Text(
+                            "Dalali Tools",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF111827),
+                            modifier = Modifier.padding(bottom = 12.dp).align(Alignment.Start)
+                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = false,
+                                onClick = { onNavigate("dalalidashboard"); onClose() },
+                                label = { Text("Dashboard", fontWeight = FontWeight.Bold) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    containerColor = Color(0xFFF1F5F9),
+                                    labelColor = TextDarkGray
+                                )
+                            )
+                            FilterChip(
+                                selected = false,
+                                onClick = { onNavigate("postroom"); onClose() },
+                                label = { Text("Post a Room", fontWeight = FontWeight.Bold) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    containerColor = Color(0xFFF1F5F9),
+                                    labelColor = TextDarkGray
+                                )
+                            )
+                        }
+                        Spacer(Modifier.height(20.dp))
+                    }
+                    "ADMIN", "SUPER_ADMIN" -> {
+                        Text(
+                            "Administration",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF111827),
+                            modifier = Modifier.padding(bottom = 12.dp).align(Alignment.Start)
+                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = false,
+                                onClick = { onNavigate("admindashboard"); onClose() },
+                                label = { Text("Admin Panel", fontWeight = FontWeight.Bold) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    containerColor = Color(0xFFF1F5F9),
+                                    labelColor = TextDarkGray
+                                )
+                            )
+                        }
+                        Spacer(Modifier.height(20.dp))
+                    }
+                }
+
+                // 3. Nearby Me Button
+                OutlinedButton(
+                    onClick = {
+                        onMyLocationClick?.invoke()
+                        onClose()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.5.dp, PrimaryColor),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryColor)
+                ) {
+                    Text(
+                        text = "Nearby me",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = PrimaryColor
                     )
                 }
 
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(20.dp))
 
-                // Prominent Furniture Hub Banner
+                // 4. Preferences Card
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color.White,
+                    border = BorderStroke(1.dp, Color(0xFFCBD5E1))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            "Preferences",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF111827),
+                            modifier = Modifier.padding(bottom = 16.dp).align(Alignment.Start)
+                        )
+
+                        // Location Field
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            color = Color.White,
+                            border = BorderStroke(1.dp, Color(0xFFCBD5E1))
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 14.dp)
+                            ) {
+                                BasicTextField(
+                                    value = locationInput,
+                                    onValueChange = { locationInput = it },
+                                    modifier = Modifier.weight(1f),
+                                    singleLine = true,
+                                    decorationBox = { inner ->
+                                        if (locationInput.isEmpty()) {
+                                            Text("Location", color = Color(0xFF9CA3AF), fontSize = 13.sp)
+                                        }
+                                        inner()
+                                    }
+                                )
+                                if (locationInput.isNotEmpty()) {
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = "Clear",
+                                        tint = Color.Gray,
+                                        modifier = Modifier
+                                            .size(16.dp)
+                                            .clickable { locationInput = "" }
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(Modifier.height(16.dp))
+
+                        // What are you looking for?
+                        Text(
+                            "What are you looking for?",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TextDarkGray,
+                            modifier = Modifier.padding(bottom = 8.dp).align(Alignment.Start)
+                        )
+
+                        val propertyTypes = listOf("ALL", "Room", "Apartment", "Studio", "House", "Office")
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            propertyTypes.forEach { type ->
+                                val isSelected = selectedType.equals(type, ignoreCase = true)
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = { selectedType = type },
+                                    label = { Text(type, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = PrimaryColor,
+                                        selectedLabelColor = Color.White,
+                                        containerColor = Color(0xFFF1F5F9),
+                                        labelColor = TextDarkGray
+                                    )
+                                )
+                            }
+                        }
+
+                        Spacer(Modifier.height(16.dp))
+
+                        // Max Budget Field
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            color = Color.White,
+                            border = BorderStroke(1.dp, Color(0xFFCBD5E1))
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 14.dp)
+                            ) {
+                                BasicTextField(
+                                    value = budgetInput,
+                                    onValueChange = { budgetInput = it },
+                                    modifier = Modifier.weight(1f),
+                                    singleLine = true,
+                                    decorationBox = { inner ->
+                                        if (budgetInput.isEmpty()) {
+                                            Text("Max budget", color = Color(0xFF9CA3AF), fontSize = 13.sp)
+                                        }
+                                        inner()
+                                    }
+                                )
+                                if (budgetInput.isNotEmpty()) {
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = "Clear",
+                                        tint = Color.Gray,
+                                        modifier = Modifier
+                                            .size(16.dp)
+                                            .clickable { budgetInput = "" }
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(Modifier.height(16.dp))
+
+                        // Status Section
+                        Text(
+                            "Status",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TextDarkGray,
+                            modifier = Modifier.padding(bottom = 8.dp).align(Alignment.Start)
+                        )
+
+                        val statusOptions = listOf("All", "Available", "Pending", "Rented")
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            statusOptions.forEach { status ->
+                                val isSelected = selectedStatus.equals(status, ignoreCase = true)
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = { selectedStatus = status },
+                                    label = { Text(status, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = PrimaryColor,
+                                        selectedLabelColor = Color.White,
+                                        containerColor = Color(0xFFF1F5F9),
+                                        labelColor = TextDarkGray
+                                    )
+                                )
+                            }
+                        }
+
+                        Spacer(Modifier.height(20.dp))
+
+                        // APPLY FILTERS Button
+                        Button(
+                            onClick = { applyFilter() },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                        ) {
+                            Text(
+                                "APPLY FILTERS",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                letterSpacing = 0.5.sp
+                            )
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(24.dp))
+
+                // 5. Furniture Hub Banner at the Bottom
                 Surface(
                     onClick = { onNavigate("furniture_choice"); onClose() },
                     modifier = Modifier.fillMaxWidth(),
@@ -159,216 +497,6 @@ fun RoomifySidebar(
                         )
                     }
                 }
-                
-                Spacer(Modifier.height(28.dp))
-                
-                // 3. Nearby Me Button at the top area of sidebar (clearly visible without scrolling)
-                OutlinedButton(
-                    onClick = {
-                        onMyLocationClick?.invoke()
-                        onClose()
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(1.5.dp, PrimaryColor),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryColor)
-                ) {
-                    Text(
-                        text = "Nearby me",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        color = PrimaryColor
-                    )
-                }
-
-                Spacer(Modifier.height(20.dp))
-
-                // 4. Preferences Card
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
-                    color = Color.White,
-                    border = BorderStroke(1.dp, Color(0xFFCBD5E1))
-                ) {
-                    Column(
-                        modifier = Modifier.padding(20.dp)
-                    ) {
-                        Text(
-                            "Preferences",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF111827),
-                            modifier = Modifier.padding(bottom = 16.dp)
-                        )
-
-                        // Location Field (placeholder "Location", no heading above)
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp),
-                            shape = RoundedCornerShape(14.dp),
-                            color = Color.White,
-                            border = BorderStroke(1.dp, Color(0xFFCBD5E1))
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(horizontal = 14.dp)
-                            ) {
-                                BasicTextField(
-                                    value = locationInput,
-                                    onValueChange = { locationInput = it },
-                                    modifier = Modifier.weight(1f),
-                                    singleLine = true,
-                                    decorationBox = { inner ->
-                                        if (locationInput.isEmpty()) {
-                                            Text("Location", color = Color(0xFF9CA3AF), fontSize = 13.sp)
-                                        }
-                                        inner()
-                                    }
-                                )
-                                if (locationInput.isNotEmpty()) {
-                                    Icon(
-                                        Icons.Default.Close,
-                                        contentDescription = "Clear",
-                                        tint = Color.Gray,
-                                        modifier = Modifier
-                                            .size(16.dp)
-                                            .clickable { locationInput = "" }
-                                    )
-                                }
-                            }
-                        }
-
-                        Spacer(Modifier.height(16.dp))
-
-                        // What are you looking for?
-                        Text(
-                            "What are you looking for?",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = TextDarkGray,
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
-
-                        val propertyTypes = listOf("ALL", "Room", "Apartment", "Studio", "House", "Office")
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            propertyTypes.forEach { type ->
-                                val isSelected = selectedType.equals(type, ignoreCase = true)
-                                FilterChip(
-                                    selected = isSelected,
-                                    onClick = { selectedType = type },
-                                    label = { Text(type, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = PrimaryColor,
-                                        selectedLabelColor = Color.White,
-                                        containerColor = Color(0xFFF1F5F9),
-                                        labelColor = TextDarkGray
-                                    )
-                                )
-                            }
-                        }
-
-                        Spacer(Modifier.height(16.dp))
-
-                        // Max Budget Field (placeholder "Max budget", no heading above)
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp),
-                            shape = RoundedCornerShape(14.dp),
-                            color = Color.White,
-                            border = BorderStroke(1.dp, Color(0xFFCBD5E1))
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(horizontal = 14.dp)
-                            ) {
-                                BasicTextField(
-                                    value = budgetInput,
-                                    onValueChange = { budgetInput = it },
-                                    modifier = Modifier.weight(1f),
-                                    singleLine = true,
-                                    decorationBox = { inner ->
-                                        if (budgetInput.isEmpty()) {
-                                            Text("Max budget", color = Color(0xFF9CA3AF), fontSize = 13.sp)
-                                        }
-                                        inner()
-                                    }
-                                )
-                                if (budgetInput.isNotEmpty()) {
-                                    Icon(
-                                        Icons.Default.Close,
-                                        contentDescription = "Clear",
-                                        tint = Color.Gray,
-                                        modifier = Modifier
-                                            .size(16.dp)
-                                            .clickable { budgetInput = "" }
-                                    )
-                                }
-                            }
-                        }
-
-                        Spacer(Modifier.height(16.dp))
-
-                        // Status Section inside Preferences card (directly below Max Budget)
-                        Text(
-                            "Status",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = TextDarkGray,
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
-
-                        val statusOptions = listOf("All", "Available", "Pending", "Rented")
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            statusOptions.forEach { status ->
-                                val isSelected = selectedStatus.equals(status, ignoreCase = true)
-                                FilterChip(
-                                    selected = isSelected,
-                                    onClick = { selectedStatus = status },
-                                    label = { Text(status, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = PrimaryColor,
-                                        selectedLabelColor = Color.White,
-                                        containerColor = Color(0xFFF1F5F9),
-                                        labelColor = TextDarkGray
-                                    )
-                                )
-                            }
-                        }
-
-                        Spacer(Modifier.height(20.dp))
-
-                        // APPLY FILTERS Button
-                        Button(
-                            onClick = { applyFilter() },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp),
-                            shape = RoundedCornerShape(14.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
-                        ) {
-                            Text(
-                                "APPLY FILTERS",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                                letterSpacing = 0.5.sp
-                            )
-                        }
-                    }
-                }
             }
 
             // Footer (Login / Register / Profile)
@@ -376,7 +504,8 @@ fun RoomifySidebar(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp)
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
             ) {
                 if (user == null) {
                     Row(
@@ -426,9 +555,10 @@ private fun SidebarHeader() {
                 brush = Brush.verticalGradient(listOf(PrimaryColor, PrimaryColor.copy(alpha = 0.85f))),
                 shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
             )
-            .padding(top = 40.dp, bottom = 30.dp, start = 24.dp, end = 24.dp)
+            .padding(top = 40.dp, bottom = 30.dp, start = 24.dp, end = 24.dp),
+        contentAlignment = Alignment.Center
     ) {
-        Column {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = "Roomify",
                 color = Color.White,
@@ -442,43 +572,6 @@ private fun SidebarHeader() {
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium
             )
-        }
-    }
-}
-
-@Composable
-private fun ExploreActionCard(
-    title: String,
-    subtitle: String,
-    icon: ImageVector,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    Surface(
-        onClick = onClick,
-        modifier = modifier.height(115.dp),
-        shape = RoundedCornerShape(20.dp),
-        color = BackgroundGray,
-        border = BorderStroke(1.dp, Color(0xFFCBD5E1))
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(PrimaryColor.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(icon, null, tint = PrimaryColor, modifier = Modifier.size(22.dp))
-            }
-            Column {
-                Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF111827))
-                Spacer(Modifier.height(2.dp))
-                Text(subtitle, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TextDarkGray)
-            }
         }
     }
 }

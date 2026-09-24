@@ -62,61 +62,43 @@ fun DalaliDashboardScreen(
 ) {
     val strings = LocalRoomifyStrings.current
     val scrollState = rememberScrollState()
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            org.com.ui.components.RoomifySidebar(
-                user = user,
-                onNavigate = onNavigate,
-                onLogout = onLogout,
-                onSearch = onSearch,
-                onClose = { scope.launch { drawerState.close() } }
-            )
-        }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Brush.verticalGradient(listOf(PrimaryColor, PrimaryLight))),
+        contentAlignment = Alignment.Center
     ) {
-        Box(
+        // Main Centered Dashboard Card
+        Card(
             modifier = Modifier
-                .fillMaxSize()
-                .background(Brush.verticalGradient(listOf(PrimaryColor, PrimaryLight))),
-            contentAlignment = Alignment.Center
+                .fillMaxWidth(0.94f)
+                .widthIn(max = 500.dp)
+                .fillMaxHeight(0.92f)
+                .padding(vertical = 16.dp),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FA)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
         ) {
-            // Main Centered Dashboard Card
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth(0.94f)
-                    .widthIn(max = 500.dp)
-                    .fillMaxHeight(0.92f)
-                    .padding(vertical = 16.dp),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FA)),
-                elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
-            ) {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    // Dashboard Header
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(PrimaryColor)
-                            .padding(horizontal = 20.dp, vertical = 16.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(onClick = { scope.launch { drawerState.open() } }, modifier = Modifier.size(32.dp)) {
-                                Icon(Icons.Default.Menu, null, tint = Color.White, modifier = Modifier.size(20.dp))
-                            }
-                            Spacer(Modifier.width(12.dp))
-                            Column(Modifier.weight(1f)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text("Agent Console", color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
-                                    if (isRefreshing) {
-                                        Spacer(Modifier.width(8.dp))
-                                        CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 2.dp, color = Color.White)
-                                    }
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Dashboard Header
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(PrimaryColor)
+                        .padding(horizontal = 20.dp, vertical = 16.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("Agent Console", color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
+                                if (isRefreshing) {
+                                    Spacer(Modifier.width(8.dp))
+                                    CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 2.dp, color = Color.White)
                                 }
-                                Text(user.name, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black)
                             }
+                            Text(user.name, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black)
+                        }
                             
                             if (!user.profileImage.isNullOrBlank()) {
                                 val fullUrl = ApiClient.resolveUrl(user.profileImage!!)
@@ -221,7 +203,6 @@ fun DalaliDashboardScreen(
             }
         }
     }
-}
 
 @Composable
 private fun DalaliDrawerItem(label: String, icon: ImageVector, onClick: () -> Unit) {

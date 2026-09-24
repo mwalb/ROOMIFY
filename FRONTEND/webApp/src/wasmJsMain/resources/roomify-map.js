@@ -91,6 +91,12 @@
         var searchControl = document.getElementById("roomify-search-control");
         var searchCount = document.getElementById("roomify-search-count");
         var topRightControls = document.getElementById("roomify-top-right-controls");
+        var isSmallScreen = window.innerWidth < 768;
+
+        var menuControl = document.getElementById("roomify-menu-button");
+        if (menuControl) {
+            menuControl.style.display = isSmallScreen ? "flex" : "none";
+        }
 
         if (map) {
             map.classList.add("map-mode");
@@ -98,6 +104,8 @@
             map.style.visibility = "visible";
             map.style.opacity = "1";
             map.style.zIndex = "9999";
+            map.style.left = isSmallScreen ? "0px" : "400px";
+            map.style.width = isSmallScreen ? "100vw" : "calc(100vw - 400px)";
             console.log("[ROOMIFY MAP] map container shown with 'map-mode'");
             setTimeout(function() {
                 if (typeof showLocationConsentPrompt === "function") {
@@ -109,27 +117,51 @@
         }
 
         if (sidebar) {
-            sidebar.style.display = "flex";
-            console.log("[ROOMIFY MAP] sidebar element shown");
+            sidebar.style.display = isSmallScreen ? "none" : "flex";
+            console.log("[ROOMIFY MAP] sidebar element shown/hidden based on screen size");
         } else {
             console.warn("[ROOMIFY MAP] sidebar element NOT FOUND");
         }
 
         if (searchControl) {
-            searchControl.style.display = "flex";
+            searchControl.style.display = isSmallScreen ? "none" : "flex";
         }
         if (searchCount) {
-            searchCount.style.display = "block";
+            searchCount.style.display = isSmallScreen ? "none" : "block";
         }
         if (topRightControls) {
             topRightControls.style.display = "flex";
         }
 
         if (compose) {
-            compose.style.left = "400px";
-            compose.style.width = "calc(100vw - 400px)";
-            console.log("[ROOMIFY MAP] ComposeTarget squeezed to right");
+            compose.style.left = isSmallScreen ? "0px" : "400px";
+            compose.style.width = isSmallScreen ? "100vw" : "calc(100vw - 400px)";
+            console.log("[ROOMIFY MAP] ComposeTarget adjusted for screen size");
         }
+
+        window.addEventListener('resize', function() {
+            var isSmall = window.innerWidth < 768;
+            var compose = document.getElementById("ComposeTarget");
+            var map = document.getElementById("google-map-container");
+            var sidebar = document.getElementById("roomify-sidebar");
+
+            if (compose) {
+                compose.style.left = isSmall ? "0px" : "400px";
+                compose.style.width = isSmall ? "100vw" : "calc(100vw - 400px)";
+            }
+            if (map && map.classList.contains("map-mode")) {
+                map.style.left = isSmall ? "0px" : "400px";
+                map.style.width = isSmall ? "100vw" : "calc(100vw - 400px)";
+            }
+            if (sidebar) {
+                sidebar.style.display = isSmall ? "none" : "flex";
+            }
+            var menuControl = document.getElementById("roomify-menu-button");
+            if (menuControl) {
+                menuControl.style.display = isSmall ? "flex" : "none";
+            }
+            window.roomifyResizeMap();
+        });
 
         setTimeout(function () {
 
@@ -190,6 +222,12 @@
         var searchControl = document.getElementById("roomify-search-control");
         var searchCount = document.getElementById("roomify-search-count");
         var topRightControls = document.getElementById("roomify-top-right-controls");
+        var isSmallScreen = window.innerWidth < 768;
+
+        var menuControl = document.getElementById("roomify-menu-button");
+        if (menuControl) {
+            menuControl.style.display = isSmallScreen ? "flex" : "none";
+        }
 
         if (map) {
             map.classList.remove("map-mode");
@@ -478,6 +516,20 @@
                 visibility: visible !important;
                 opacity: 1 !important;
                 z-index: 9999 !important;
+            }
+
+            @media (max-width: 768px) {
+                .roomify-sidebar {
+                    display: none !important;
+                }
+                #google-map-container.map-mode {
+                    left: 0 !important;
+                    width: 100vw !important;
+                }
+                #ComposeTarget {
+                    left: 0 !important;
+                    width: 100vw !important;
+                }
             }
 
             .roomify-sidebar-header {
@@ -1314,7 +1366,20 @@
      */
 
     function createMenuControl() {
-        return null;
+        if (document.getElementById("roomify-menu-button")) {
+            return document.getElementById("roomify-menu-button");
+        }
+
+        var btn = document.createElement("div");
+        btn.id = "roomify-menu-button";
+        btn.className = "roomify-menu-button";
+        btn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>`;
+        btn.style.display = (window.innerWidth < 768) ? "flex" : "none";
+        btn.onclick = function() {
+            toggleSidebar();
+        };
+
+        return btn;
     }
 
 
@@ -1419,7 +1484,7 @@
         window.roomifyUpdateFilterStatus("ALL");
     };
 
-    var ZOOM_THRESHOLD = 5;
+    var ZOOM_THRESHOLD = 12;
     var INITIAL_MAP_ZOOM = 13;
     window.roomifyZoomListenerRegistered = false;
     window.roomifyLocationPromptShown = false;
@@ -2102,8 +2167,7 @@
          */
         if (
             menuControl &&
-            !window.roomifyMenuControlInstalled &&
-            false // Disabled for static sidebar
+            !window.roomifyMenuControlInstalled
         ) {
 
             window.roomifyMap.controls[
@@ -2735,7 +2799,7 @@
             normalized === "RENTED"
         ) {
 
-            return 0.55;
+            return 1.0;
         }
 
         return 1.0;
@@ -4004,9 +4068,15 @@
                 document.getElementById(
                     "google-map-container"
                 );
+            var isSmallScreen = window.innerWidth < 768;
 
 
-            if (map) {
+            var menuControl = document.getElementById("roomify-menu-button");
+        if (menuControl) {
+            menuControl.style.display = isSmallScreen ? "flex" : "none";
+        }
+
+        if (map) {
 
                 map.style.display =
                     "none";

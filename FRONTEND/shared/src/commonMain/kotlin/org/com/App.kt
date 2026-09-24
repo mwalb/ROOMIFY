@@ -1,12 +1,16 @@
 package org.com
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -25,6 +29,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -1217,6 +1224,92 @@ fun App() {
 }
 
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RoomifyBottomPanelShell(
+    user: User?,
+    currentRoute: String,
+    onNavigate: (String) -> Unit,
+    onLogout: () -> Unit,
+    onSearch: (type: String?, area: String?, maxPrice: Double?, status: String?) -> Unit,
+    onMyLocationClick: (() -> Unit)? = null,
+    content: @Composable () -> Unit
+) {
+    val isMapRoute = currentRoute == "map"
+    val density = LocalDensity.current
+
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val maxHeight = this.maxHeight
+        val minHeight = 200.dp
+        val maxAllowedHeight = maxHeight * 0.80f
+
+        var panelHeight by remember { mutableStateOf(maxHeight * 0.45f) }
+
+        Box(modifier = Modifier.fillMaxSize()) {
+            content()
+
+            if (isMapRoute) {
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .height(panelHeight)
+                        .shadow(elevation = 16.dp, shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)),
+                    shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+                    color = Color.White,
+                    tonalElevation = 8.dp
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .pointerInput(Unit) {
+                                detectVerticalDragGestures { _, dragAmount ->
+                                    val deltaDp = with(density) { dragAmount.toDp() }
+                                    val newHeight = panelHeight - deltaDp
+                                    panelHeight = newHeight.coerceIn(minHeight, maxAllowedHeight)
+                                }
+                            }
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(24.dp)
+                                .pointerInput(Unit) {
+                                    detectVerticalDragGestures { _, dragAmount ->
+                                        val deltaDp = with(density) { dragAmount.toDp() }
+                                        val newHeight = panelHeight - deltaDp
+                                        panelHeight = newHeight.coerceIn(minHeight, maxAllowedHeight)
+                                    }
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            BottomSheetDefaults.DragHandle()
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                        ) {
+                            org.com.ui.components.RoomifySidebar(
+                                user = user,
+                                onNavigate = onNavigate,
+                                onLogout = onLogout,
+                                onSearch = onSearch,
+                                onClose = {
+                                    panelHeight = minHeight
+                                },
+                                onMyLocationClick = onMyLocationClick
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
 @Composable
 private fun AppMapContainer(
     viewModel: MapViewModel,
@@ -1228,21 +1321,14 @@ private fun AppMapContainer(
     onNavigate: (String) -> Unit
 ) {
     val user = (authState as? AuthState.Authenticated)?.user
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            org.com.ui.components.RoomifySidebar(
-                user = user,
-                onNavigate = onNavigate,
-                onLogout = onLogout,
-                onSearch = { type, area, price, status ->
-                    viewModel.setFilters(type, area, price, status)
-                },
-                onClose = { scope.launch { drawerState.close() } }
-            )
+    RoomifyBottomPanelShell(
+        user = user,
+        currentRoute = "map",
+        onNavigate = onNavigate,
+        onLogout = onLogout,
+        onSearch = { type, area, price, status ->
+            viewModel.setFilters(type, area, price, status)
         }
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -1261,7 +1347,7 @@ private fun AppMapContainer(
                 },
                 onFitBoundsHandled = { viewModel.clearFitBounds() },
                 onClearRoute = onClearRoute,
-                onMenuClick = { scope.launch { drawerState.open() } },
+                onMenuClick = { },
                 onRoomSelected = { room ->
                     viewModel.selectRoom(room)
                 },
