@@ -1,0 +1,6 @@
+#FileLock
+#Mon Sep 28 06:37:25 EDT 2026
+hostName=kali
+id=1a0e79741981ee7d029c242fbfe233a8f54688d5e65
+method=file
+server=127.0.1.1\:35105

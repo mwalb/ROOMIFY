@@ -74,16 +74,44 @@ class MapViewModel(
             }
         }
 
-    fun setFilters(type: String?, area: String?, maxPrice: Double?, status: String? = null) {
+    var filterFeedbackKey by mutableStateOf<FilterFeedback?>(null)
+    var filterFeedbackArea by mutableStateOf<String?>(null)
+
+    sealed class FilterFeedback {
+        data object NoMatches : FilterFeedback()
+        data object InvalidCoordinates : FilterFeedback()
+    }
+
+    fun setFilters(type: String?, area: String?, maxPrice: Double?, status: String? = null): Boolean {
         filterType = if (type.isNullOrBlank() || type.equals("ALL", ignoreCase = true)) null else type
         filterArea = if (area.isNullOrBlank()) null else area
         filterMaxPrice = maxPrice
         filterStatus = if (status.isNullOrBlank() || status.equals("ALL", ignoreCase = true)) null else status
         
-        // Trigger automatic zoom if area is specified
-        if (!filterArea.isNullOrBlank()) {
-            shouldFitBounds = true
+        val matches = filteredRooms
+        if (matches.isEmpty()) {
+            filterFeedbackKey = FilterFeedback.NoMatches
+            filterFeedbackArea = filterArea
+            shouldFitBounds = false
+            return false
+        } else {
+            val validMatches = matches.filter { it.latitude != 0.0 && it.longitude != 0.0 && !it.latitude.isNaN() && !it.latitude.isInfinite() && !it.longitude.isNaN() && !it.longitude.isInfinite() }
+            if (validMatches.isEmpty()) {
+                filterFeedbackKey = FilterFeedback.InvalidCoordinates
+                filterFeedbackArea = null
+                shouldFitBounds = false
+            } else {
+                filterFeedbackKey = null
+                filterFeedbackArea = null
+                shouldFitBounds = true
+            }
+            return true
         }
+    }
+
+    fun clearFeedback() {
+        filterFeedbackKey = null
+        filterFeedbackArea = null
     }
 
     fun clearFitBounds() {
@@ -96,6 +124,7 @@ class MapViewModel(
         filterMaxPrice = null
         filterStatus = null
         shouldFitBounds = false
+        clearFeedback()
     }
 
 
@@ -106,6 +135,10 @@ class MapViewModel(
      */
 
     fun loadRooms() {
+        if (isLoading) {
+            println("MapViewModel: loadRooms() SKIPPED (already loading)")
+            return
+        }
 
         println(
             "MapViewModel: loadRooms() STARTED"

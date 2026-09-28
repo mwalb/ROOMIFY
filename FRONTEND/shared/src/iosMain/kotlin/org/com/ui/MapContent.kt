@@ -6,6 +6,7 @@ import org.com.model.Room
 @Composable
 actual fun MapContent(
     rooms: List<Room>,
+    allRooms: List<Room>,
     selectedRoom: Room?,
     authState: org.com.auth.AuthState,
     routingDestination: Room?,

@@ -33,7 +33,7 @@ fun RoomifySidebar(
     user: User?,
     onNavigate: (String) -> Unit,
     onLogout: () -> Unit,
-    onSearch: (type: String?, area: String?, maxPrice: Double?, status: String?) -> Unit,
+    onSearch: (type: String?, area: String?, maxPrice: Double?, status: String?) -> Boolean,
     onClose: () -> Unit,
     onMyLocationClick: (() -> Unit)? = null
 ) {
@@ -41,6 +41,7 @@ fun RoomifySidebar(
     var selectedType by remember { mutableStateOf("ALL") }
     var budgetInput by remember { mutableStateOf("") }
     var selectedStatus by remember { mutableStateOf("ALL") }
+    var showNoResults by remember { mutableStateOf(false) }
 
     val applyFilter = {
         val area = locationInput.trim().ifBlank { null }
@@ -61,8 +62,22 @@ fun RoomifySidebar(
 
         val status = if (selectedStatus.uppercase() == "ALL") null else selectedStatus
 
-        onSearch(type, area, parsedBudget, status)
-        onClose()
+        val hasMatches = onSearch(type, area, parsedBudget, status)
+        if (hasMatches) {
+            showNoResults = false
+            onClose()
+        } else {
+            showNoResults = true
+        }
+    }
+
+    val clearFilter = {
+        locationInput = ""
+        selectedType = "ALL"
+        budgetInput = ""
+        selectedStatus = "ALL"
+        showNoResults = false
+        onSearch(null, null, null, null)
     }
 
     Surface(
@@ -428,21 +443,82 @@ fun RoomifySidebar(
 
                         Spacer(Modifier.height(20.dp))
 
-                        // APPLY FILTERS Button
-                        Button(
-                            onClick = { applyFilter() },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp),
-                            shape = RoundedCornerShape(14.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                        // APPLY FILTER & CLEAR FILTER Buttons
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                "APPLY FILTERS",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                                letterSpacing = 0.5.sp
-                            )
+                            Button(
+                                onClick = { applyFilter() },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp),
+                                shape = RoundedCornerShape(14.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                            ) {
+                                Text(
+                                    "Apply Filter",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    letterSpacing = 0.5.sp
+                                )
+                            }
+
+                            OutlinedButton(
+                                onClick = { clearFilter() },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp),
+                                shape = RoundedCornerShape(14.dp),
+                                border = BorderStroke(1.5.dp, PrimaryColor),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryColor)
+                            ) {
+                                Text(
+                                    "Clear Filter",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    letterSpacing = 0.5.sp
+                                )
+                            }
+                        }
+
+                        if (showNoResults) {
+                            Spacer(Modifier.height(14.dp))
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(14.dp),
+                                color = Color(0xFFFEF2F2),
+                                border = BorderStroke(1.dp, Color(0xFFFCA5A5))
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(16.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        "No properties found",
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF991B1B),
+                                        fontSize = 14.sp
+                                    )
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(
+                                        "Try changing your location, property type, or budget filters.",
+                                        color = Color(0xFF7F1D1D),
+                                        fontSize = 12.sp,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                    )
+                                    Spacer(Modifier.height(12.dp))
+                                    Button(
+                                        onClick = { clearFilter() },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626)),
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                                    ) {
+                                        Text("Clear Filters", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
                         }
                     }
                 }

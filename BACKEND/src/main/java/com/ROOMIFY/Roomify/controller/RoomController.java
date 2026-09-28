@@ -272,24 +272,13 @@ public class RoomController {
         }
     }
 
-    // Get all rooms - STRICT ROLE-BASED VISIBILITY
+    // Get all rooms - PUBLIC LISTING FOR EXPLORE/MAP
     @GetMapping
     @Transactional(readOnly = true)
     public ResponseEntity<?> getAllRooms() {
         try {
-            User user = getAuthenticatedUser();
-            if (user != null && !isAdminRole(user)) {
-                if (UserRole.OWNER.equals(user.getRole())) {
-                    List<Room> rooms = repo.findByPostedBy(user.getId());
-                    return ResponseEntity.ok(rooms);
-                } else if (UserRole.DALALI.equals(user.getRole())) {
-                    List<Room> rooms = repo.findByDalaliId(user.getId());
-                    return ResponseEntity.ok(rooms);
-                }
-            }
             List<Room> rooms = repo.findAll();
             return ResponseEntity.ok(rooms);
-
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

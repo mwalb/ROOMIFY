@@ -24,18 +24,75 @@
      * displayed markers.
      */
     window.roomifyAllRooms = [];
+    window.roomifyMasterRooms = [];
     window.roomifyAreaSuggestions = [];
 
     window.roomifySearchQuery = "";
 
+    function getBackendBaseUrl() {
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            return 'http://' + window.location.hostname + ':8080';
+        }
+        return '';
+    }
+
+    function resolveMediaUrl(url) {
+        if (!url) return '';
+        var clean = String(url).trim();
+        if (clean.startsWith('http://') || clean.startsWith('https://') || clean.startsWith('data:')) {
+            return clean;
+        }
+        var mediaBase = getBackendBaseUrl();
+        if (!clean.startsWith('/')) {
+            clean = '/' + clean;
+        }
+        return mediaBase + clean;
+    }
+
+    function deriveAreaSuggestionsFromRooms() {
+        if (!window.roomifyAllRooms || window.roomifyAllRooms.length === 0) return;
+        var areas = new Set();
+        window.roomifyAllRooms.forEach(function(room) {
+            if (!room) return;
+            var addr = room.address || room.city || room.areaName || room.location || "";
+            if (addr) {
+                var parts = addr.split(",");
+                if (parts.length > 0 && parts[0].trim()) {
+                    areas.add(parts[0].trim());
+                }
+            }
+        });
+        if (areas.size > 0) {
+            window.roomifyAreaSuggestions = Array.from(areas);
+            console.log("Roomify: Derived " + window.roomifyAreaSuggestions.length + " area suggestions from loaded rooms");
+        }
+    }
+
     function fetchAreaSuggestions() {
-        fetch('/api/rooms/areas')
-            .then(response => response.json())
-            .then(data => {
-                window.roomifyAreaSuggestions = data || [];
-                console.log("Roomify: Fetched " + window.roomifyAreaSuggestions.length + " area suggestions");
+        var url = getBackendBaseUrl() + '/api/rooms/areas';
+        fetch(url)
+            .then(function(response) {
+                if (!response.ok) {
+                    throw new Error("HTTP " + response.status);
+                }
+                var contentType = response.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    throw new Error("Response is not JSON");
+                }
+                return response.json();
             })
-            .catch(err => console.error("Roomify: Failed to fetch area suggestions", err));
+            .then(function(data) {
+                if (Array.isArray(data) && data.length > 0) {
+                    window.roomifyAreaSuggestions = data;
+                    console.log("Roomify: Fetched " + window.roomifyAreaSuggestions.length + " area suggestions");
+                } else {
+                    deriveAreaSuggestionsFromRooms();
+                }
+            })
+            .catch(function(err) {
+                console.warn("Roomify: Could not fetch area suggestions from backend, deriving from rooms:", err.message);
+                deriveAreaSuggestionsFromRooms();
+            });
     }
 
     /*
@@ -78,25 +135,71 @@
 
     /*
      * ============================================================
-     * SHOW MAP
+     * SHOW MAP & SIDEBAR VISIBILITY
      * ============================================================
      */
 
-    window.roomifyShowMap = function () {
-        console.log("[ROOMIFY MAP] SHOW MAP START");
+    window.roomifyIsMapPage = false;
 
-        var map = document.getElementById("google-map-container");
+    function updateSidebarVisibility() {
         var sidebar = document.getElementById("roomify-sidebar");
-        var compose = document.getElementById("ComposeTarget");
+        var backdrop = document.getElementById("roomify-sidebar-backdrop");
+        var menuControl = document.getElementById("roomify-menu-button");
         var searchControl = document.getElementById("roomify-search-control");
         var searchCount = document.getElementById("roomify-search-count");
         var topRightControls = document.getElementById("roomify-top-right-controls");
-        var isSmallScreen = window.innerWidth < 900;
+        var isSmall = window.innerWidth < 900;
 
-        var menuControl = document.getElementById("roomify-menu-button");
-        if (menuControl) {
-            menuControl.style.display = isSmallScreen ? "flex" : "none";
+        if (!window.roomifyIsMapPage) {
+            if (sidebar) {
+                sidebar.classList.remove("map-active");
+                sidebar.classList.remove("open");
+                sidebar.style.display = "none";
+                sidebar.style.pointerEvents = "none";
+            }
+            if (backdrop) {
+                backdrop.classList.remove("open");
+                backdrop.style.display = "none";
+                backdrop.style.pointerEvents = "none";
+            }
+            if (menuControl) menuControl.style.display = "none";
+            if (searchControl) searchControl.style.display = "none";
+            if (searchCount) searchCount.style.display = "none";
+            if (topRightControls) topRightControls.style.display = "none";
+            return;
         }
+
+        // On Map Page
+        if (sidebar) {
+            sidebar.classList.add("map-active");
+            if (isSmall) {
+                if (sidebar.classList.contains("open")) {
+                    sidebar.style.display = "flex";
+                    sidebar.style.pointerEvents = "auto";
+                } else {
+                    sidebar.style.display = "none";
+                    sidebar.style.pointerEvents = "none";
+                }
+            } else {
+                sidebar.classList.remove("open");
+                sidebar.style.display = "flex";
+                sidebar.style.pointerEvents = "auto";
+            }
+        }
+
+        if (menuControl) menuControl.style.display = isSmall ? "flex" : "none";
+        if (searchControl) searchControl.style.display = "flex";
+        if (searchCount) searchCount.style.display = isSmall ? "none" : "block";
+        if (topRightControls) topRightControls.style.display = "flex";
+    }
+
+    window.roomifyShowMap = function () {
+        console.log("[ROOMIFY MAP] SHOW MAP START");
+        window.roomifyIsMapPage = true;
+
+        var map = document.getElementById("google-map-container");
+        var compose = document.getElementById("ComposeTarget");
+        var isSmallScreen = window.innerWidth < 900;
 
         if (map) {
             map.classList.add("map-mode");
@@ -106,7 +209,6 @@
             map.style.zIndex = "9999";
             map.style.left = isSmallScreen ? "0px" : "400px";
             map.style.width = isSmallScreen ? "100vw" : "calc(100vw - 400px)";
-            console.log("[ROOMIFY MAP] map container shown with 'map-mode'");
             setTimeout(function() {
                 if (typeof showLocationConsentPrompt === "function") {
                     showLocationConsentPrompt();
@@ -116,66 +218,35 @@
             console.error("[ROOMIFY MAP] map container NOT FOUND");
         }
 
-        if (sidebar) {
-            if (isSmallScreen) {
-                sidebar.style.display = "";
-                if (!sidebar.classList.contains("open")) {
-                    sidebar.classList.remove("open");
-                }
-            } else {
-                sidebar.style.display = "flex";
-                sidebar.classList.remove("open");
-            }
-            console.log("[ROOMIFY MAP] sidebar element shown/hidden based on screen size");
-        } else {
-            console.warn("[ROOMIFY MAP] sidebar element NOT FOUND");
-        }
-
-        if (searchControl) {
-            searchControl.style.display = isSmallScreen ? "none" : "flex";
-        }
-        if (searchCount) {
-            searchCount.style.display = isSmallScreen ? "none" : "block";
-        }
-        if (topRightControls) {
-            topRightControls.style.display = "flex";
-        }
-
         if (compose) {
+            compose.classList.add("map-mode");
             compose.style.left = isSmallScreen ? "0px" : "400px";
             compose.style.width = isSmallScreen ? "100vw" : "calc(100vw - 400px)";
-            console.log("[ROOMIFY MAP] ComposeTarget adjusted for screen size");
         }
+
+        updateSidebarVisibility();
 
         window.addEventListener('resize', function() {
             var isSmall = window.innerWidth < 900;
             var compose = document.getElementById("ComposeTarget");
             var map = document.getElementById("google-map-container");
-            var sidebar = document.getElementById("roomify-sidebar");
 
-            if (compose) {
-                compose.style.left = isSmall ? "0px" : "400px";
-                compose.style.width = isSmall ? "100vw" : "calc(100vw - 400px)";
-            }
-            if (map && map.classList.contains("map-mode")) {
-                map.style.left = isSmall ? "0px" : "400px";
-                map.style.width = isSmall ? "100vw" : "calc(100vw - 400px)";
-            }
-            if (sidebar) {
-                if (isSmall) {
-                    sidebar.style.display = "";
-                    if (!sidebar.classList.contains("open")) {
-                        sidebar.classList.remove("open");
-                    }
-                } else {
-                    sidebar.style.display = "flex";
-                    sidebar.classList.remove("open");
+            if (window.roomifyIsMapPage) {
+                if (compose) {
+                    compose.style.left = isSmall ? "0px" : "400px";
+                    compose.style.width = isSmall ? "100vw" : "calc(100vw - 400px)";
+                }
+                if (map && map.classList.contains("map-mode")) {
+                    map.style.left = isSmall ? "0px" : "400px";
+                    map.style.width = isSmall ? "100vw" : "calc(100vw - 400px)";
+                }
+            } else {
+                if (compose) {
+                    compose.style.left = "0px";
+                    compose.style.width = "100vw";
                 }
             }
-            var menuControl = document.getElementById("roomify-menu-button");
-            if (menuControl) {
-                menuControl.style.display = isSmall ? "flex" : "none";
-            }
+            updateSidebarVisibility();
             window.roomifyResizeMap();
         });
 
@@ -231,19 +302,10 @@
 
     window.roomifyHideMap = function() {
         console.log("[ROOMIFY MAP] HIDE MAP");
+        window.roomifyIsMapPage = false;
 
         var map = document.getElementById("google-map-container");
-        var sidebar = document.getElementById("roomify-sidebar");
         var compose = document.getElementById("ComposeTarget");
-        var searchControl = document.getElementById("roomify-search-control");
-        var searchCount = document.getElementById("roomify-search-count");
-        var topRightControls = document.getElementById("roomify-top-right-controls");
-        var isSmallScreen = window.innerWidth < 768;
-
-        var menuControl = document.getElementById("roomify-menu-button");
-        if (menuControl) {
-            menuControl.style.display = isSmallScreen ? "flex" : "none";
-        }
 
         if (map) {
             map.classList.remove("map-mode");
@@ -254,26 +316,14 @@
             console.log("[ROOMIFY MAP] map hidden");
         }
 
-        if (sidebar) {
-            sidebar.style.display = "none";
-            console.log("[ROOMIFY MAP] sidebar hidden");
-        }
-
-        if (searchControl) {
-            searchControl.style.display = "none";
-        }
-        if (searchCount) {
-            searchCount.style.display = "none";
-        }
-        if (topRightControls) {
-            topRightControls.style.display = "none";
-        }
-
         if (compose) {
+            compose.classList.remove("map-mode");
             compose.style.left = "0";
             compose.style.width = "100vw";
             console.log("[ROOMIFY MAP] ComposeTarget restored to full width");
         }
+
+        updateSidebarVisibility();
     };
 
     window.roomifyShowMapDirect = function() {
@@ -519,6 +569,12 @@
                 color: #1A1A1A;
                 transform: none !important;
                 transition: none !important;
+                pointer-events: none;
+            }
+
+            .roomify-sidebar.map-active {
+                display: flex !important;
+                pointer-events: auto !important;
             }
 
             #google-map-container.map-mode {
@@ -532,20 +588,6 @@
                 visibility: visible !important;
                 opacity: 1 !important;
                 z-index: 9999 !important;
-            }
-
-            @media (max-width: 768px) {
-                .roomify-sidebar {
-                    display: none !important;
-                }
-                #google-map-container.map-mode {
-                    left: 0 !important;
-                    width: 100vw !important;
-                }
-                #ComposeTarget {
-                    left: 0 !important;
-                    width: 100vw !important;
-                }
             }
 
             .roomify-sidebar-header {
@@ -850,7 +892,7 @@
                 display: none !important;
             }
 
-            @media (max-width: 900px) {
+            @media (max-width: 899px) {
                 .roomify-sidebar {
                     position: fixed !important;
                     top: 0 !important;
@@ -859,19 +901,25 @@
                     max-width: 85vw !important;
                     height: 100vh !important;
                     z-index: 99999 !important;
-                    display: flex !important;
+                    display: none;
                     transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
                     box-shadow: 4px 0 24px rgba(0,0,0,0.25) !important;
+                    pointer-events: none;
                 }
-                .roomify-sidebar.open {
+                .roomify-sidebar.map-active {
+                    display: none;
+                }
+                .roomify-sidebar.map-active.open {
+                    display: flex !important;
                     left: 0 !important;
+                    pointer-events: auto !important;
                 }
                 #google-map-container, #google-map-container.map-mode {
                     left: 0 !important;
                     width: 100vw !important;
                     margin-left: 0 !important;
                 }
-                #ComposeTarget {
+                #ComposeTarget, #ComposeTarget.map-mode {
                     left: 0 !important;
                     width: 100vw !important;
                 }
@@ -1132,47 +1180,90 @@
              * ====================================================
              */
 
-            @media (max-width: 700px) {
-
+            @media (max-width: 900px) {
                 .roomify-search-control {
-                    width: calc(100vw - 75px);
+                    width: min(380px, calc(100vw - 110px));
+                    height: 42px;
                     margin-top: 10px;
-                    height: 46px;
-                    border-radius: 13px;
+                    border-radius: 15px;
                 }
-
                 .roomify-menu-button {
                     width: 42px;
                     height: 42px;
-                    margin-top: 12px;
-                    margin-left: 7px;
-                    border-radius: 12px;
+                    margin-top: 10px;
+                    margin-left: 10px;
                 }
-
-                .roomify-search-icon {
-                    margin-left: 12px;
-                }
-
-                .roomify-search-input {
+                .roomify-status-control {
+                    height: 42px;
                     font-size: 13px;
                 }
+            }
 
-                .roomify-sidebar {
-                    width: 290px;
+            @media (max-width: 600px) {
+                .roomify-search-control {
+                    width: min(260px, calc(100vw - 75px));
+                    height: 36px;
+                    margin-top: 8px;
+                    border-radius: 12px;
                 }
-
-                .roomify-popup {
-                    min-width: 200px;
-                    max-width: 240px;
-                    padding: 14px;
+                .roomify-search-icon {
+                    width: 16px;
+                    height: 16px;
+                    margin-left: 10px;
                 }
-
-                .roomify-popup-title {
+                .roomify-search-input {
+                    font-size: 12px;
+                    padding: 0 8px;
+                }
+                .roomify-search-clear {
+                    width: 28px;
+                    height: 28px;
+                    font-size: 14px;
+                }
+                .roomify-menu-button {
+                    width: 36px;
+                    height: 36px;
+                    margin-top: 8px;
+                    margin-left: 6px;
+                    border-radius: 10px;
                     font-size: 16px;
                 }
-
+                .roomify-status-control {
+                    height: 36px;
+                    font-size: 11px;
+                    min-width: 80px;
+                    padding: 0 6px;
+                    border-radius: 10px;
+                }
+                .roomify-sidebar {
+                    width: 280px;
+                }
+                .roomify-popup {
+                    min-width: 180px;
+                    max-width: 220px;
+                    max-height: calc(100vh - 80px);
+                    overflow-y: auto;
+                    padding: 10px;
+                    border-radius: 16px;
+                }
+                .roomify-popup-image-container {
+                    height: 100px;
+                    margin: 6px 0;
+                    border-radius: 12px;
+                }
+                .roomify-popup-title {
+                    font-size: 14px;
+                }
                 .roomify-popup-price {
-                    font-size: 17px;
+                    font-size: 15px;
+                }
+                .roomify-popup-location-text {
+                    font-size: 11px;
+                }
+                .roomify-popup-button {
+                    padding: 7px 10px;
+                    font-size: 11px;
+                    border-radius: 10px;
                 }
             }
 
@@ -1395,7 +1486,7 @@
         btn.id = "roomify-menu-button";
         btn.className = "roomify-menu-button";
         btn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>`;
-        btn.style.display = (window.innerWidth < 768) ? "flex" : "none";
+        btn.style.display = (window.innerWidth < 900) ? "flex" : "none";
         btn.onclick = function() {
             toggleSidebar();
         };
@@ -1419,17 +1510,8 @@
      */
 
     function createTopRightControls() {
-        if (document.getElementById("roomify-top-right-controls")) {
-            return;
-        }
-
-        var wrapper = document.createElement("div");
-        wrapper.id = "roomify-top-right-controls";
-        wrapper.className = "roomify-top-right-controls";
-
-        wrapper.appendChild(createStatusControl());
-
-        return wrapper;
+        // Map status dropdown control removed per requirements.
+        return null;
     }
 
     function createStatusControl() {
@@ -1770,9 +1852,21 @@
                             <div class="roomify-chip" data-status="RENTED" style="padding: 6px 12px; border-radius: 8px; background: #F1F5F9; cursor: pointer; font-size: 13px;">Rented</div>
                         </div>
 
-                        <!-- APPLY FILTERS Button -->
-                        <div id="sidebar-filter-btn" style="display: flex; align-items: center; justify-content: center; background: #1A237E; color: white; border-radius: 14px; height: 48px; font-weight: 700; cursor: pointer; font-size: 14px; letter-spacing: 0.5px;">
-                            APPLY FILTERS
+                        <!-- APPLY FILTER & CLEAR FILTER Buttons -->
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <div id="sidebar-filter-btn" style="flex: 1; min-width: 110px; display: flex; align-items: center; justify-content: center; background: #1A237E; color: white; border-radius: 14px; height: 48px; font-weight: 700; cursor: pointer; font-size: 13px; letter-spacing: 0.5px;">
+                                Apply Filter
+                            </div>
+                            <div id="sidebar-clear-btn" onclick="window.roomifyClearSidebarFilters()" style="flex: 1; min-width: 110px; display: flex; align-items: center; justify-content: center; background: #ffffff; color: #1A237E; border: 1.5px solid #1A237E; border-radius: 14px; height: 48px; font-weight: 700; cursor: pointer; font-size: 13px; letter-spacing: 0.5px;">
+                                Clear Filter
+                            </div>
+                        </div>
+
+                        <!-- NO RESULTS CONTAINER -->
+                        <div id="sidebar-no-results" style="display: none; padding: 16px; background: #FEF2F2; border: 1px solid #FCA5A5; border-radius: 14px; text-align: center; margin-top: 12px;">
+                            <div style="font-size: 14px; font-weight: 700; color: #991B1B; margin-bottom: 4px;">No properties found</div>
+                            <div style="font-size: 12px; color: #7F1D1D; margin-bottom: 12px; line-height: 1.4;">Try changing your location, property type, or budget filters.</div>
+                            <div id="sidebar-clear-filters-btn" onclick="window.roomifyClearSidebarFilters()" style="display: inline-block; padding: 8px 16px; background: #DC2626; color: white; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer;">Clear Filters</div>
                         </div>
                     </div>
                 </div>
@@ -1807,8 +1901,26 @@
         const sidebarFilterBtn = document.getElementById("sidebar-filter-btn");
         if (sidebarFilterBtn) {
             sidebarFilterBtn.onclick = function() {
-                applySidebarFilters();
-                closeSidebar();
+                var count = applySidebarFilters();
+                var isSmall = window.innerWidth < 900;
+                if (isSmall) {
+                    if (count > 0) {
+                        closeSidebar();
+                    } else {
+                        var sidebarEl = document.getElementById("roomify-sidebar");
+                        if (sidebarEl) {
+                            sidebarEl.style.display = "flex";
+                            sidebarEl.style.pointerEvents = "auto";
+                            sidebarEl.classList.add("open");
+                        }
+                    }
+                } else {
+                    var sidebarEl = document.getElementById("roomify-sidebar");
+                    if (sidebarEl) {
+                        sidebarEl.style.display = "flex";
+                        sidebarEl.style.pointerEvents = "auto";
+                    }
+                }
             };
         }
 
@@ -1842,6 +1954,65 @@
             });
         }
 
+        window.roomifyClearSidebarFilters = function() {
+            var locEl = document.getElementById("sidebar-search-input");
+            if (locEl) locEl.value = "";
+
+            var budgetEl = document.getElementById("sidebar-budget-input");
+            if (budgetEl) budgetEl.value = "";
+
+            var typeChips = document.querySelectorAll("#type-chips .roomify-chip");
+            typeChips.forEach(function(c) {
+                if (c.getAttribute("data-type") === "ALL") c.classList.add("active");
+                else c.classList.remove("active");
+            });
+
+            var statusChips = document.querySelectorAll("#status-chips .roomify-chip");
+            statusChips.forEach(function(c) {
+                if (c.getAttribute("data-status") === "ALL") c.classList.add("active");
+                else c.classList.remove("active");
+            });
+
+            var noResultsEl = document.getElementById("sidebar-no-results");
+            if (noResultsEl) noResultsEl.style.display = "none";
+
+            applySidebarFilters();
+
+            if (window.roomifyMasterRooms && window.roomifyMasterRooms.length > 0) {
+                window.roomifyFitMapToRooms(JSON.stringify(window.roomifyMasterRooms));
+            }
+        };
+
+        window.roomifySyncSidebarState = function(area, maxPrice, status, propertyType) {
+            var locEl = document.getElementById("sidebar-search-input");
+            if (locEl && area !== undefined) locEl.value = area || "";
+
+            var budgetEl = document.getElementById("sidebar-budget-input");
+            if (budgetEl && maxPrice !== undefined) {
+                budgetEl.value = (maxPrice && !isNaN(maxPrice)) ? Math.round(maxPrice).toLocaleString() : "";
+            }
+
+            if (propertyType !== undefined) {
+                var typeChips = document.querySelectorAll("#type-chips .roomify-chip");
+                var targetType = (propertyType || "ALL").toUpperCase();
+                typeChips.forEach(function(c) {
+                    var chipType = (c.getAttribute("data-type") || "ALL").toUpperCase();
+                    if (chipType === targetType) c.classList.add("active");
+                    else c.classList.remove("active");
+                });
+            }
+
+            if (status !== undefined) {
+                var statusChips = document.querySelectorAll("#status-chips .roomify-chip");
+                var targetStatus = (status || "ALL").toUpperCase();
+                statusChips.forEach(function(c) {
+                    var chipStatus = (c.getAttribute("data-status") || "ALL").toUpperCase();
+                    if (chipStatus === targetStatus) c.classList.add("active");
+                    else c.classList.remove("active");
+                });
+            }
+        };
+
         function applySidebarFilters() {
             const locEl = document.getElementById("sidebar-search-input");
             const locVal = locEl ? locEl.value.trim() : "";
@@ -1861,13 +2032,66 @@
             const typeActiveEl = typeChipsEl ? typeChipsEl.querySelector(".active") : null;
             const type = typeActiveEl ? typeActiveEl.getAttribute("data-type") : "ALL";
 
-            var combinedQueryParts = [];
-            if (locVal) combinedQueryParts.push(locVal);
-            if (parsedBudget) combinedQueryParts.push(parsedBudget);
-            if (type && type !== "ALL") combinedQueryParts.push(type);
+            var sourceRooms = (window.roomifyMasterRooms && window.roomifyMasterRooms.length > 0)
+                ? window.roomifyMasterRooms
+                : window.roomifyAllRooms;
 
-            filterRooms(combinedQueryParts.join(", "));
+            var matches = [];
+            if (sourceRooms && sourceRooms.length > 0) {
+                matches = sourceRooms.filter(function(room) {
+                    if (!room) return false;
+                    if (parsedBudget !== null && room.price > parsedBudget) return false;
+                    if (type && type !== "ALL") {
+                        var pType = String(room.propertyType || "").toLowerCase();
+                        if (!pType.includes(type.toLowerCase())) return false;
+                    }
+                    var rStatus = normalizePropertyStatus(room.status);
+                    var cStatus = normalizePropertyStatus(status);
+                    if (cStatus !== "ALL" && cStatus !== "" && rStatus !== cStatus) return false;
+                    if (locVal) {
+                        var searchable = [room.title, room.address, room.city, room.areaName, room.location].filter(Boolean).join(" ").toLowerCase();
+                        if (!searchable.includes(locVal.toLowerCase())) return false;
+                    }
+                    return true;
+                });
+            }
+
+            updateVisibleMarkers(matches);
             applyMarkerVisibility();
+
+            var noResultsEl = document.getElementById("sidebar-no-results");
+            if (matches.length === 0) {
+                if (noResultsEl) noResultsEl.style.display = "block";
+            } else {
+                if (noResultsEl) noResultsEl.style.display = "none";
+
+                if (locVal || parsedBudget || (type && type !== "ALL") || (status && status !== "ALL")) {
+                    if (window.roomifyMap) {
+                        var validRooms = matches.filter(function(r) {
+                            var lat = Number(r.latitude !== undefined ? r.latitude : r.lat);
+                            var lng = Number(r.longitude !== undefined ? r.longitude : r.lng);
+                            return isFinite(lat) && isFinite(lng) && lat !== 0 && lng !== 0;
+                        });
+
+                        if (validRooms.length === 1) {
+                            var lat = Number(validRooms[0].latitude !== undefined ? validRooms[0].latitude : validRooms[0].lat);
+                            var lng = Number(validRooms[0].longitude !== undefined ? validRooms[0].longitude : validRooms[0].lng);
+                            window.roomifyMap.setCenter(new google.maps.LatLng(lat, lng));
+                            window.roomifyMap.setZoom(16);
+                        } else if (validRooms.length > 1) {
+                            var bounds = new google.maps.LatLngBounds();
+                            validRooms.forEach(function(r) {
+                                var lat = Number(r.latitude !== undefined ? r.latitude : r.lat);
+                                var lng = Number(r.longitude !== undefined ? r.longitude : r.lng);
+                                bounds.extend(new google.maps.LatLng(lat, lng));
+                            });
+                            if (!bounds.isEmpty()) {
+                                window.roomifyMap.fitBounds(bounds);
+                            }
+                        }
+                    }
+                }
+            }
 
             var event = new CustomEvent("roomifySidebarFilter", {
                 detail: JSON.stringify({
@@ -1878,6 +2102,8 @@
                 })
             });
             document.dispatchEvent(event);
+
+            return matches.length;
         }
 
         // Location button listener
@@ -1898,6 +2124,7 @@
 
         // Initial setup of sidebar content
         window.roomifyUpdateUser(null, null, null, null);
+        updateSidebarVisibility();
     }
 
     /*
@@ -2027,6 +2254,8 @@
 
 
     function toggleSidebar() {
+        if (!window.roomifyIsMapPage) return;
+
         var sidebar = document.getElementById("roomify-sidebar");
         var backdrop = document.getElementById("roomify-sidebar-backdrop");
 
@@ -2037,15 +2266,17 @@
         if (sidebar.classList.contains("open")) {
             closeSidebar();
         } else {
-            sidebar.style.display = "flex";
+            sidebar.classList.add("map-active");
             sidebar.classList.add("open");
 
             if (backdrop) {
                 backdrop.style.display = "block";
+                backdrop.style.pointerEvents = "auto";
                 backdrop.classList.add("open");
             } else {
                 createBackdrop();
             }
+            updateSidebarVisibility();
         }
     }
 
@@ -2056,15 +2287,15 @@
 
         if (sidebar) {
             sidebar.classList.remove("open");
-            if (window.innerWidth < 900) {
-                sidebar.style.display = "none";
-            }
         }
 
         if (backdrop) {
             backdrop.classList.remove("open");
             backdrop.style.display = "none";
+            backdrop.style.pointerEvents = "none";
         }
+
+        updateSidebarVisibility();
     }
 
     window.roomifyCloseSidebar = closeSidebar;
@@ -2073,7 +2304,7 @@
         if (document.getElementById("roomify-sidebar-backdrop")) return;
         var backdrop = document.createElement("div");
         backdrop.id = "roomify-sidebar-backdrop";
-        backdrop.style.cssText = "position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.4); z-index:9998; display:block;";
+        backdrop.style.cssText = "position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.4); z-index:9998; display:block; pointer-events:auto;";
         backdrop.onclick = function() {
             closeSidebar();
         };
@@ -2096,7 +2327,19 @@
             destination
         );
 
-        closeSidebar();
+        var sidebar = document.getElementById("roomify-sidebar");
+        if (sidebar) {
+            sidebar.classList.remove("open");
+        }
+        var backdrop = document.getElementById("roomify-sidebar-backdrop");
+        if (backdrop) {
+            backdrop.classList.remove("open");
+            backdrop.style.display = "none";
+        }
+
+        if (destination !== "map" && destination !== "explore") {
+            window.roomifyHideMap();
+        }
 
         // Dispatch event for Kotlin to handle
         var event =
@@ -2308,17 +2551,27 @@
         updateVisibleMarkers(filtered);
         showSearchCount(filtered.length, window.roomifyAllRooms.length);
 
-        if (filtered.length > 0 && window.roomifyMap) {
-            var bounds = new google.maps.LatLngBounds();
-            filtered.forEach(function(r) {
-                if (r.latitude && r.longitude) {
-                    bounds.extend(new google.maps.LatLng(Number(r.latitude), Number(r.longitude)));
-                }
+        if (window.roomifyMap) {
+            var validRooms = filtered.filter(function(r) {
+                var lat = Number(r.latitude !== undefined ? r.latitude : r.lat);
+                var lng = Number(r.longitude !== undefined ? r.longitude : r.lng);
+                return isFinite(lat) && isFinite(lng) && lat !== 0 && lng !== 0;
             });
-            if (!bounds.isEmpty()) {
-                window.roomifyMap.fitBounds(bounds);
-                if (filtered.length === 1 && window.roomifyMap.getZoom() > 16) {
-                    window.roomifyMap.setZoom(16);
+
+            if (validRooms.length === 1) {
+                var lat = Number(validRooms[0].latitude !== undefined ? validRooms[0].latitude : validRooms[0].lat);
+                var lng = Number(validRooms[0].longitude !== undefined ? validRooms[0].longitude : validRooms[0].lng);
+                window.roomifyMap.setCenter(new google.maps.LatLng(lat, lng));
+                window.roomifyMap.setZoom(16);
+            } else if (validRooms.length > 1) {
+                var bounds = new google.maps.LatLngBounds();
+                validRooms.forEach(function(r) {
+                    var lat = Number(r.latitude !== undefined ? r.latitude : r.lat);
+                    var lng = Number(r.longitude !== undefined ? r.longitude : r.lng);
+                    bounds.extend(new google.maps.LatLng(lat, lng));
+                });
+                if (!bounds.isEmpty()) {
+                    window.roomifyMap.fitBounds(bounds);
                 }
             }
         }
@@ -2639,30 +2892,41 @@
 
         if (rooms.length === 0) return;
 
-        var bounds = new google.maps.LatLngBounds();
-        var validCount = 0;
-
+        var validRooms = [];
         rooms.forEach(function(room) {
             var lat = Number(room.latitude !== undefined ? room.latitude : room.lat);
             var lng = Number(room.longitude !== undefined ? room.longitude : room.lng);
 
             if (isFinite(lat) && isFinite(lng) && lat !== 0 && lng !== 0) {
-                bounds.extend(new google.maps.LatLng(lat, lng));
-                validCount++;
+                validRooms.push({ lat: lat, lng: lng });
             }
         });
 
-        if (validCount > 0) {
-            console.log("Roomify: Fitting map to " + validCount + " markers");
-            window.roomifyMap.fitBounds(bounds);
-
-            // If only one room, fitBounds might zoom in too much or too little depending on implementation.
-            // Usually Google Maps handles it well, but if zoom is too high, we can cap it.
-            var listener = google.maps.event.addListener(window.roomifyMap, "idle", function() {
-                if (window.roomifyMap.getZoom() > 16) window.roomifyMap.setZoom(16);
-                google.maps.event.removeListener(listener);
-            });
+        if (validRooms.length === 0) {
+            console.warn("Roomify: No valid coordinates for fitBounds");
+            return;
         }
+
+        if (validRooms.length === 1) {
+            var pos = validRooms[0];
+            console.log("Roomify: Centering map to single property at " + pos.lat + ", " + pos.lng);
+            window.roomifyMap.setCenter(new google.maps.LatLng(pos.lat, pos.lng));
+            window.roomifyMap.setZoom(16);
+            return;
+        }
+
+        var bounds = new google.maps.LatLngBounds();
+        validRooms.forEach(function(pos) {
+            bounds.extend(new google.maps.LatLng(pos.lat, pos.lng));
+        });
+
+        console.log("Roomify: Fitting map to " + validRooms.length + " markers");
+        window.roomifyMap.fitBounds(bounds);
+
+        var listener = google.maps.event.addListener(window.roomifyMap, "idle", function() {
+            if (window.roomifyMap.getZoom() > 16) window.roomifyMap.setZoom(16);
+            google.maps.event.removeListener(listener);
+        });
     };
 
 
@@ -2988,9 +3252,10 @@
 
         var imageHtml = "";
         if (room.image) {
+            var resolvedImg = resolveMediaUrl(room.image);
             imageHtml =
                 '<div class="roomify-popup-image-container">' +
-                '<img src="' + escapeHtml(room.image) + '" class="roomify-popup-image" onerror="this.style.display=\'none\'" />' +
+                '<img src="' + escapeHtml(resolvedImg) + '" class="roomify-popup-image" onerror="this.style.display=\'none\'" />' +
                 '</div>';
         }
 
@@ -3070,8 +3335,9 @@
         }
 
         var isRented = status === "RENTED";
-        var buttonText = isRented ? "RENTED - View Details" : "View Property Details";
-        var buttonStyle = isRented ? 'style="opacity:0.8; background:#E0E0E0; color:#757575;"' : "";
+        var buttonText = "View Property Details";
+        var buttonStyle = 'style="cursor:pointer;"';
+        var safeRoomId = escapeHtml(room.id);
 
         // FIX: Wrap everything in a container that stops propagation
         return (
@@ -3129,9 +3395,9 @@
 
             featuresHtml +
 
-            '<button class="roomify-popup-button" ' + buttonStyle + ' data-roomify-view-details="' +
-            escapeHtml(room.id) +
-            '">' +
+            '<button class="roomify-popup-button" ' + buttonStyle +
+            ' onclick="window.roomifyOnViewDetailsClick(\'' + safeRoomId + '\', event);"' +
+            ' data-roomify-view-details="' + safeRoomId + '">' +
             buttonText +
             '</button>' +
 
@@ -3140,6 +3406,31 @@
             '</div>'
         );
     }
+
+    window.roomifyOnViewDetailsClick = function(roomId, event) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            if (typeof event.cancelBubble !== "undefined") event.cancelBubble = true;
+        }
+
+        if (!roomId) {
+            console.warn("Roomify: View Details clicked without roomId");
+            return;
+        }
+
+        console.log("Roomify: View Details clicked for room ID:", roomId);
+
+        if (window.roomifyInfoOverlay) {
+            window.roomifyInfoOverlay.hide();
+        }
+        window.roomifyPopupPinned = false;
+
+        var customEvent = new CustomEvent("roomViewDetails", {
+            detail: String(roomId)
+        });
+        document.dispatchEvent(customEvent);
+    };
 
 
     /*
@@ -3417,55 +3708,13 @@
                     );
 
                 if (viewBtn) {
-
                     viewBtn.onclick =
                         function (event) {
-
-                            event.preventDefault();
-                            event.stopPropagation();
-                            event.cancelBubble = true;
-
                             var roomId =
                                 viewBtn.getAttribute(
                                     "data-roomify-view-details"
                                 );
-
-                            if (!roomId) {
-                                return;
-                            }
-
-                            console.log(
-                                "Roomify: View Details clicked:",
-                                roomId
-                            );
-
-                            // CLOSE THE POPUP FIRST
-                            if (
-                                window.roomifyInfoOverlay
-                            ) {
-                                window.roomifyInfoOverlay.hide();
-                            }
-                            window.roomifyPopupPinned = false;
-
-                            // Dispatch event for Kotlin to handle navigation
-                            var customEvent =
-                                new CustomEvent(
-                                    "roomViewDetails",
-                                    {
-                                        detail:
-                                            String(
-                                                roomId
-                                            )
-                                    }
-                                );
-
-                            console.log(
-                                "Roomify: Dispatching roomViewDetails event"
-                            );
-
-                            document.dispatchEvent(
-                                customEvent
-                            );
+                            window.roomifyOnViewDetailsClick(roomId, event);
                         };
                 }
             }
@@ -3981,8 +4230,11 @@
                  * Search operates on this list.
                  */
 
-                window.roomifyAllRooms =
-                    rooms;
+                if (!window.roomifyMasterRooms || window.roomifyMasterRooms.length === 0 || rooms.length >= window.roomifyMasterRooms.length) {
+                    window.roomifyMasterRooms = rooms;
+                }
+
+                window.roomifyAllRooms = rooms;
 
 
                 /*
@@ -4130,8 +4382,8 @@
             }
 
 
-            window.roomifyAllRooms =
-                [];
+            window.roomifyMasterRooms = [];
+            window.roomifyAllRooms = [];
 
             window.roomifySearchQuery =
                 "";

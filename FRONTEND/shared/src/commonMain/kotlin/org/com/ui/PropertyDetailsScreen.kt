@@ -104,6 +104,7 @@ fun PropertyDetailsScreen(
     }
 
     val isMyProperty = currentUser?.id == room.postedBy
+    val statusUpper = (room.status ?: "AVAILABLE").uppercase().trim()
 
     // Animations for entry
     val alphaAnim = remember { Animatable(0f) }
@@ -114,19 +115,21 @@ fun PropertyDetailsScreen(
         translateYAnim.animateTo(0f, animationSpec = spring(stiffness = Spring.StiffnessLow))
     }
 
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(Brush.verticalGradient(listOf(PrimaryColor, PrimaryLight))),
         contentAlignment = Alignment.Center
     ) {
+        val isSmallScreen = maxWidth < 600.dp || maxHeight < 700.dp
+
         // Main Centered Content Card
         Card(
             modifier = Modifier
-                .fillMaxWidth(0.94f)
-                .widthIn(max = 500.dp)
-                .fillMaxHeight(0.92f)
-                .padding(vertical = 16.dp)
+                .fillMaxWidth(if (isSmallScreen) 0.98f else 0.94f)
+                .widthIn(max = if (isSmallScreen) 440.dp else 500.dp)
+                .fillMaxHeight(if (isSmallScreen) 0.96f else 0.92f)
+                .padding(vertical = if (isSmallScreen) 8.dp else 16.dp)
                 .graphicsLayer {
                     alpha = alphaAnim.value
                     translationY = translateYAnim.value
@@ -136,11 +139,11 @@ fun PropertyDetailsScreen(
             elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                // Header with Image Gallery
-                Box(
-                    modifier = Modifier
+                    // Header with Image Gallery
+                    Box(
+                        modifier = Modifier
                         .fillMaxWidth()
-                        .height(280.dp)
+                        .height(if (isSmallScreen) 180.dp else 280.dp)
                 ) {
                     val imageUrls = room.fullImageUrls
                     if (imageUrls.isNotEmpty()) {
@@ -258,6 +261,16 @@ fun PropertyDetailsScreen(
                             Surface(color = PrimaryColor.copy(alpha = 0.08f), shape = RoundedCornerShape(6.dp)) {
                                 Text(room.propertyType?.uppercase() ?: "PROPERTY", modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp), fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = PrimaryColor)
                             }
+
+                            Spacer(Modifier.width(8.dp))
+                            val (statusBg, statusFg, statusText) = when (statusUpper) {
+                                "RENTED" -> Triple(Color(0xFFFEF2F2), Color(0xFFDC2626), "RENTED")
+                                "PENDING" -> Triple(Color(0xFFFEF3C7), Color(0xFFD97706), "PENDING")
+                                else -> Triple(Color(0xFFDCFCE7), Color(0xFF16A34A), "AVAILABLE")
+                            }
+                            Surface(color = statusBg, shape = RoundedCornerShape(6.dp)) {
+                                Text(statusText, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp), fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = statusFg)
+                            }
                             
                             if (room.propertyId != null) {
                                 Spacer(Modifier.width(8.dp))
@@ -272,6 +285,42 @@ fun PropertyDetailsScreen(
                         }
                         Spacer(Modifier.height(8.dp))
                         Text(text = room.title ?: "", fontSize = 24.sp, fontWeight = FontWeight.Black, color = Color(0xFF111111), lineHeight = 30.sp)
+
+                        if (statusUpper == "RENTED") {
+                            Spacer(Modifier.height(8.dp))
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                color = Color(0xFFFEF2F2),
+                                border = BorderStroke(1.dp, Color(0xFFFCA5A5))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        Icons.Default.Info,
+                                        contentDescription = null,
+                                        tint = Color(0xFFDC2626),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(Modifier.width(10.dp))
+                                    Column {
+                                        Text(
+                                            "RENTED",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp,
+                                            color = Color(0xFF991B1B)
+                                        )
+                                        Text(
+                                            "This property is currently occupied.",
+                                            fontSize = 11.sp,
+                                            color = Color(0xFF7F1D1D)
+                                        )
+                                    }
+                                }
+                            }
+                        }
                         
                         if (room.unitNumber != null || room.floorNumber != null) {
                             Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -595,13 +644,38 @@ fun PropertyDetailsScreen(
                             Text("EDIT PROPERTY", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         }
                     } else if (!isOwnerOrDalali) {
-                        Button(
-                            onClick = { onBookNow(room) },
-                            modifier = Modifier.height(48.dp).widthIn(min = 120.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
-                        ) {
-                            Text("BOOK NOW", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        if (statusUpper == "RENTED") {
+                            var isNotified by remember { mutableStateOf(false) }
+
+                            Button(
+                                onClick = { isNotified = true },
+                                modifier = Modifier.height(48.dp).widthIn(min = 130.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (isNotified) Color(0xFF15803D) else Color(0xFF2563EB)
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = if (isNotified) Icons.Default.Check else Icons.Default.Notifications,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                    if (isNotified) "NOTIFIED" else "Notify Me",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp
+                                )
+                            }
+                        } else {
+                            Button(
+                                onClick = { onBookNow(room) },
+                                modifier = Modifier.height(48.dp).widthIn(min = 120.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                            ) {
+                                Text("BOOK NOW", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            }
                         }
                     }
                 }

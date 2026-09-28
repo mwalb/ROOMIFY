@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 @Composable
 actual fun MapContent(
     rooms: List<org.com.model.Room>,
+    allRooms: List<org.com.model.Room>,
     selectedRoom: org.com.model.Room?,
     authState: org.com.auth.AuthState,
     routingDestination: org.com.model.Room?,

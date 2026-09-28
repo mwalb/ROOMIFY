@@ -333,9 +333,14 @@ private external fun updateViewedRooms(idsJson: String)
 @JsFun("(idsJson) => { if (typeof window.roomifyUpdateSavedRooms === 'function') { window.roomifyUpdateSavedRooms(idsJson); } }")
 private external fun updateSavedRooms(idsJson: String)
 
+@OptIn(ExperimentalWasmJsInterop::class)
+@JsFun("(area, maxPrice, status, propertyType) => { if (typeof window.roomifySyncSidebarState === 'function') { window.roomifySyncSidebarState(area, maxPrice, status, propertyType); } }")
+private external fun syncSidebarState(area: String?, maxPrice: Double?, status: String?, propertyType: String?)
+
 @Composable
 actual fun MapContent(
     rooms: List<Room>,
+    allRooms: List<Room>,
     selectedRoom: Room?,
     authState: org.com.auth.AuthState,
     routingDestination: Room?,
@@ -580,15 +585,6 @@ actual fun MapContent(
         delay(100)
         triggerMapResize()
 
-        if (
-            rooms.isEmpty()
-        ) {
-
-            println("Roomify: no rooms available yet")
-
-            return@LaunchedEffect
-        }
-
         repeat(40) {
 
             if (
@@ -634,7 +630,7 @@ actual fun MapContent(
      * ========================================================
      */
 
-    DisposableEffect(rooms) {
+    DisposableEffect(allRooms, rooms) {
 
         val listener: (Event) -> Unit =
             { event ->
@@ -651,7 +647,9 @@ actual fun MapContent(
                 ) {
 
                     val room =
-                        rooms.find { candidate ->
+                        allRooms.find { candidate ->
+                            candidate.id?.toString() == roomId
+                        } ?: rooms.find { candidate ->
 
                             candidate.id
                                 ?.toString() ==
@@ -690,7 +688,7 @@ actual fun MapContent(
      * ========================================================
      */
 
-    DisposableEffect(rooms) {
+    DisposableEffect(allRooms, rooms) {
 
         val listener: (Event) -> Unit =
             listener@{ event ->
@@ -705,26 +703,27 @@ actual fun MapContent(
                 if (
                     roomId.isNullOrBlank()
                 ) {
-
                     println("Roomify: View Details event has no room ID")
-
                     return@listener
                 }
 
-                val room =
-                    rooms.find { candidate ->
+                val cleanId = roomId.replace("\"", "").trim()
+                val roomIdLong = cleanId.toLongOrNull()
 
-                        candidate.id
-                            ?.toString() ==
-                                roomId
-                    }
+                var room = allRooms.find { candidate ->
+                    candidate.id?.toString() == cleanId || (roomIdLong != null && candidate.id == roomIdLong)
+                } ?: rooms.find { candidate ->
+                    candidate.id?.toString() == cleanId || (roomIdLong != null && candidate.id == roomIdLong)
+                }
+
+                if (room == null && selectedRoom?.id?.toString() == cleanId) {
+                    room = selectedRoom
+                }
 
                 if (
                     room == null
                 ) {
-
-                    println("Roomify: View Details room not found: $roomId")
-
+                    println("Roomify: View Details room not found: $cleanId in list of ${allRooms.size} all rooms (filtered: ${rooms.size})")
                     return@listener
                 }
 

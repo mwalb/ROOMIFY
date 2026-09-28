@@ -39,6 +39,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.com.auth.AuthManager
 import org.com.auth.AuthState
+import org.com.i18n.LocalRoomifyStrings
+import androidx.compose.ui.zIndex
 import org.com.model.*
 import org.com.network.RoomApi
 import org.com.ui.OwnerDashboardScreen
@@ -245,9 +247,6 @@ fun App() {
     }
 
     LaunchedEffect(Unit) {
-        println("Roomify: Loading rooms...")
-        viewModel.loadRooms()
-        
         // Load real furniture data
         scope.launch {
             val response = RoomifyApi.getAllFurniture()
@@ -1269,7 +1268,7 @@ fun RoomifyBottomPanelShell(
     currentRoute: String,
     onNavigate: (String) -> Unit,
     onLogout: () -> Unit,
-    onSearch: (type: String?, area: String?, maxPrice: Double?, status: String?) -> Unit,
+    onSearch: (type: String?, area: String?, maxPrice: Double?, status: String?) -> Boolean,
     onMyLocationClick: (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
@@ -1360,11 +1359,22 @@ private fun AppMapContainer(
 ) {
     val user = (authState as? AuthState.Authenticated)?.user
     val isAndroid = getPlatform().name.contains("Android", ignoreCase = true)
+    val strings = LocalRoomifyStrings.current
+    val feedbackKey = viewModel.filterFeedbackKey
+    val feedbackArea = viewModel.filterFeedbackArea
+
+    LaunchedEffect(feedbackKey) {
+        if (feedbackKey != null) {
+            delay(4000)
+            viewModel.clearFeedback()
+        }
+    }
 
     val mapContent = @Composable {
         Box(modifier = Modifier.fillMaxSize()) {
             MapContent(
                 rooms = viewModel.filteredRooms,
+                allRooms = viewModel.rooms,
                 selectedRoom = viewModel.selectedRoom,
                 authState = authState,
                 routingDestination = routingDestination,
@@ -1388,6 +1398,38 @@ private fun AppMapContainer(
                 onViewProperty = onViewProperty,
                 onNavigate = onNavigate
             )
+
+            if (feedbackKey != null) {
+                val message = when (feedbackKey) {
+                    is MapViewModel.FilterFeedback.NoMatches -> {
+                        if (!feedbackArea.isNullOrBlank()) strings.noMatchingPropertiesIn(feedbackArea!!)
+                        else strings.noMatchingProperties
+                    }
+                    is MapViewModel.FilterFeedback.InvalidCoordinates -> strings.invalidCoordinatesWarning
+                }
+
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 80.dp)
+                        .zIndex(100f)
+                        .background(Color(0xFF1A237E), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = message, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.width(12.dp))
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = "Dismiss",
+                            tint = Color.White,
+                            modifier = Modifier
+                                .size(16.dp)
+                                .clickable { viewModel.clearFeedback() }
+                        )
+                    }
+                }
+            }
         }
     }
 

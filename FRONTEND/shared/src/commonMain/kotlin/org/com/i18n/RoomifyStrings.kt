@@ -65,6 +65,9 @@ interface RoomifyStrings {
     val mySearches: String
     val imageUnavailable: String
     val noPropertyImages: String
+    val noMatchingProperties: String
+    fun noMatchingPropertiesIn(area: String): String
+    val invalidCoordinatesWarning: String
 }
 
 object EnStrings : RoomifyStrings {
@@ -132,6 +135,9 @@ object EnStrings : RoomifyStrings {
     override val mySearches = "My Searches"
     override val imageUnavailable = "Image unavailable"
     override val noPropertyImages = "No property images available"
+    override val noMatchingProperties = "No matching properties found."
+    override fun noMatchingPropertiesIn(area: String) = "No matching properties found in $area."
+    override val invalidCoordinatesWarning = "Matching properties found, but with invalid location coordinates."
 }
 
 object SwStrings : RoomifyStrings {
@@ -199,4 +205,7 @@ object SwStrings : RoomifyStrings {
     override val mySearches = "Utafutaji Wangu"
     override val imageUnavailable = "Picha haipatikani"
     override val noPropertyImages = "Hakuna picha za nyumba zinazopatikana"
+    override val noMatchingProperties = "Hakuna nyumba inayolingana na vigezo ulivyochagua."
+    override fun noMatchingPropertiesIn(area: String) = "Hakuna nyumba inayolingana na vigezo katika $area."
+    override val invalidCoordinatesWarning = "Kuna nyumba zinazolingana, lakini hazina anwani sahihi za ramani."
 }

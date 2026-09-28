@@ -456,6 +456,7 @@ private fun createClusterMarker(count: Int): BitmapDescriptor {
 @Composable
 actual fun MapContent(
     rooms: List<Room>,
+    allRooms: List<Room>,
     selectedRoom: Room?,
     authState: AuthState,
     routingDestination: Room?,
@@ -489,8 +490,15 @@ actual fun MapContent(
 
     LaunchedEffect(rooms, shouldFitBounds) {
         if (shouldFitBounds && rooms.isNotEmpty()) {
-            val validRooms = rooms.filter { it.latitude != 0.0 && it.longitude != 0.0 }
-            if (validRooms.isNotEmpty()) {
+            val validRooms = rooms.filter { it.latitude != 0.0 && it.longitude != 0.0 && kotlin.math.isFinite(it.latitude) && kotlin.math.isFinite(it.longitude) }
+            if (validRooms.size == 1) {
+                val room = validRooms[0]
+                cameraPositionState.animate(
+                    update = CameraUpdateFactory.newLatLngZoom(LatLng(room.latitude, room.longitude), 16f),
+                    durationMs = 1000
+                )
+                onFitBoundsHandled()
+            } else if (validRooms.isNotEmpty()) {
                 val boundsBuilder = LatLngBounds.builder()
                 validRooms.forEach { room ->
                     boundsBuilder.include(LatLng(room.latitude, room.longitude))
@@ -914,51 +922,6 @@ private fun MapHeader(
                                 modifier = Modifier.size(18.dp)
                             )
                         }
-                    }
-                }
-            }
-
-            /* STATUS DROPDOWN (Android) */
-            var statusExpanded by remember { mutableStateOf(false) }
-
-            Box {
-                Surface(
-                    modifier = Modifier
-                        .height(52.dp)
-                        .widthIn(min = 80.dp)
-                        .shadow(elevation = 8.dp, shape = RoundedCornerShape(18.dp))
-                        .clickable { statusExpanded = true },
-                    shape = RoundedCornerShape(18.dp),
-                    color = RoomifyWhite.copy(alpha = 0.96f),
-                    border = BorderStroke(1.dp, Color(0xFFBDBDBD))
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = currentStatusFilter.uppercase(),
-                            color = RoomifyGradientStart,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null, tint = RoomifyGradientStart, modifier = Modifier.size(18.dp))
-                    }
-                }
-
-                DropdownMenu(
-                    expanded = statusExpanded,
-                    onDismissRequest = { statusExpanded = false }
-                ) {
-                    listOf("ALL", "AVAILABLE", "PENDING", "RENTED").forEach { status ->
-                        DropdownMenuItem(
-                            text = { Text(status, fontWeight = FontWeight.Bold) },
-                            onClick = {
-                                onStatusFilterChange(status)
-                                statusExpanded = false
-                            }
-                        )
                     }
                 }
             }
