@@ -2950,10 +2950,9 @@
         }
 
         return (
-            "TZS " +
             Math.round(value)
                 .toLocaleString("en-US") +
-            "/month"
+            " TZS"
         );
     }
 
@@ -2977,41 +2976,10 @@
             return "Price on request";
         }
 
-        if (
-            value >= 1000000
-        ) {
-
-            var millions =
-                Math.round(
-                    (value / 1000000) * 100
-                ) / 100;
-
-            return (
-                "TZS " +
-                millions +
-                "M"
-            );
-        }
-
-        if (
-            value >= 1000
-        ) {
-
-            var thousands =
-                Math.round(
-                    (value / 1000) * 100
-                ) / 100;
-
-            return (
-                "TZS " +
-                thousands +
-                "K"
-            );
-        }
-
         return (
-            "TZS " +
             Math.round(value)
+                .toLocaleString("en-US") +
+            " TZS"
         );
     }
 
@@ -3223,6 +3191,11 @@
                 )
             );
 
+        var vStatus =
+            String(
+                room.verificationStatus || ""
+            ).toUpperCase();
+
         var status =
             String(
                 room.status ||
@@ -3236,6 +3209,14 @@
 
         var statusColorValue =
             statusColor(status);
+
+        if (vStatus === "PENDING") {
+            statusLabel = "Pending Verification";
+            statusColorValue = "#F57F17";
+        } else if (vStatus === "REJECTED") {
+            statusLabel = "Rejected";
+            statusColorValue = "#D32F2F";
+        }
 
         var address =
             escapeHtml(

@@ -55,6 +55,20 @@ class RoomApi {
             }
     }
 
+    suspend fun getMyProperties(): List<Room> {
+        println("RoomApi: GET /api/rooms/my-properties")
+        return try {
+            client
+                .get("rooms/my-properties") {
+                    parameter("t", currentTimeMillis())
+                }
+                .body<List<Room>>()
+        } catch (e: Exception) {
+            println("RoomApi: failed to fetch my-properties: ${e.message}")
+            emptyList()
+        }
+    }
+
 
     /*
      * =========================================================

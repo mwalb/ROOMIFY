@@ -362,6 +362,7 @@ fun App() {
     LaunchedEffect(authState) {
         if (authState is AuthState.Authenticated) {
             val authenticatedState = authState as AuthState.Authenticated
+            viewModel.loadRooms()
             println("App: ✅✅✅ User authenticated successfully - ${authenticatedState.user.name}")
             println("App: ✅✅✅ currentRoute before navigation: $currentRoute")
             println("App: ✅✅✅ pendingRoom: ${pendingRoom?.id}")

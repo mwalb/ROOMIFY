@@ -195,7 +195,7 @@ private fun formatFullPrice(price: Double): String {
     if (!price.isFinite() || price <= 0.0) {
         return "Price on request"
     }
-    return "TZS ${price.roundToInt().toStringWithCommas()} / month"
+    return "${price.roundToInt().toStringWithCommas()} TZS"
 }
 
 /*
@@ -206,18 +206,10 @@ private fun formatFullPrice(price: Double): String {
 
 private fun formatCompactPrice(price: Double): String {
     if (!price.isFinite() || price <= 0.0) {
-        return "Price"
+        return "Price on request"
     }
-    return when {
-        price >= 1_000_000.0 -> {
-            val value = ((price / 1_000_000.0) * 100.0).roundToInt() / 100.0
-            "TZS ${value.removeTrailingZeros()}M"
-        }
-        price >= 1_000.0 -> {
-            val value = ((price / 1_000.0) * 100.0).roundToInt() / 100.0
-            "TZS ${value.removeTrailingZeros()}K"
-        }
-        else -> {
+    return "${price.roundToInt().toStringWithCommas()} TZS"
+}
             "TZS ${price.roundToInt().toStringWithCommas()}"
         }
     }

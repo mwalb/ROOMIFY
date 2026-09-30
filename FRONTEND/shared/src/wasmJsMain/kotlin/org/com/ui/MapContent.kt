@@ -245,6 +245,7 @@ private fun List<Room>.toJsonString(): String {
             "lng":${room.longitude},
             "title":"$title",
             "status":"$status",
+            "verificationStatus":"${room.verificationStatus}",
             "price":${room.price},
             "address":"$address",
             "propertyType":"$propertyType",

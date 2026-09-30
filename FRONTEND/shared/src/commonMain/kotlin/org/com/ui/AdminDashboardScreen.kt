@@ -70,7 +70,6 @@ fun AdminDashboardScreen(
                 mutableStateListOf(
                     MenuItem("Overview", Icons.Default.Dashboard),
                     MenuItem("Property Verification", Icons.Default.Verified),
-                    MenuItem("User Verification", Icons.Default.SupervisorAccount),
                     MenuItem("Users", Icons.Default.People),
                     MenuItem("Owners", Icons.Default.Store),
                     MenuItem("Dalalis", Icons.Default.Handshake),
@@ -154,7 +153,6 @@ fun AdminDashboardScreen(
                 when (selectedSection) {
                     "Overview" -> AdminOverviewContent()
                     "Property Verification" -> PropertyVerificationContent()
-                    "User Verification" -> UserVerificationContent()
                     "Users" -> UserManagementContent(roleFilter = null)
                     "Owners" -> UserManagementContent(roleFilter = "OWNER")
                     "Dalalis" -> UserManagementContent(roleFilter = "DALALI")
@@ -415,162 +413,6 @@ fun PropertyVerificationContent() {
 }
 
 /* ============================================================
-   USER VERIFICATION SECTION
-   ============================================================ */
-
-@Composable
-fun UserVerificationContent() {
-    var pendingUsers by remember { mutableStateOf<List<User>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-    var rejectionDialogUserId by remember { mutableStateOf<Long?>(null) }
-    var rejectionReasonInput by remember { mutableStateOf("") }
-    var selectedUserForDetails by remember { mutableStateOf<User?>(null) }
-    val scope = rememberCoroutineScope()
-
-    val loadPendingUsers = {
-        scope.launch {
-            isLoading = true
-            try {
-                val res = RoomifyApi.getPendingUsers()
-                if (res.success && res.data != null) {
-                    pendingUsers = res.data!!
-                } else {
-                    pendingUsers = getSamplePendingUsers()
-                }
-            } catch (e: Exception) {
-                pendingUsers = getSamplePendingUsers()
-            } finally {
-                isLoading = false
-            }
-        }
-    }
-
-    LaunchedEffect(Unit) { loadPendingUsers() }
-
-    Column(Modifier.fillMaxSize()) {
-        Text("Pending Owner & Dalali Verifications", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(16.dp))
-
-        if (isLoading) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        } else if (pendingUsers.isEmpty()) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No users awaiting verification.", color = Color.Gray)
-            }
-        } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxSize()) {
-                items(pendingUsers) { u ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(2.dp)
-                    ) {
-                        Column(Modifier.padding(16.dp)) {
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text(u.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                                Surface(
-                                    color = PrimaryColor.copy(alpha = 0.12f),
-                                    shape = RoundedCornerShape(8.dp)
-                                ) {
-                                    Text(u.role.uppercase(), color = PrimaryColor, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
-                                }
-                            }
-                            Spacer(Modifier.height(4.dp))
-                            Text("Email: ${u.email}", fontSize = 13.sp, color = Color.Gray)
-                            if (!u.phone.isNullOrBlank()) Text("Phone: ${u.phone}", fontSize = 13.sp, color = Color.Gray)
-                            if (!u.businessName.isNullOrBlank()) Text("Business / Agency: ${u.businessName}", fontSize = 13.sp, color = PrimaryColor, fontWeight = FontWeight.Medium)
-                            if (!u.nidaNumber.isNullOrBlank()) Text("NIDA: ${u.nidaNumber}", fontSize = 12.sp, color = Color.Gray)
-
-                            if (!u.localAuthorityName.isNullOrBlank()) {
-                                Spacer(Modifier.height(6.dp))
-                                Text("Mtendaji/Mwenyekiti wa Mtaa Details:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryColor)
-                                Text("• Name: ${u.localAuthorityName} (${u.localAuthorityPhone ?: "N/A"})", fontSize = 12.sp, color = Color.DarkGray)
-                                Text("• Area: ${u.localAuthorityArea ?: ""} ${u.localAuthorityVillage ?: ""}", fontSize = 12.sp, color = Color.DarkGray)
-                            }
-
-                            Spacer(Modifier.height(12.dp))
-                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                Button(
-                                    onClick = {
-                                        scope.launch {
-                                            RoomifyApi.verifyUser(u.id)
-                                            pendingUsers = pendingUsers.filter { it.id != u.id }
-                                        }
-                                    },
-                                    colors = ButtonDefaults.buttonColors(containerColor = SuccessColor),
-                                    modifier = Modifier.height(36.dp)
-                                ) {
-                                    Text("Verify & Approve", fontSize = 12.sp)
-                                }
-                                OutlinedButton(
-                                    onClick = { rejectionDialogUserId = u.id },
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = DangerColor),
-                                    modifier = Modifier.height(36.dp)
-                                ) {
-                                    Text("Reject", fontSize = 12.sp)
-                                }
-                                TextButton(
-                                    onClick = { selectedUserForDetails = u },
-                                    modifier = Modifier.height(36.dp)
-                                ) {
-                                    Text("View Details", fontSize = 12.sp)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        if (rejectionDialogUserId != null) {
-            AlertDialog(
-                onDismissRequest = { rejectionDialogUserId = null },
-                title = { Text("Reject User Application") },
-                text = {
-                    Column {
-                        Text("Provide a reason for rejection:")
-                        Spacer(Modifier.height(8.dp))
-                        OutlinedTextField(
-                            value = rejectionReasonInput,
-                            onValueChange = { rejectionReasonInput = it },
-                            placeholder = { Text("Reason") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            val uId = rejectionDialogUserId
-                            val reason = rejectionReasonInput
-                            rejectionDialogUserId = null
-                            rejectionReasonInput = ""
-                            if (uId != null) {
-                                scope.launch {
-                                    RoomifyApi.rejectUser(uId, reason)
-                                    pendingUsers = pendingUsers.filter { it.id != uId }
-                                }
-                            }
-                        }
-                    ) {
-                        Text("REJECT", color = DangerColor)
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { rejectionDialogUserId = null }) { Text("CANCEL") }
-                }
-            )
-        }
-
-        if (selectedUserForDetails != null) {
-            UserDetailsDialog(user = selectedUserForDetails!!, onDismiss = { selectedUserForDetails = null })
-        }
-    }
-}
-
-/* ============================================================
    USER MANAGEMENT SECTION (Users, Owners, Dalalis, Tenants)
    ============================================================ */
 
@@ -651,10 +493,9 @@ fun UserManagementContent(roleFilter: String?) {
             ) {
                 Column(Modifier.padding(16.dp)) {
                     Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("User", Modifier.weight(1.5f), fontWeight = FontWeight.Bold)
-                        Text("Role", Modifier.weight(0.8f), fontWeight = FontWeight.Bold)
-                        Text("Verification", Modifier.weight(1f), fontWeight = FontWeight.Bold)
-                        Text("Status", Modifier.weight(0.8f), fontWeight = FontWeight.Bold)
+                        Text("User", Modifier.weight(1.8f), fontWeight = FontWeight.Bold)
+                        Text("Role", Modifier.weight(1f), fontWeight = FontWeight.Bold)
+                        Text("Account Status", Modifier.weight(1f), fontWeight = FontWeight.Bold)
                         Text("Actions", Modifier.weight(1.2f), fontWeight = FontWeight.Bold)
                     }
                     HorizontalDivider()
@@ -665,30 +506,16 @@ fun UserManagementContent(roleFilter: String?) {
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Column(Modifier.weight(1.5f)) {
+                                Column(Modifier.weight(1.8f)) {
                                     Text(u.name, fontWeight = FontWeight.SemiBold)
                                     Text(u.email, fontSize = 12.sp, color = Color.Gray)
                                 }
-                                Text(u.role.uppercase(), Modifier.weight(0.8f), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryColor)
-
-                                Surface(
-                                    color = if (u.isVerified()) SuccessColor.copy(alpha = 0.12f) else WarningColor.copy(alpha = 0.12f),
-                                    shape = RoundedCornerShape(6.dp),
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Text(
-                                        if (u.isVerified()) "VERIFIED" else "PENDING",
-                                        color = if (u.isVerified()) SuccessColor else WarningColor,
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                    )
-                                }
+                                Text(u.role.uppercase(), Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryColor)
 
                                 Surface(
                                     color = if (u.isUserSuspended()) DangerColor.copy(alpha = 0.12f) else SuccessColor.copy(alpha = 0.12f),
                                     shape = RoundedCornerShape(6.dp),
-                                    modifier = Modifier.weight(0.8f)
+                                    modifier = Modifier.weight(1f)
                                 ) {
                                     Text(
                                         if (u.isUserSuspended()) "SUSPENDED" else "ACTIVE",
@@ -715,7 +542,7 @@ fun UserManagementContent(roleFilter: String?) {
                                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                                             modifier = Modifier.height(32.dp)
                                         ) {
-                                            Text("Unsuspend", fontSize = 11.sp)
+                                            Text("Activate", fontSize = 11.sp)
                                         }
                                     } else {
                                         Button(
@@ -763,8 +590,7 @@ fun UserDetailsDialog(user: User, onDismiss: () -> Unit) {
                 Text("• Email: ${user.email}")
                 Text("• Phone: ${user.phone ?: "N/A"}")
                 Text("• Role: ${user.role.uppercase()}")
-                Text("• Verification: ${if (user.isVerified()) "Verified" else "Pending / Unverified"}")
-                Text("• Status: ${if (user.isUserSuspended()) "Suspended" else "Active"}")
+                Text("• Account Status: ${if (user.isUserSuspended()) "Suspended" else "Active"}")
 
                 if (!user.businessName.isNullOrBlank() || !user.nidaNumber.isNullOrBlank() || !user.licenseNumber.isNullOrBlank()) {
                     Spacer(Modifier.height(12.dp))

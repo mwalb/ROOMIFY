@@ -269,14 +269,52 @@ public class RoomController {
         }
     }
 
-    // Get all rooms - PUBLIC LISTING FOR EXPLORE/MAP (Returns only verified properties for non-admins)
+    // Get all rooms - ROLE-BASED LISTING FOR EXPLORE/MAP
     @GetMapping
     @Transactional(readOnly = true)
     public ResponseEntity<?> getAllRooms() {
         try {
             User user = getAuthenticatedUser();
             List<Room> rooms;
-            if (user != null && isAdminRole(user)) {
+            if (user != null) {
+                if (isAdminRole(user)) {
+                    rooms = repo.findAll();
+                } else if (UserRole.OWNER.equals(user.getRole())) {
+                    rooms = repo.findByPostedBy(user.getId());
+                } else if (UserRole.DALALI.equals(user.getRole())) {
+                    rooms = repo.findByDalaliIdOrPostedBy(user.getId(), user.getId());
+                } else {
+                    // TENANT
+                    rooms = repo.findByVerificationStatus(VerificationStatus.VERIFIED);
+                }
+            } else {
+                // Anonymous Guest
+                rooms = repo.findByVerificationStatus(VerificationStatus.VERIFIED);
+            }
+            return ResponseEntity.ok(rooms);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>(false, null, "Error: " + e.getMessage()));
+        }
+    }
+
+    // Get properties for currently authenticated user
+    @GetMapping("/my-properties")
+    @Transactional(readOnly = true)
+    public ResponseEntity<?> getMyProperties() {
+        try {
+            User user = getAuthenticatedUser();
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new ApiResponse<>(false, null, "Authentication required"));
+            }
+            List<Room> rooms;
+            if (UserRole.OWNER.equals(user.getRole())) {
+                rooms = repo.findByPostedBy(user.getId());
+            } else if (UserRole.DALALI.equals(user.getRole())) {
+                rooms = repo.findByDalaliIdOrPostedBy(user.getId(), user.getId());
+            } else if (isAdminRole(user)) {
                 rooms = repo.findAll();
             } else {
                 rooms = repo.findByVerificationStatus(VerificationStatus.VERIFIED);

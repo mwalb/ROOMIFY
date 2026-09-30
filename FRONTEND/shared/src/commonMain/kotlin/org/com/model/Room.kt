@@ -51,7 +51,7 @@ data class Room(
                 .chunked(3)
                 .joinToString(",")
                 .reversed()
-            "TZS $formatted/month"
+            "$formatted TZS"
         } else "Price on request"
 
     val propertySummary: String

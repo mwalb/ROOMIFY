@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.ROOMIFY.Roomify.model.UserRole;
+import com.ROOMIFY.Roomify.model.VerificationStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -45,32 +46,45 @@ public class BookingController {
         try {
             // Check authenticated user role
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
-                User currentUser = userRepository.findByEmail(auth.getName()).orElse(null);
-                if (currentUser != null) {
-                    if (UserRole.OWNER.equals(currentUser.getRole()) || UserRole.DALALI.equals(currentUser.getRole())) {
-                        return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                                .body(new ApiResponse<>(false, null, "Owners and Dalalis cannot book properties. Booking is available for Tenants only."));
-                    }
-                }
+            if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new ApiResponse<>(false, null, "Authentication required to book a property"));
             }
 
-            // FIRST: Check if room is available in Room entity
-            Room room = roomRepository.findById(bookingRequest.getRoomId())
-                    .orElseThrow(() -> new RuntimeException("Room not found with id: " + bookingRequest.getRoomId()));
+            User currentUser = userRepository.findByEmail(auth.getName()).orElse(null);
+            if (currentUser == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new ApiResponse<>(false, null, "Authenticated user not found"));
+            }
 
+            if (!UserRole.TENANT.equals(currentUser.getRole())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ApiResponse<>(false, null, "Only Tenants are allowed to book properties. Your role (" + currentUser.getRole() + ") is not authorized to book."));
+            }
+
+            // FIRST: Check if room exists
+            Room room = roomRepository.findById(bookingRequest.getRoomId())
+                    .orElseThrow(() -> new RuntimeException("Property not found with id: " + bookingRequest.getRoomId()));
+
+            // SECOND: Check if room is VERIFIED
+            if (room.getVerificationStatus() != VerificationStatus.VERIFIED) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(new ApiResponse<>(false, null, "Property must be verified before it can be booked"));
+            }
+
+            // THIRD: Check if room is available
             if (!room.isAvailable() || !"AVAILABLE".equalsIgnoreCase(room.getStatus())) {
                 return ResponseEntity.status(HttpStatus.CONFLICT)
-                        .body(new ApiResponse<>(false, null, "Room is currently not available for booking"));
+                        .body(new ApiResponse<>(false, null, "Property is currently not available for booking"));
             }
 
-            // SECOND: Check if room already has an ACTIVE or PENDING booking
+            // FOURTH: Check if room already has an ACTIVE or PENDING booking
             boolean exists = bookingRepository.existsBlockingBookingByRoomId(bookingRequest.getRoomId());
             System.out.println("Checking for blocking bookings for room " + bookingRequest.getRoomId() + ": " + exists);
             
             if (exists) {
                 return ResponseEntity.status(HttpStatus.CONFLICT)
-                        .body(new ApiResponse<>(false, null, "Room already has a pending or active booking request"));
+                        .body(new ApiResponse<>(false, null, "Property already has a pending or active booking request"));
             }
 
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -80,16 +94,13 @@ public class BookingController {
             LocalDateTime startDate = startLocalDate.atStartOfDay();
             LocalDateTime endDate = endLocalDate.atStartOfDay();
 
-            User user = userRepository.findById(bookingRequest.getUserId())
-                    .orElseThrow(() -> new RuntimeException("User not found with id: " + bookingRequest.getUserId()));
-
             Booking booking = new Booking();
             booking.setRoom(room);
-            booking.setUser(user);
+            booking.setUser(currentUser);
             booking.setStatus(bookingRequest.getStatus() != null ? bookingRequest.getStatus() : "PENDING");
             booking.setCreatedAt(LocalDateTime.now());
             booking.setUpdatedAt(LocalDateTime.now());
-            booking.setTotalPrice(bookingRequest.getTotalPrice());
+            booking.setTotalPrice(bookingRequest.getTotalPrice() != null ? bookingRequest.getTotalPrice() : room.getPrice());
             booking.setStartDate(startDate);
             booking.setEndDate(endDate);
             booking.setNumberOfGuests(bookingRequest.getNumberOfGuests());

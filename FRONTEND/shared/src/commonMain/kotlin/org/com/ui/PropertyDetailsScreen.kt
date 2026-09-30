@@ -40,7 +40,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.*
 import org.com.i18n.LocalRoomifyStrings
 import org.com.model.*
 import org.com.network.RoomifyApi
@@ -623,24 +623,43 @@ fun PropertyDetailsScreen(
                         Text(room.formattedPrice, fontSize = 20.sp, fontWeight = FontWeight.Black, color = PrimaryColor)
                     }
                     
-                    val isOwnerOrDalali = currentUser?.role?.equals("owner", ignoreCase = true) == true || 
-                                         currentUser?.role?.equals("dalali", ignoreCase = true) == true
+                    val roleUpper = currentUser?.role?.uppercase()?.trim() ?: ""
+                    val isOwnerOrDalali = roleUpper == "OWNER" || roleUpper == "DALALI" || currentUser?.id == room.postedBy || (room.dalaliId != null && room.dalaliId == currentUser?.id)
+                    val isAdminOrSuperAdmin = roleUpper == "ADMIN" || roleUpper == "SUPER_ADMIN" || roleUpper == "SUPERADMIN"
 
-                    if (isMyProperty) {
-                        Button(
-                            onClick = { onEditProperty(room) },
-                            modifier = Modifier.height(48.dp).widthIn(min = 120.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryLight)
-                        ) {
-                            Text("EDIT PROPERTY", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    if (isOwnerOrDalali || isAdminOrSuperAdmin) {
+                        if (isMyProperty || isOwnerOrDalali) {
+                            Button(
+                                onClick = { onEditProperty(room) },
+                                modifier = Modifier.height(48.dp).widthIn(min = 120.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryLight)
+                            ) {
+                                Text("EDIT PROPERTY", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            }
                         }
-                    } else if (!isOwnerOrDalali) {
+                    } else { // TENANT or Guest
                         if (statusUpper == "RENTED") {
                             var isNotified by remember { mutableStateOf(false) }
+                            val scope = rememberCoroutineScope()
 
                             Button(
-                                onClick = { isNotified = true },
+                                onClick = {
+                                    if (currentUser == null) {
+                                        onLoginRequired()
+                                    } else {
+                                        scope.launch {
+                                            try {
+                                                val res = RoomifyApi.subscribeToNotification(room.id ?: 0L)
+                                                if (res.success) {
+                                                    isNotified = true
+                                                }
+                                            } catch (e: Exception) {
+                                                println("Notify Me error: ${e.message}")
+                                            }
+                                        }
+                                    }
+                                },
                                 modifier = Modifier.height(48.dp).widthIn(min = 130.dp),
                                 shape = RoundedCornerShape(12.dp),
                                 colors = ButtonDefaults.buttonColors(
@@ -661,7 +680,13 @@ fun PropertyDetailsScreen(
                             }
                         } else {
                             Button(
-                                onClick = { onBookNow(room) },
+                                onClick = {
+                                    if (currentUser == null) {
+                                        onLoginRequired()
+                                    } else {
+                                        onBookNow(room)
+                                    }
+                                },
                                 modifier = Modifier.height(48.dp).widthIn(min = 120.dp),
                                 shape = RoundedCornerShape(12.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)

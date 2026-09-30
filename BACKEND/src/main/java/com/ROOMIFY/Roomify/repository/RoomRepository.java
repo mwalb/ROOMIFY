@@ -162,4 +162,7 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     List<Room> findByIsAvailableTrueAndVerificationStatus(VerificationStatus verificationStatus);
 
     List<Room> findByVerificationStatusAndStatus(VerificationStatus verificationStatus, String status);
+
+    @Query("SELECT r FROM Room r WHERE r.dalaliId = :dalaliId OR r.postedBy = :postedBy")
+    List<Room> findByDalaliIdOrPostedBy(@Param("dalaliId") Long dalaliId, @Param("postedBy") Long postedBy);
 }
