@@ -110,6 +110,36 @@ class RoomApi {
 
     /*
      * =========================================================
+     * GET ROOMS BY OWNER
+     * =========================================================
+     */
+
+    suspend fun getRoomsByOwner(
+        ownerId: Long
+    ): List<Room> {
+
+        println(
+            "RoomApi: GET /api/rooms/owner/$ownerId"
+        )
+
+        return try {
+
+            client
+                .get("rooms/owner/$ownerId")
+                .body<List<Room>>()
+
+        } catch (e: Exception) {
+
+            println(
+                "RoomApi: failed to fetch rooms for owner $ownerId: ${e.message}"
+            )
+
+            emptyList()
+        }
+    }
+
+    /*
+     * =========================================================
      * CREATE ROOM
      * =========================================================
      */

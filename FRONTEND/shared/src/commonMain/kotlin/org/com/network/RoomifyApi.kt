@@ -355,5 +355,167 @@ object RoomifyApi {
         return ApiClient.post("chat/send", message)
     }
 
-    // ... rest of functions with same fix (remove "/api/" prefix)
+    // ============================================================
+    // VERIFICATION, LOCATIONS & NOTIFICATIONS
+    // ============================================================
+
+    suspend fun getLocationSuggestions(query: String): List<String> {
+        return try {
+            ApiClient.get("rooms/locations/suggestions?query=$query")
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    suspend fun subscribeToNotification(propertyId: Long): ApiResponse<Unit> {
+        return try {
+            ApiClient.post("notifications/subscribe?propertyId=$propertyId", Unit)
+        } catch (e: Exception) {
+            ApiResponse(success = false, message = e.message ?: "Failed to subscribe")
+        }
+    }
+
+    suspend fun checkSubscription(propertyId: Long): ApiResponse<Boolean> {
+        return try {
+            ApiClient.get("notifications/subscribed?propertyId=$propertyId")
+        } catch (e: Exception) {
+            ApiResponse(success = false, data = false, message = e.message ?: "Failed to check subscription")
+        }
+    }
+
+    suspend fun getPendingProperties(): ApiResponse<List<Room>> {
+        return try {
+            ApiClient.get("rooms/admin/pending")
+        } catch (e: Exception) {
+            ApiResponse(success = false, message = e.message ?: "Failed to fetch pending properties")
+        }
+    }
+
+    suspend fun verifyProperty(id: Long): ApiResponse<Unit> {
+        return try {
+            ApiClient.put("rooms/admin/$id/verify", Unit)
+        } catch (e: Exception) {
+            ApiResponse(success = false, message = e.message ?: "Failed to verify property")
+        }
+    }
+
+    suspend fun rejectProperty(id: Long, reason: String): ApiResponse<Unit> {
+        return try {
+            ApiClient.put("rooms/admin/$id/reject", mapOf("reason" to reason))
+        } catch (e: Exception) {
+            ApiResponse(success = false, message = e.message ?: "Failed to reject property")
+        }
+    }
+
+    suspend fun getPendingUsers(): ApiResponse<List<User>> {
+        return try {
+            ApiClient.get("admin-management/users/pending")
+        } catch (e: Exception) {
+            ApiResponse(success = false, message = e.message ?: "Failed to fetch pending users")
+        }
+    }
+
+    suspend fun verifyUser(id: Long): ApiResponse<User> {
+        return try {
+            ApiClient.put("admin-management/users/$id/verify", Unit)
+        } catch (e: Exception) {
+            ApiResponse(success = false, message = e.message ?: "Failed to verify user")
+        }
+    }
+
+    suspend fun rejectUser(id: Long, reason: String): ApiResponse<User> {
+        return try {
+            ApiClient.put("admin-management/users/$id/reject", mapOf("reason" to reason))
+        } catch (e: Exception) {
+            ApiResponse(success = false, message = e.message ?: "Failed to reject user")
+        }
+    }
+
+    suspend fun getAllUsers(): ApiResponse<List<User>> {
+        return try {
+            ApiClient.get("admin-management/users")
+        } catch (e: Exception) {
+            ApiResponse(success = false, message = e.message ?: "Failed to fetch users")
+        }
+    }
+
+    suspend fun suspendUser(id: Long): ApiResponse<User> {
+        return try {
+            ApiClient.put("admin-management/users/$id/suspend", Unit)
+        } catch (e: Exception) {
+            ApiResponse(success = false, message = e.message ?: "Failed to suspend user")
+        }
+    }
+
+    suspend fun unsuspendUser(id: Long): ApiResponse<User> {
+        return try {
+            ApiClient.put("admin-management/users/$id/unsuspend", Unit)
+        } catch (e: Exception) {
+            ApiResponse(success = false, message = e.message ?: "Failed to unsuspend user")
+        }
+    }
+
+    suspend fun suspendProperty(id: Long): ApiResponse<Unit> {
+        return try {
+            ApiClient.put("rooms/admin/$id/suspend", Unit)
+        } catch (e: Exception) {
+            ApiResponse(success = false, message = e.message ?: "Failed to suspend property")
+        }
+    }
+
+    suspend fun unsuspendProperty(id: Long): ApiResponse<Unit> {
+        return try {
+            ApiClient.put("rooms/admin/$id/unsuspend", Unit)
+        } catch (e: Exception) {
+            ApiResponse(success = false, message = e.message ?: "Failed to unsuspend property")
+        }
+    }
+
+    suspend fun getAllBookingsAdmin(): ApiResponse<List<org.com.model.Booking>> {
+        return try {
+            ApiClient.get("admin-management/bookings")
+        } catch (e: Exception) {
+            ApiResponse(success = false, message = e.message ?: "Failed to fetch bookings")
+        }
+    }
+
+    suspend fun getSystemLogs(): ApiResponse<List<org.com.model.SystemLog>> {
+        return try {
+            ApiClient.get("admin-management/system-logs")
+        } catch (e: Exception) {
+            ApiResponse(success = false, message = e.message ?: "Failed to fetch system logs")
+        }
+    }
+
+    suspend fun getAdministrators(): ApiResponse<List<User>> {
+        return try {
+            ApiClient.get("admin-management/administrators")
+        } catch (e: Exception) {
+            ApiResponse(success = false, message = e.message ?: "Failed to fetch administrators")
+        }
+    }
+
+    suspend fun createAdmin(user: User): ApiResponse<User> {
+        return try {
+            ApiClient.post("admin-management/administrators", user)
+        } catch (e: Exception) {
+            ApiResponse(success = false, message = e.message ?: "Failed to create administrator")
+        }
+    }
+
+    suspend fun getAdminStats(): ApiResponse<AdminStats> {
+        return try {
+            ApiClient.get("admin-management/stats")
+        } catch (e: Exception) {
+            ApiResponse(success = false, message = e.message ?: "Failed to fetch admin stats")
+        }
+    }
+
+    suspend fun deleteAdmin(id: Long): ApiResponse<Unit> {
+        return try {
+            ApiClient.delete("admin-management/administrators/$id")
+        } catch (e: Exception) {
+            ApiResponse(success = false, message = e.message ?: "Failed to delete administrator")
+        }
+    }
 }

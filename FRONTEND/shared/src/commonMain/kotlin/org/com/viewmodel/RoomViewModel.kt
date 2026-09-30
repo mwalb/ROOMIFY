@@ -54,8 +54,10 @@ class RoomViewModel(
                     "RENTED" -> (room.status ?: "").uppercase().trim() == "RENTED"
                     else -> true // ALL
                 }
+
+                val isNotSuspended = !room.status.equals("SUSPENDED", ignoreCase = true)
                 
-                matchesType && matchesArea && matchesPrice && matchesStatus
+                matchesType && matchesArea && matchesPrice && matchesStatus && isNotSuspended
             }
         }
 

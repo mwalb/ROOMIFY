@@ -24,11 +24,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import com.ROOMIFY.Roomify.model.VerificationStatus;
 
 @RestController
 @RequestMapping("/api/rooms")
@@ -272,12 +269,18 @@ public class RoomController {
         }
     }
 
-    // Get all rooms - PUBLIC LISTING FOR EXPLORE/MAP
+    // Get all rooms - PUBLIC LISTING FOR EXPLORE/MAP (Returns only verified properties for non-admins)
     @GetMapping
     @Transactional(readOnly = true)
     public ResponseEntity<?> getAllRooms() {
         try {
-            List<Room> rooms = repo.findAll();
+            User user = getAuthenticatedUser();
+            List<Room> rooms;
+            if (user != null && isAdminRole(user)) {
+                rooms = repo.findAll();
+            } else {
+                rooms = repo.findByVerificationStatus(VerificationStatus.VERIFIED);
+            }
             return ResponseEntity.ok(rooms);
         } catch (Exception e) {
             e.printStackTrace();
@@ -305,15 +308,186 @@ public class RoomController {
         }
     }
 
-    // Get all available rooms - FIXED
+    // Get all available rooms - Returns only verified & available rooms
     @GetMapping("/available")
     @Transactional(readOnly = true)
     public ResponseEntity<?> getAvailableRooms() {
         try {
-            List<Room> rooms = repo.findByIsAvailableTrue();
+            List<Room> rooms = repo.findByIsAvailableTrueAndVerificationStatus(VerificationStatus.VERIFIED);
             return ResponseEntity.ok(rooms);
         } catch (Exception e) {
             e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>(false, null, "Error: " + e.getMessage()));
+        }
+    }
+
+    // Location suggestions endpoint starting from first character
+    @GetMapping("/locations/suggestions")
+    @Transactional(readOnly = true)
+    public ResponseEntity<List<String>> getLocationSuggestions(@RequestParam(required = false, defaultValue = "") String query) {
+        try {
+            List<Room> rooms = repo.findByVerificationStatus(VerificationStatus.VERIFIED);
+            Set<String> uniqueLocations = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+            
+            for (Room r : rooms) {
+                String addr = r.getAddress();
+                if (addr != null && !addr.isBlank()) {
+                    String[] parts = addr.split(",");
+                    if (parts.length > 0) {
+                        String loc = parts[0].trim();
+                        if (!loc.isEmpty()) {
+                            uniqueLocations.add(loc);
+                        }
+                    }
+                }
+            }
+            
+            List<String> prefixMatches = new ArrayList<>();
+            List<String> containsMatches = new ArrayList<>();
+            String q = query == null ? "" : query.trim().toLowerCase();
+            
+            for (String loc : uniqueLocations) {
+                String lowerLoc = loc.toLowerCase();
+                if (q.isEmpty() || lowerLoc.startsWith(q)) {
+                    prefixMatches.add(loc);
+                } else if (lowerLoc.contains(q)) {
+                    containsMatches.add(loc);
+                }
+            }
+            
+            prefixMatches.sort(String.CASE_INSENSITIVE_ORDER);
+            containsMatches.sort(String.CASE_INSENSITIVE_ORDER);
+            
+            List<String> results = new ArrayList<>(prefixMatches);
+            results.addAll(containsMatches);
+            return ResponseEntity.ok(results);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.ok(new ArrayList<>());
+        }
+    }
+
+    // Admin: Get pending properties
+    @GetMapping("/admin/pending")
+    @Transactional(readOnly = true)
+    public ResponseEntity<ApiResponse<List<Room>>> getPendingPropertiesForAdmin() {
+        try {
+            User user = getAuthenticatedUser();
+            if (user == null || !isAdminRole(user)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ApiResponse<>(false, null, "Admin access required"));
+            }
+            List<Room> pending = repo.findByVerificationStatus(VerificationStatus.PENDING);
+            return ResponseEntity.ok(new ApiResponse<>(true, pending, "Pending properties retrieved"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>(false, null, "Error: " + e.getMessage()));
+        }
+    }
+
+    // Admin: Verify property
+    @PutMapping("/admin/{id}/verify")
+    @Transactional
+    public ResponseEntity<ApiResponse<Void>> verifyPropertyForAdmin(@PathVariable Long id) {
+        try {
+            User user = getAuthenticatedUser();
+            if (user == null || !isAdminRole(user)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ApiResponse<>(false, null, "Admin access required"));
+            }
+            Room room = repo.findById(id).orElse(null);
+            if (room == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new ApiResponse<>(false, null, "Property not found"));
+            }
+            room.approve();
+            room.setVerifiedBy(user.getId());
+            repo.save(room);
+            auditService.log("VERIFY_PROPERTY", "Room", id.toString(), "Property verified by admin: " + user.getEmail());
+            return ResponseEntity.ok(new ApiResponse<>(true, null, "Property verified successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>(false, null, "Error: " + e.getMessage()));
+        }
+    }
+
+    // Admin: Reject property
+    @PutMapping("/admin/{id}/reject")
+    @Transactional
+    public ResponseEntity<ApiResponse<Void>> rejectPropertyForAdmin(
+            @PathVariable Long id,
+            @RequestBody(required = false) Map<String, String> request) {
+        try {
+            User user = getAuthenticatedUser();
+            if (user == null || !isAdminRole(user)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ApiResponse<>(false, null, "Admin access required"));
+            }
+            Room room = repo.findById(id).orElse(null);
+            if (room == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new ApiResponse<>(false, null, "Property not found"));
+            }
+            String reason = (request != null && request.containsKey("reason")) ? request.get("reason") : "No reason provided";
+            room.reject(reason);
+            room.setVerifiedBy(user.getId());
+            repo.save(room);
+            auditService.log("REJECT_PROPERTY", "Room", id.toString(), "Property rejected by admin: " + user.getEmail() + ". Reason: " + reason);
+            return ResponseEntity.ok(new ApiResponse<>(true, null, "Property rejected"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>(false, null, "Error: " + e.getMessage()));
+        }
+    }
+
+    // Admin: Suspend property
+    @PutMapping("/admin/{id}/suspend")
+    @Transactional
+    public ResponseEntity<ApiResponse<Void>> suspendPropertyForAdmin(@PathVariable Long id) {
+        try {
+            User user = getAuthenticatedUser();
+            if (user == null || !isAdminRole(user)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ApiResponse<>(false, null, "Admin access required"));
+            }
+            Room room = repo.findById(id).orElse(null);
+            if (room == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new ApiResponse<>(false, null, "Property not found"));
+            }
+            room.setStatus("SUSPENDED");
+            room.setAvailable(false);
+            repo.save(room);
+            auditService.log("SUSPEND_PROPERTY", "Room", id.toString(), "Property suspended by admin: " + user.getEmail());
+            return ResponseEntity.ok(new ApiResponse<>(true, null, "Property suspended successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>(false, null, "Error: " + e.getMessage()));
+        }
+    }
+
+    // Admin: Unsuspend property
+    @PutMapping("/admin/{id}/unsuspend")
+    @Transactional
+    public ResponseEntity<ApiResponse<Void>> unsuspendPropertyForAdmin(@PathVariable Long id) {
+        try {
+            User user = getAuthenticatedUser();
+            if (user == null || !isAdminRole(user)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ApiResponse<>(false, null, "Admin access required"));
+            }
+            Room room = repo.findById(id).orElse(null);
+            if (room == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new ApiResponse<>(false, null, "Property not found"));
+            }
+            room.setStatus("AVAILABLE");
+            room.setAvailable(true);
+            repo.save(room);
+            auditService.log("UNSUSPEND_PROPERTY", "Room", id.toString(), "Property unsuspended by admin: " + user.getEmail());
+            return ResponseEntity.ok(new ApiResponse<>(true, null, "Property unsuspended successfully"));
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ApiResponse<>(false, null, "Error: " + e.getMessage()));
         }

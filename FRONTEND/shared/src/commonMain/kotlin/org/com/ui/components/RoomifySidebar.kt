@@ -20,8 +20,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import kotlinx.coroutines.launch
 import org.com.model.User
 import org.com.model.initials
+import org.com.network.RoomifyApi
 
 private val PrimaryColor = Color(0xFF1A237E)
 private val BackgroundGray = Color(0xFFF1F5F9)
@@ -38,6 +42,24 @@ fun RoomifySidebar(
     onMyLocationClick: (() -> Unit)? = null
 ) {
     var locationInput by remember { mutableStateOf("") }
+    var locationSuggestions by remember { mutableStateOf<List<String>>(emptyList()) }
+    var showSuggestions by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(locationInput) {
+        if (locationInput.isNotBlank()) {
+            try {
+                locationSuggestions = RoomifyApi.getLocationSuggestions(locationInput)
+                showSuggestions = locationSuggestions.isNotEmpty()
+            } catch (e: Exception) {
+                locationSuggestions = emptyList()
+                showSuggestions = false
+            }
+        } else {
+            locationSuggestions = emptyList()
+            showSuggestions = false
+        }
+    }
     var selectedType by remember { mutableStateOf("ALL") }
     var budgetInput by remember { mutableStateOf("") }
     var selectedStatus by remember { mutableStateOf("ALL") }
@@ -329,6 +351,36 @@ fun RoomifySidebar(
                                             .size(16.dp)
                                             .clickable { locationInput = "" }
                                     )
+                                }
+                            }
+                        }
+
+                        if (showSuggestions && locationSuggestions.isNotEmpty()) {
+                            Spacer(Modifier.height(4.dp))
+                            Surface(
+                                modifier = Modifier.fillMaxWidth().heightIn(max = 160.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                color = Color.White,
+                                shadowElevation = 4.dp,
+                                border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                            ) {
+                                LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                                    items(locationSuggestions) { suggestion ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    locationInput = suggestion
+                                                    showSuggestions = false
+                                                }
+                                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(Icons.Default.LocationOn, null, tint = PrimaryColor, modifier = Modifier.size(16.dp))
+                                            Spacer(Modifier.width(8.dp))
+                                            Text(suggestion, fontSize = 13.sp, color = Color.DarkGray)
+                                        }
+                                    }
                                 }
                             }
                         }

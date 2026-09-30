@@ -37,7 +37,7 @@ fun AutocompleteTextField(
     var expanded by remember { mutableStateOf(false) }
 
     val filteredSuggestions = remember(value, suggestions) {
-        if (value.length < 2) emptyList()
+        if (value.isEmpty()) emptyList()
         else suggestions.filter { it.contains(value, ignoreCase = true) && it != value }.take(5)
     }
 

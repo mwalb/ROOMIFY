@@ -167,7 +167,11 @@ fun RegisterScreen(
                 localAuthorityVillage.isNotBlank()
         "dalali" -> businessName.isNotBlank() &&
                 nidaNumber.isNotBlank() &&
-                locationArea.isNotBlank()
+                locationArea.isNotBlank() &&
+                localAuthorityName.isNotBlank() &&
+                localAuthorityPhone.isNotBlank() &&
+                localAuthorityArea.isNotBlank() &&
+                localAuthorityVillage.isNotBlank()
         else -> false
     }
 
@@ -488,6 +492,20 @@ fun RegisterScreen(
                         onLocationAreaChange = { locationArea = it },
                         licenseNumber = licenseNumber,
                         onLicenseNumberChange = { licenseNumber = it },
+                        localAuthorityName = localAuthorityName,
+                        onLocalAuthorityNameChange = { localAuthorityName = it },
+                        localAuthorityPhone = localAuthorityPhone,
+                        onLocalAuthorityPhoneChange = { localAuthorityPhone = it },
+                        localAuthorityArea = localAuthorityArea,
+                        onLocalAuthorityAreaChange = { localAuthorityArea = it },
+                        localAuthorityVillage = localAuthorityVillage,
+                        onLocalAuthorityVillageChange = { localAuthorityVillage = it },
+                        localAuthorityWard = localAuthorityWard,
+                        onLocalAuthorityWardChange = { localAuthorityWard = it },
+                        localAuthorityDistrict = localAuthorityDistrict,
+                        onLocalAuthorityDistrictChange = { localAuthorityDistrict = it },
+                        localAuthorityRegion = localAuthorityRegion,
+                        onLocalAuthorityRegionChange = { localAuthorityRegion = it },
                         loading = loading,
                         contentWidth = contentWidth
                     )
@@ -538,6 +556,13 @@ fun RegisterScreen(
                                 phone = phone.trim(),
                                 nidaNumber = nidaNumber.trim(),
                                 locationArea = locationArea.trim(),
+                                localAuthorityName = localAuthorityName.trim(),
+                                localAuthorityPhone = localAuthorityPhone.trim(),
+                                localAuthorityArea = localAuthorityArea.trim(),
+                                localAuthorityVillage = localAuthorityVillage.trim(),
+                                localAuthorityWard = localAuthorityWard.trim(),
+                                localAuthorityDistrict = localAuthorityDistrict.trim(),
+                                localAuthorityRegion = localAuthorityRegion.trim(),
                                 licenseNumber = licenseNumber.trim()
                             )
                             else -> RegisterRequest.createTenant(
@@ -1100,7 +1125,7 @@ private fun OwnerDetailsSection(
                 RegisterTextField(
                     value = localAuthorityName,
                     onValueChange = onLocalAuthorityNameChange,
-                    placeholder = "Mtendaji/Mwenyekiti wa Mtaa Full Name",
+                    placeholder = "Full Name",
                     icon = Icons.Default.Person,
                     enabled = !loading,
                     contentWidth = contentWidth
@@ -1110,7 +1135,7 @@ private fun OwnerDetailsSection(
                 RegisterTextField(
                     value = localAuthorityPhone,
                     onValueChange = onLocalAuthorityPhoneChange,
-                    placeholder = "Mtendaji/Mwenyekiti wa Mtaa Phone",
+                    placeholder = "Phone Number",
                     icon = Icons.Default.ContactPhone,
                     enabled = !loading,
                     contentWidth = contentWidth
@@ -1183,6 +1208,20 @@ private fun DalaliDetailsSection(
     onLocationAreaChange: (String) -> Unit,
     licenseNumber: String,
     onLicenseNumberChange: (String) -> Unit,
+    localAuthorityName: String,
+    onLocalAuthorityNameChange: (String) -> Unit,
+    localAuthorityPhone: String,
+    onLocalAuthorityPhoneChange: (String) -> Unit,
+    localAuthorityArea: String,
+    onLocalAuthorityAreaChange: (String) -> Unit,
+    localAuthorityVillage: String,
+    onLocalAuthorityVillageChange: (String) -> Unit,
+    localAuthorityWard: String,
+    onLocalAuthorityWardChange: (String) -> Unit,
+    localAuthorityDistrict: String,
+    onLocalAuthorityDistrictChange: (String) -> Unit,
+    localAuthorityRegion: String,
+    onLocalAuthorityRegionChange: (String) -> Unit,
     loading: Boolean,
     contentWidth: androidx.compose.ui.unit.Dp
 ) {
@@ -1239,7 +1278,107 @@ private fun DalaliDetailsSection(
             enabled = !loading,
             contentWidth = contentWidth
         )
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Mtendaji/Mwenyekiti wa Mtaa Card for Dalali as well
+        Card(
+            modifier = Modifier
+                .width(contentWidth)
+                .padding(vertical = 4.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = RegisterColors.InfoBackground
+            ),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        ) {
+            Column(
+                modifier = Modifier.padding(14.dp)
+            ) {
+                Text(
+                    text = "Mtendaji/Mwenyekiti wa Mtaa Details",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = RegisterColors.InfoText
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Agent location verification",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = RegisterColors.TextSecondary
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+
+                RegisterTextField(
+                    value = localAuthorityName,
+                    onValueChange = onLocalAuthorityNameChange,
+                    placeholder = "Full Name",
+                    icon = Icons.Default.Person,
+                    enabled = !loading,
+                    contentWidth = contentWidth
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                RegisterTextField(
+                    value = localAuthorityPhone,
+                    onValueChange = onLocalAuthorityPhoneChange,
+                    placeholder = "Phone Number",
+                    icon = Icons.Default.ContactPhone,
+                    enabled = !loading,
+                    contentWidth = contentWidth
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                RegisterTextField(
+                    value = localAuthorityArea,
+                    onValueChange = onLocalAuthorityAreaChange,
+                    placeholder = "Area Name",
+                    icon = Icons.Default.LocationOn,
+                    enabled = !loading,
+                    contentWidth = contentWidth
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                RegisterTextField(
+                    value = localAuthorityVillage,
+                    onValueChange = onLocalAuthorityVillageChange,
+                    placeholder = "Village / Street",
+                    icon = Icons.Default.Home,
+                    enabled = !loading,
+                    contentWidth = contentWidth
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                RegisterTextField(
+                    value = localAuthorityWard,
+                    onValueChange = onLocalAuthorityWardChange,
+                    placeholder = "Ward",
+                    icon = Icons.Default.LocationOn,
+                    enabled = !loading,
+                    contentWidth = contentWidth
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                RegisterTextField(
+                    value = localAuthorityDistrict,
+                    onValueChange = onLocalAuthorityDistrictChange,
+                    placeholder = "District",
+                    icon = Icons.Default.LocationOn,
+                    enabled = !loading,
+                    contentWidth = contentWidth
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                RegisterTextField(
+                    value = localAuthorityRegion,
+                    onValueChange = onLocalAuthorityRegionChange,
+                    placeholder = "Region",
+                    icon = Icons.Default.LocationOn,
+                    enabled = !loading,
+                    contentWidth = contentWidth
+                )
+            }
+        }
 
         Card(
             modifier = Modifier

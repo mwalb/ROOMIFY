@@ -127,6 +127,21 @@ public class Room {
     @Column(name = "rejection_reason")
     private String rejectionReason;
 
+    @Column(name = "verification_status")
+    @Enumerated(EnumType.STRING)
+    private VerificationStatus verificationStatus = VerificationStatus.PENDING;
+
+    @Column(name = "verified_by")
+    private Long verifiedBy;
+
+    @Column(name = "verified_at")
+    private LocalDateTime verifiedAt;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "room_neighbourhood_places", joinColumns = @JoinColumn(name = "room_id"))
+    @Column(name = "place")
+    private List<String> neighbourhoodPlaces = new ArrayList<>();
+
     // ==================== RELATIONSHIPS ====================
 
     @JsonIgnore
@@ -301,6 +316,8 @@ public class Room {
     @Transient
     public void approve() {
         this.status = "AVAILABLE";
+        this.verificationStatus = VerificationStatus.VERIFIED;
+        this.verifiedAt = LocalDateTime.now();
         this.approvedAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
@@ -308,8 +325,14 @@ public class Room {
     @Transient
     public void reject(String reason) {
         this.status = "REJECTED";
+        this.verificationStatus = VerificationStatus.REJECTED;
         this.rejectionReason = reason;
         this.updatedAt = LocalDateTime.now();
+    }
+
+    @Transient
+    public boolean isVerified() {
+        return VerificationStatus.VERIFIED.equals(verificationStatus);
     }
 
     @Transient

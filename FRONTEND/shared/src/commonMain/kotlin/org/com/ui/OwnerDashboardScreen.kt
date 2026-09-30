@@ -343,10 +343,40 @@ private fun OwnerPropertyCard(room: Room, onClick: () -> Unit) {
                     @Suppress("DEPRECATION")
                     Text(room.formattedPrice, fontSize = 13.sp, color = PrimaryColor, fontWeight = FontWeight.ExtraBold)
                     Spacer(Modifier.width(8.dp))
-                    Surface(color = if (room.status == "AVAILABLE") Color(0xFFE8F5E9) else Color(0xFFFFEBEE), shape = CircleShape) {
+                    val vStatus = room.verificationStatus.uppercase()
+                    Surface(
+                        color = when (vStatus) {
+                            "VERIFIED" -> Color(0xFFE8F5E9)
+                            "REJECTED" -> Color(0xFFFFEBEE)
+                            else -> Color(0xFFFFF8E1)
+                        },
+                        shape = CircleShape
+                    ) {
                         @Suppress("DEPRECATION")
-                        Text(room.status, color = if (room.status == "AVAILABLE") Color(0xFF2E7D32) else Color.Red, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                        Text(
+                            text = when (vStatus) {
+                                "VERIFIED" -> "VERIFIED"
+                                "REJECTED" -> "REJECTED"
+                                else -> "PENDING"
+                            },
+                            color = when (vStatus) {
+                                "VERIFIED" -> Color(0xFF2E7D32)
+                                "REJECTED" -> Color.Red
+                                else -> Color(0xFFF57F17)
+                            },
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
                     }
+                }
+
+                if (room.verificationStatus.uppercase() == "PENDING") {
+                    Spacer(Modifier.height(4.dp))
+                    Text("Waiting for property verification.", fontSize = 11.sp, color = Color(0xFFF57F17))
+                } else if (room.verificationStatus.uppercase() == "REJECTED" && !room.rejectionReason.isNullOrBlank()) {
+                    Spacer(Modifier.height(4.dp))
+                    Text("Reason: ${room.rejectionReason}", fontSize = 11.sp, color = Color.Red)
                 }
 
                 Spacer(Modifier.height(8.dp))

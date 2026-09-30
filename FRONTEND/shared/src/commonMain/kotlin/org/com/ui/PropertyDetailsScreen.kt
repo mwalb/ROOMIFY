@@ -69,7 +69,8 @@ fun PropertyDetailsScreen(
     onDismissAIRoomArranger: () -> Unit = {},
     onEditProperty: (Room) -> Unit = {},
     onDeleteProperty: (Room) -> Unit = {},
-    onViewProperty: (Room) -> Unit = {}
+    onViewProperty: (Room) -> Unit = {},
+    onLoginRequired: () -> Unit = {}
 ) {
     val strings = LocalRoomifyStrings.current
     val uriHandler = LocalUriHandler.current
@@ -445,9 +446,26 @@ fun PropertyDetailsScreen(
                         )
                     }
 
-                    // Section: Space Planner
-                    SectionTitleDetails("Intelligent matching")
-                    SmartMatchSection(room)
+                    // Section: Neighbourhood Places
+                    if (room.neighbourhoodPlaces.isNotEmpty()) {
+                        SectionTitleDetails("Neighbourhood Places")
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            color = Color(0xFFF8F9FA),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                        ) {
+                            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                room.neighbourhoodPlaces.forEach { place ->
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.Place, null, tint = PrimaryColor, modifier = Modifier.size(16.dp))
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(place, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.DarkGray)
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     SectionTitleDetails("AI Room Arranger")
                     Surface(
@@ -472,32 +490,6 @@ fun PropertyDetailsScreen(
                                 Text("Let AI visualize your dream layout", fontSize = 12.sp, color = Color.Gray)
                             }
                             Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = Color(0xFF6200EE), modifier = Modifier.size(18.dp))
-                        }
-                    }
-
-                    SectionTitleDetails("Living Arrangement")
-                    Surface(
-                        modifier = Modifier.fillMaxWidth().clickable { onSpacePlanner(room) },
-                        shape = RoundedCornerShape(16.dp),
-                        color = PrimaryColor.copy(alpha = 0.05f),
-                        border = BorderStroke(1.dp, PrimaryColor.copy(alpha = 0.1f))
-                    ) {
-                        Row(
-                            Modifier.padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier.size(44.dp).background(PrimaryColor, CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(Icons.Default.Architecture, null, tint = Color.White, modifier = Modifier.size(22.dp))
-                            }
-                            Spacer(Modifier.width(16.dp))
-                            Column(Modifier.weight(1f)) {
-                                Text("Interactive Space Planner", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = PrimaryColor)
-                                Text("Visualize your furniture in this ${room.area.toInt()}m² room", fontSize = 12.sp, color = Color.Gray)
-                            }
-                            Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = PrimaryColor, modifier = Modifier.size(18.dp))
                         }
                     }
 
@@ -726,58 +718,7 @@ fun PropertyDetailsScreen(
     }
 }
 
-@Composable
-private fun SmartMatchSection(room: Room) {
-    var animatedProgress by remember { mutableStateOf(0f) }
-    val matchScore = remember(room.id) { (85..99).random() }
-    
-    LaunchedEffect(room.id) { 
-        delay(300)
-        animatedProgress = matchScore / 100f 
-    }
-    val progress by animateFloatAsState(
-        targetValue = animatedProgress, 
-        animationSpec = tween(1500, easing = FastOutSlowInEasing)
-    )
 
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = SuccessColor.copy(alpha = 0.05f),
-        border = BorderStroke(1.dp, SuccessColor.copy(alpha = 0.1f))
-    ) {
-        Row(
-            Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(Modifier.size(52.dp), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(
-                    progress = { progress }, 
-                    color = SuccessColor, 
-                    strokeWidth = 4.dp,
-                    trackColor = SuccessColor.copy(alpha = 0.1f)
-                )
-                Text(
-                    "${(progress * 100).toInt()}%", 
-                    color = SuccessColor, 
-                    fontSize = 12.sp, 
-                    fontWeight = FontWeight.Black
-                )
-            }
-            Spacer(Modifier.width(16.dp))
-            Column(Modifier.weight(1f)) {
-                Text("Smart Match Score", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = SuccessColor)
-                Text(
-                    "This property matches your preferences and search history.", 
-                    fontSize = 12.sp, 
-                    color = Color.Gray,
-                    lineHeight = 16.sp
-                )
-            }
-            Icon(Icons.Default.AutoAwesome, null, tint = SuccessColor, modifier = Modifier.size(20.dp))
-        }
-    }
-}
 
 @Composable
 private fun DocumentCard(name: String, description: String, onView: () -> Unit, onDownload: () -> Unit) {

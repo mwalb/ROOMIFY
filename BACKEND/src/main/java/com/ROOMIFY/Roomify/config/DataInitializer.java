@@ -3,6 +3,7 @@ package com.ROOMIFY.Roomify.config;
 import com.ROOMIFY.Roomify.model.Room;
 import com.ROOMIFY.Roomify.model.User;
 import com.ROOMIFY.Roomify.model.UserRole;
+import com.ROOMIFY.Roomify.model.VerificationStatus;
 import com.ROOMIFY.Roomify.repository.RoomRepository;
 import com.ROOMIFY.Roomify.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,7 +69,9 @@ public class DataInitializer implements CommandLineRunner {
 
         user.setRole(role);
         user.setPassword(passwordEncoder.encode(rawPassword));
-        user.setEmailVerified(true); // Ensure verified
+        user.setEmailVerified(true);
+        user.setStatus("ACTIVE");
+        user.setVerificationStatus(VerificationStatus.VERIFIED);
         return userRepository.save(user);
     }
 
@@ -94,8 +97,7 @@ public class DataInitializer implements CommandLineRunner {
         r1.setRoomsCount(1);
         r1.setBathroomsCount(1);
         r1.setArea(35.0);
-        r1.setStatus("AVAILABLE");
-        r1.setAvailable(true);
+        r1.approve();
         r1.setPostedBy(defaultOwnerId);
         r1.setAmenities(Arrays.asList("WiFi", "Parking", "Security"));
         r1.setImages(Arrays.asList("/uploads/rooms/1/room1.svg"));
@@ -117,8 +119,7 @@ public class DataInitializer implements CommandLineRunner {
         r2.setRoomsCount(2);
         r2.setBathroomsCount(2);
         r2.setArea(85.0);
-        r2.setStatus("AVAILABLE");
-        r2.setAvailable(true);
+        r2.approve();
         r2.setFeatured(true);
         r2.setPostedBy(defaultOwnerId);
         r2.setAmenities(Arrays.asList("WiFi", "Parking", "Pool", "Gym", "Security"));
@@ -141,8 +142,7 @@ public class DataInitializer implements CommandLineRunner {
         r3.setRoomsCount(1);
         r3.setBathroomsCount(1);
         r3.setArea(20.0);
-        r3.setStatus("AVAILABLE");
-        r3.setAvailable(true);
+        r3.approve();
         r3.setPostedBy(defaultOwnerId);
         r3.setAmenities(Arrays.asList("WiFi", "Water"));
         r3.setImages(Arrays.asList("/uploads/rooms/3/room3.svg"));
@@ -165,6 +165,7 @@ public class DataInitializer implements CommandLineRunner {
         r4.setBathroomsCount(3);
         r4.setArea(250.0);
         r4.setStatus("PENDING");
+        r4.setVerificationStatus(VerificationStatus.PENDING);
         r4.setAvailable(false);
         r4.setFeatured(true);
         r4.setPromoted(true);
@@ -189,8 +190,8 @@ public class DataInitializer implements CommandLineRunner {
         r5.setRoomsCount(1);
         r5.setBathroomsCount(1);
         r5.setArea(25.0);
-        r5.setStatus("RENTED");
-        r5.setAvailable(false);
+        r5.markAsRented();
+        r5.setVerificationStatus(VerificationStatus.VERIFIED);
         r5.setPostedBy(defaultOwnerId);
         r5.setAmenities(Arrays.asList("WiFi", "Parking", "Security"));
         r5.setImages(Arrays.asList("/uploads/rooms/5/room5.svg"));

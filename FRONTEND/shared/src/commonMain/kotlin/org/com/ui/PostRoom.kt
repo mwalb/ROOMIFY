@@ -345,7 +345,7 @@ fun PostRoom(
                     val canGoNext = when (state.postMode) {
                         PostMode.SINGLE -> when (currentStep) {
                             1 -> state.title.isNotBlank() && state.price.isNotBlank()
-                            2 -> state.rooms.isNotBlank() && state.area.isNotBlank()
+                            2 -> state.rooms.isNotBlank()
                             3 -> state.latitude.isNotBlank() && state.longitude.isNotBlank() && state.selectedAddress != "No location selected"
                             else -> true
                         }
@@ -471,7 +471,7 @@ private fun StepDetails(state: PropertyFormState, onRoomsChange: (String) -> Uni
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             ProfessionalTextField(value = state.rooms, onValueChange = onRoomsChange, label = "Beds", modifier = Modifier.weight(1f), placeholder = "0")
             ProfessionalTextField(value = state.bathrooms, onValueChange = onBathroomsChange, label = "Baths", modifier = Modifier.weight(1f), placeholder = "0")
-            ProfessionalTextField(value = state.area, onValueChange = onAreaChange, label = "Area (m²)", modifier = Modifier.weight(1f), placeholder = "0")
+            ProfessionalTextField(value = state.area, onValueChange = onAreaChange, label = "Area (Optional) (m²)", modifier = Modifier.weight(1f), placeholder = "0")
         }
         
         ProfessionalTextField(value = state.maxGuests, onValueChange = onMaxGuestsChange, label = "Max Guests Allowed", placeholder = "1")

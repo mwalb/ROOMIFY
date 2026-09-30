@@ -1,6 +1,7 @@
 package com.ROOMIFY.Roomify.repository;
 
 import com.ROOMIFY.Roomify.model.Room;
+import com.ROOMIFY.Roomify.model.VerificationStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -155,4 +156,10 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
 
     @Query("SELECT DISTINCT r.address FROM Room r WHERE r.address IS NOT NULL AND r.address != ''")
     List<String> findDistinctAddresses();
+
+    List<Room> findByVerificationStatus(VerificationStatus verificationStatus);
+
+    List<Room> findByIsAvailableTrueAndVerificationStatus(VerificationStatus verificationStatus);
+
+    List<Room> findByVerificationStatusAndStatus(VerificationStatus verificationStatus, String status);
 }

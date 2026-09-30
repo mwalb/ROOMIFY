@@ -7,6 +7,10 @@ import org.com.model.GoogleLoginRequest
 import org.com.model.LoginRequest
 import org.com.model.RegisterRequest
 import org.com.model.User
+import org.com.model.isDalali
+import org.com.model.isOwner
+import org.com.model.isUserSuspended
+import org.com.model.isVerified
 import org.com.network.ApiClient
 import org.com.network.RoomifyApi
 
@@ -152,10 +156,17 @@ class AuthManager {
             if (response.success && response.user != null && !response.token.isNullOrBlank()) {
                 val user = response.user!!
                 val token = response.token!!
-                ApiClient.setToken(token)
-                currentSession = UserSession(user = user, token = token)
-                _authState.value = AuthState.Authenticated(user = user, token = token)
-                println("AuthManager: Session restored for ${user.name}")
+
+                if (user.isUserSuspended()) {
+                    ApiClient.clearToken()
+                    currentSession = null
+                    _authState.value = AuthState.LoggedOut
+                } else {
+                    ApiClient.setToken(token)
+                    currentSession = UserSession(user = user, token = token)
+                    _authState.value = AuthState.Authenticated(user = user, token = token)
+                    println("AuthManager: Session restored for ${user.name}")
+                }
             } else {
                 ApiClient.clearToken()
                 currentSession = null
@@ -215,6 +226,13 @@ class AuthManager {
         val user = response.user
         if (user == null) {
             _authState.value = AuthState.Error("Authentication succeeded but no user was returned")
+            return
+        }
+
+        if (user.isUserSuspended()) {
+            ApiClient.clearToken()
+            currentSession = null
+            _authState.value = AuthState.Error("Your account has been suspended by an Administrator.")
             return
         }
 

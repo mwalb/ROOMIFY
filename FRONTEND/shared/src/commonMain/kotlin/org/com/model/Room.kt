@@ -39,7 +39,10 @@ data class Room(
     val contractUrl: String? = null,
     val propertyId: Long? = null,
     val floorNumber: Int? = null,
-    val unitNumber: String? = null
+    val unitNumber: String? = null,
+    val verificationStatus: String = "PENDING",
+    val rejectionReason: String? = null,
+    val neighbourhoodPlaces: List<String> = emptyList()
 ) {
     val formattedPrice: String
         get() = if (price > 0) {

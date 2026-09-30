@@ -1,13 +1,21 @@
 package com.ROOMIFY.Roomify.controller;
 
 import com.ROOMIFY.Roomify.dto.ApiResponse;
+import com.ROOMIFY.Roomify.model.NotificationSubscription;
 import com.ROOMIFY.Roomify.model.NotificationToken;
 import com.ROOMIFY.Roomify.model.Room;
+import com.ROOMIFY.Roomify.model.User;
+import com.ROOMIFY.Roomify.repository.NotificationSubscriptionRepository;
 import com.ROOMIFY.Roomify.repository.NotificationTokenRepository;
 import com.ROOMIFY.Roomify.repository.RoomRepository;
+import com.ROOMIFY.Roomify.repository.UserRepository;
 import com.ROOMIFY.Roomify.service.FCMService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -24,7 +32,28 @@ public class NotificationController {
     private NotificationTokenRepository tokenRepository;
 
     @Autowired
+    private NotificationSubscriptionRepository subscriptionRepository;
+
+    @Autowired
     private RoomRepository roomRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    private User getAuthenticatedUser() {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
+                String email = auth.getName();
+                if (email != null && !email.isBlank()) {
+                    return userRepository.findByEmail(email).orElse(null);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error getting authenticated user: " + e.getMessage());
+        }
+        return null;
+    }
 
     // REGISTER TOKEN
     @PostMapping("/register-token")
@@ -107,6 +136,54 @@ public class NotificationController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
                     .body(new ApiResponse<>(false, null, e.getMessage()));
+        }
+    }
+
+    // NOTIFY ME SUBSCRIPTION
+    @PostMapping("/subscribe")
+    @Transactional
+    public ResponseEntity<ApiResponse<Void>> subscribeToProperty(@RequestParam Long propertyId) {
+        try {
+            User user = getAuthenticatedUser();
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new ApiResponse<>(false, null, "Authentication required to subscribe for notifications"));
+            }
+            
+            Room room = roomRepository.findById(propertyId).orElse(null);
+            if (room == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new ApiResponse<>(false, null, "Property not found"));
+            }
+
+            if (subscriptionRepository.existsByUserIdAndPropertyId(user.getId(), propertyId)) {
+                return ResponseEntity.ok(new ApiResponse<>(true, null, "Already subscribed to notifications for this property"));
+            }
+
+            NotificationSubscription sub = new NotificationSubscription(user.getId(), propertyId);
+            subscriptionRepository.save(sub);
+
+            return ResponseEntity.ok(new ApiResponse<>(true, null, "Successfully subscribed to availability notifications"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>(false, null, "Error: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/subscribed")
+    @Transactional(readOnly = true)
+    public ResponseEntity<ApiResponse<Boolean>> checkSubscription(@RequestParam Long propertyId) {
+        try {
+            User user = getAuthenticatedUser();
+            if (user == null) {
+                return ResponseEntity.ok(new ApiResponse<>(true, false, "Not authenticated"));
+            }
+            boolean subscribed = subscriptionRepository.existsByUserIdAndPropertyId(user.getId(), propertyId);
+            return ResponseEntity.ok(new ApiResponse<>(true, subscribed, "Subscription status retrieved"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>(false, false, "Error: " + e.getMessage()));
         }
     }
 }

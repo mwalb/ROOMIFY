@@ -49,6 +49,36 @@ data class User(
 
     @SerialName("profileImage")
     val profileImage: String? = null,
+
+    @SerialName("status")
+    val status: String? = "ACTIVE",
+
+    @SerialName("isSuspended")
+    val isSuspended: Boolean = false,
+
+    @SerialName("nidaNumber")
+    val nidaNumber: String? = null,
+
+    @SerialName("localAuthorityName")
+    val localAuthorityName: String? = null,
+
+    @SerialName("localAuthorityPhone")
+    val localAuthorityPhone: String? = null,
+
+    @SerialName("localAuthorityArea")
+    val localAuthorityArea: String? = null,
+
+    @SerialName("localAuthorityVillage")
+    val localAuthorityVillage: String? = null,
+
+    @SerialName("localAuthorityWard")
+    val localAuthorityWard: String? = null,
+
+    @SerialName("localAuthorityDistrict")
+    val localAuthorityDistrict: String? = null,
+
+    @SerialName("localAuthorityRegion")
+    val localAuthorityRegion: String? = null,
 )
 
 /** Roles a User can have. */
@@ -77,6 +107,7 @@ fun User.isOwner(): Boolean = userRole == UserRole.OWNER
 fun User.isDalali(): Boolean = userRole == UserRole.DALALI
 fun User.isAdmin(): Boolean = userRole == UserRole.ADMIN
 fun User.isSuperAdmin(): Boolean = userRole == UserRole.SUPER_ADMIN
+fun User.isUserSuspended(): Boolean = isSuspended || status.equals("SUSPENDED", ignoreCase = true)
 
 val User.verification: VerificationStatus
     get() = when {

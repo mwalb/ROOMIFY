@@ -332,7 +332,7 @@ class PostRoomViewModel(
                         handleMediaUploads(result.id!!, context)
                         _uiState.value = _uiState.value.copy(
                             isSubmitting = false,
-                            successMessage = "Your property \"${state.title}\" has been posted successfully!"
+                            successMessage = "Property submitted successfully.\n\nYour property is waiting for property verification.\nIt will appear on the public map after an administrator verifies it."
                         )
                     }
                 } else {
@@ -378,7 +378,7 @@ class PostRoomViewModel(
 
                         _uiState.value = _uiState.value.copy(
                             isSubmitting = false,
-                            successMessage = "Building \"${state.title}\" with ${state.generatedUnits.size} units has been created!"
+                            successMessage = "Property submitted successfully.\n\nYour property is waiting for property verification.\nIt will appear on the public map after an administrator verifies it."
                         )
                     } else {
                         throw Exception(result.message)

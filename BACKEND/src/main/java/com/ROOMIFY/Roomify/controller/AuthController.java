@@ -317,6 +317,12 @@ public class AuthController {
 
             User user = userOptional.get();
 
+            if ("SUSPENDED".equalsIgnoreCase(user.getStatus())) {
+                response.put("success", false);
+                response.put("message", "Your account has been suspended by an Administrator.");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+            }
+
             // Verify password
             if (!passwordEncoder.matches(password, user.getPassword())) {
                 response.put("success", false);
@@ -338,6 +344,7 @@ public class AuthController {
             userData.put("name", updatedUser.getName());
             userData.put("role", updatedUser.getRole().toString().toLowerCase());
             userData.put("emailVerified", updatedUser.isEmailVerified());
+            userData.put("status", updatedUser.getStatus());
 
             response.put("success", true);
             response.put("message", "Login successful");

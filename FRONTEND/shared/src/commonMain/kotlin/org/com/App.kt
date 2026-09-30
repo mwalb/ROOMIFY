@@ -640,11 +640,13 @@ fun App() {
                                             pendingRoom = null
                                             currentRoute = "map"
                                         },
-                                        onError = { error ->
-                                            println("Delete Error: $error")
-                                        }
+                                        onError = { println("Error deleting room: $it") }
                                     )
                                 }
+                            },
+                            onLoginRequired = {
+                                postLoginDestination = "details"
+                                currentRoute = "login"
                             },
                             onViewProperty = { room ->
                                 pendingRoom = room
@@ -852,9 +854,17 @@ fun App() {
                                 }
                                 "ownerdashboard" -> {
                                     val user = (authState as AuthState.Authenticated).user
+                                    var ownerProperties by remember { mutableStateOf<List<Room>>(emptyList()) }
+                                    LaunchedEffect(user.id) {
+                                        try {
+                                            ownerProperties = roomApi.getRoomsByOwner(user.id)
+                                        } catch (e: Exception) {
+                                            ownerProperties = viewModel.rooms.filter { it.postedBy == user.id }
+                                        }
+                                    }
                                     OwnerDashboardScreen(
                                         user = user,
-                                        properties = viewModel.rooms.filter { it.postedBy == user.id },
+                                        properties = ownerProperties,
                                         bookings = ownerBookings,
                                         conversations = ownerConversations,
                                         isRefreshing = viewModel.isLoading,

@@ -32,6 +32,9 @@ public class User {
     @Enumerated(EnumType.STRING)
     private UserRole role;
 
+    @Column(name = "status")
+    private String status = "ACTIVE";
+
     private boolean emailVerified;
     private String firebaseUid;
 

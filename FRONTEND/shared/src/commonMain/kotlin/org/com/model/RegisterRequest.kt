@@ -204,6 +204,13 @@ data class RegisterRequest(
             phone: String,
             nidaNumber: String,
             locationArea: String,
+            localAuthorityName: String = "",
+            localAuthorityPhone: String = "",
+            localAuthorityArea: String = "",
+            localAuthorityVillage: String = "",
+            localAuthorityWard: String = "",
+            localAuthorityDistrict: String = "",
+            localAuthorityRegion: String = "",
             licenseNumber: String? = null
         ): RegisterRequest {
             return RegisterRequest(
@@ -216,6 +223,20 @@ data class RegisterRequest(
                 nidaNumber = nidaNumber,
                 licenseNumber = if (licenseNumber.isNullOrBlank()) null else licenseNumber,
                 locationArea = locationArea,
+                localAuthorityName = localAuthorityName,
+                localAuthorityPhone = localAuthorityPhone,
+                localAuthorityArea = localAuthorityArea,
+                localAuthorityVillage = localAuthorityVillage,
+                localAuthorityWard = localAuthorityWard,
+                localAuthorityDistrict = localAuthorityDistrict,
+                localAuthorityRegion = localAuthorityRegion,
+                baloziName = localAuthorityName,
+                baloziPhone = localAuthorityPhone,
+                baloziArea = localAuthorityArea,
+                baloziVillage = localAuthorityVillage,
+                baloziWard = localAuthorityWard,
+                baloziDistrict = localAuthorityDistrict,
+                baloziRegion = localAuthorityRegion,
                 verificationStatus = "pending"
             )
         }
@@ -228,6 +249,13 @@ data class RegisterRequest(
             phone: String,
             nidaNumber: String,
             locationArea: String,
+            localAuthorityName: String = "",
+            localAuthorityPhone: String = "",
+            localAuthorityArea: String = "",
+            localAuthorityVillage: String = "",
+            localAuthorityWard: String = "",
+            localAuthorityDistrict: String = "",
+            localAuthorityRegion: String = "",
             licenseNumber: String? = null
         ): RegisterRequest {
             return createAgent(
@@ -238,6 +266,13 @@ data class RegisterRequest(
                 phone = phone,
                 nidaNumber = nidaNumber,
                 locationArea = locationArea,
+                localAuthorityName = localAuthorityName,
+                localAuthorityPhone = localAuthorityPhone,
+                localAuthorityArea = localAuthorityArea,
+                localAuthorityVillage = localAuthorityVillage,
+                localAuthorityWard = localAuthorityWard,
+                localAuthorityDistrict = localAuthorityDistrict,
+                localAuthorityRegion = localAuthorityRegion,
                 licenseNumber = licenseNumber
             )
         }
