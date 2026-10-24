@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -31,15 +32,20 @@ import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
 import org.com.model.Furniture
 import org.com.model.Shop
+import org.com.model.User
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FurnitureDashboard(
     furnitures: List<Furniture>,
     shops: List<Shop> = emptyList(),
+    currentUser: User? = null,
     onBack: () -> Unit,
     onViewDetail: (Furniture) -> Unit,
     onViewShop: (Shop) -> Unit = {},
+    onEditFurniture: ((Furniture) -> Unit)? = null,
+    onDeleteFurniture: ((Furniture) -> Unit)? = null,
+    onToggleStatus: ((Furniture) -> Unit)? = null,
     onNavigate: (String) -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(0) }
@@ -55,6 +61,9 @@ fun FurnitureDashboard(
     )
     var selectedCategory by remember { mutableStateOf("Zote") }
     var searchQuery by remember { mutableStateOf("") }
+
+    var itemToEdit by remember { mutableStateOf<Furniture?>(null) }
+    var itemToDelete by remember { mutableStateOf<Furniture?>(null) }
 
     Scaffold(
         topBar = {
@@ -185,7 +194,14 @@ fun FurnitureDashboard(
                         }
                     } else {
                         items(filtered) { item ->
-                            FurnitureCard(item, onClick = { onViewDetail(item) })
+                            FurnitureCard(
+                                furniture = item,
+                                currentUser = currentUser,
+                                onClick = { onViewDetail(item) },
+                                onEdit = { itemToEdit = item },
+                                onDelete = { itemToDelete = item },
+                                onToggleStatus = { onToggleStatus?.invoke(item) }
+                            )
                         }
                     }
                     item { Spacer(Modifier.height(80.dp)) }
@@ -216,6 +232,131 @@ fun FurnitureDashboard(
                 }
             }
         }
+    }
+
+    // ============================================================
+    // DELETE CONFIRMATION DIALOG
+    // ============================================================
+    itemToDelete?.let { item ->
+        AlertDialog(
+            onDismissRequest = { itemToDelete = null },
+            title = { Text("Futa Bidhaa", fontWeight = FontWeight.Bold) },
+            text = { Text("Je, una uhakika unataka kufuta '${item.title}'?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onDeleteFurniture?.invoke(item)
+                        itemToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
+                ) {
+                    Text("Futa", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { itemToDelete = null }) {
+                    Text("Ghairi")
+                }
+            }
+        )
+    }
+
+    // ============================================================
+    // EDIT FURNITURE DIALOG
+    // ============================================================
+    itemToEdit?.let { item ->
+        var editTitle by remember { mutableStateOf(item.title) }
+        var editPrice by remember { mutableStateOf(item.price.toString()) }
+        var editDesc by remember { mutableStateOf(item.description) }
+        var editAddress by remember { mutableStateOf(item.address ?: "") }
+        var editStatus by remember { mutableStateOf(item.status) }
+
+        AlertDialog(
+            onDismissRequest = { itemToEdit = null },
+            title = { Text("Hariri Bidhaa Yako", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedTextField(
+                        value = editTitle,
+                        onValueChange = { editTitle = it },
+                        label = { Text("Jina la Bidhaa") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    OutlinedTextField(
+                        value = editPrice,
+                        onValueChange = { editPrice = it },
+                        label = { Text("Bei (TZS)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    OutlinedTextField(
+                        value = editDesc,
+                        onValueChange = { editDesc = it },
+                        label = { Text("Maelezo") },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 3
+                    )
+
+                    OutlinedTextField(
+                        value = editAddress,
+                        onValueChange = { editAddress = it },
+                        label = { Text("Anwani / Eneo") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Hali:", fontWeight = FontWeight.Medium)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilterChip(
+                                selected = editStatus == "AVAILABLE",
+                                onClick = { editStatus = "AVAILABLE" },
+                                label = { Text("INAPATIKANA") }
+                            )
+                            FilterChip(
+                                selected = editStatus == "SOLD",
+                                onClick = { editStatus = "SOLD" },
+                                label = { Text("IMEUZWA") }
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val parsedPrice = editPrice.toDoubleOrNull() ?: item.price
+                        val updated = item.copy(
+                            title = editTitle,
+                            price = parsedPrice,
+                            description = editDesc,
+                            address = editAddress,
+                            status = editStatus
+                        )
+                        onEditFurniture?.invoke(updated)
+                        itemToEdit = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A237E))
+                ) {
+                    Text("Hifadhi Mabadiliko", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { itemToEdit = null }) {
+                    Text("Ghairi")
+                }
+            }
+        )
     }
 }
 
@@ -281,7 +422,19 @@ fun ShopCard(shop: Shop, onClick: () -> Unit) {
 }
 
 @Composable
-fun FurnitureCard(furniture: Furniture, onClick: () -> Unit) {
+fun FurnitureCard(
+    furniture: Furniture,
+    currentUser: User? = null,
+    onClick: () -> Unit,
+    onEdit: (() -> Unit)? = null,
+    onDelete: (() -> Unit)? = null,
+    onToggleStatus: (() -> Unit)? = null
+) {
+    val isOwner = currentUser != null && (
+            (furniture.postedBy != null && furniture.postedBy == currentUser.id) ||
+            currentUser.role.equals("ADMIN", ignoreCase = true)
+    )
+
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -380,6 +533,51 @@ fun FurnitureCard(furniture: Furniture, onClick: () -> Unit) {
                     Spacer(Modifier.weight(1f))
                     Surface(color = Color(0xFFE8F5E9), shape = CircleShape) {
                         Text("Angalia Zote", modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp), color = Color(0xFF2E7D32), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+
+            // MANAGEMENT BAR (FOR OWNER / ADMIN)
+            if (isOwner) {
+                HorizontalDivider(color = Color(0xFFF1F5F9))
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Surface(
+                        color = if (furniture.status == "SOLD") Color(0xFFFFEBEE) else Color(0xFFE8F5E9),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.clickable { onToggleStatus?.invoke() }
+                    ) {
+                        Row(Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                if (furniture.status == "SOLD") Icons.Default.Cancel else Icons.Default.CheckCircle,
+                                null,
+                                tint = if (furniture.status == "SOLD") Color.Red else Color(0xFF2E7D32),
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                if (furniture.status == "SOLD") "IMEUZWA" else "INAPATIKANA",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (furniture.status == "SOLD") Color.Red else Color(0xFF2E7D32)
+                            )
+                        }
+                    }
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        TextButton(onClick = { onEdit?.invoke() }) {
+                            Icon(Icons.Default.Edit, null, modifier = Modifier.size(14.dp), tint = Color(0xFF1A237E))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Hariri", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A237E))
+                        }
+                        TextButton(onClick = { onDelete?.invoke() }) {
+                            Icon(Icons.Default.Delete, null, modifier = Modifier.size(14.dp), tint = Color(0xFFD32F2F))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Futa", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD32F2F))
+                        }
                     }
                 }
             }

@@ -671,9 +671,11 @@ fun App() {
                     }
 
                     currentRoute == "furniture_dashboard" -> {
+                        val authUser = (authState as? AuthState.Authenticated)?.user
                         org.com.ui.FurnitureDashboard(
                             furnitures = furnitureList,
                             shops = shopList,
+                            currentUser = authUser,
                             onBack = { currentRoute = "furniture_choice" },
                             onViewDetail = {
                                 pendingFurniture = it
@@ -682,6 +684,47 @@ fun App() {
                             onViewShop = {
                                 pendingShop = it
                                 currentRoute = "shop_detail"
+                            },
+                            onEditFurniture = { updatedItem ->
+                                scope.launch {
+                                    try {
+                                        if (updatedItem.id != null) {
+                                            RoomifyApi.updateFurniture(updatedItem.id, updatedItem)
+                                            val refresh = RoomifyApi.getAllFurniture()
+                                            if (refresh.success && refresh.data != null) {
+                                                furnitureList = refresh.data!!
+                                            }
+                                        }
+                                    } catch (e: Exception) {
+                                        println("App: Edit furniture failed: ${e.message}")
+                                    }
+                                }
+                            },
+                            onDeleteFurniture = { item ->
+                                scope.launch {
+                                    try {
+                                        if (item.id != null) {
+                                            RoomifyApi.deleteFurniture(item.id)
+                                            furnitureList = furnitureList.filter { it.id != item.id }
+                                        }
+                                    } catch (e: Exception) {
+                                        println("App: Delete furniture failed: ${e.message}")
+                                    }
+                                }
+                            },
+                            onToggleStatus = { item ->
+                                scope.launch {
+                                    try {
+                                        if (item.id != null) {
+                                            val newStatus = if (item.status == "SOLD") "AVAILABLE" else "SOLD"
+                                            val updated = item.copy(status = newStatus)
+                                            RoomifyApi.updateFurniture(item.id, updated)
+                                            furnitureList = furnitureList.map { if (it.id == item.id) updated else it }
+                                        }
+                                    } catch (e: Exception) {
+                                        println("App: Toggle status failed: ${e.message}")
+                                    }
+                                }
                             },
                             onNavigate = ::navigateTo
                         )
@@ -708,14 +751,22 @@ fun App() {
 
                     currentRoute == "post_furniture" -> {
                         val ctx = platformContext
+                        val authUser = (authState as? AuthState.Authenticated)?.user
                         org.com.ui.PostFurniture(
                             shops = shopList,
                             onBack = { currentRoute = "furniture_dashboard" },
                             onSubmit = { furniture, files, videoFile ->
                                 scope.launch {
                                     try {
+                                        val furnitureToCreate = furniture.copy(
+                                            postedBy = authUser?.id ?: furniture.postedBy,
+                                            ownerName = authUser?.name ?: furniture.ownerName,
+                                            contactEmail = authUser?.email ?: furniture.contactEmail,
+                                            contactPhone = if (furniture.contactPhone.isNullOrBlank()) authUser?.phone else furniture.contactPhone
+                                        )
+
                                         // 1. Create Furniture Entry
-                                        val createResponse = RoomifyApi.createFurniture(furniture)
+                                        val createResponse = RoomifyApi.createFurniture(furnitureToCreate)
                                         if (createResponse.success && createResponse.data?.id != null) {
                                             val furnitureId = createResponse.data!!.id!!
                                             

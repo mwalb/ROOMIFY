@@ -300,6 +300,14 @@ object RoomifyApi {
         }
     }
 
+    suspend fun updateFurniture(id: Long, furniture: Furniture): ApiResponse<Furniture> {
+        return ApiClient.put("furniture/$id", furniture)
+    }
+
+    suspend fun deleteFurniture(id: Long): ApiResponse<Unit> {
+        return ApiClient.delete("furniture/$id")
+    }
+
     suspend fun uploadProfileImage(imageBytes: ByteArray): ApiResponse<String> {
         return try {
             val response = ApiClient.client.post("users/profile/image") {
