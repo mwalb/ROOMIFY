@@ -64,6 +64,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.com.auth.AuthState
+import org.com.auth.rememberGoogleSignInLauncher
+import org.com.i18n.LocalRoomifyStrings
 import org.com.ui.AppColors
 
 
@@ -115,7 +117,7 @@ private fun currentLoginLayout(): LoginLayout {
 fun LoginScreen(
     authState: AuthState,
     onLogin: (String, String) -> Unit,
-    onGoogleLogin: () -> Unit,
+    onGoogleLogin: (String) -> Unit,
     onRegisterClick: () -> Unit,
     onBack: () -> Unit,
     onGuestLogin: () -> Unit,
@@ -134,11 +136,27 @@ fun LoginScreen(
         mutableStateOf(false)
     }
 
+    var googleSignInError by remember {
+        mutableStateOf<String?>(null)
+    }
+
+    val googleSignInLauncher = rememberGoogleSignInLauncher()
+    val launchGoogleSignIn = {
+        googleSignInError = null
+        googleSignInLauncher.launchGoogleSignIn { idToken ->
+            if (idToken.isNullOrBlank()) {
+                googleSignInError = "Google sign-in was cancelled or could not be started."
+            } else {
+                onGoogleLogin(idToken)
+            }
+        }
+    }
+
     val loading =
         authState is AuthState.Loading
 
     val errorMessage =
-        (authState as? AuthState.Error)?.message
+        googleSignInError ?: (authState as? AuthState.Error)?.message
 
     val formValid =
         email.isNotBlank() &&
@@ -182,7 +200,7 @@ fun LoginScreen(
                             password
                         )
                     },
-                    onGoogleLogin = onGoogleLogin,
+                    onGoogleLogin = launchGoogleSignIn,
                     onRegisterClick = onRegisterClick,
                     onBack = onBack,
                     onGuestLogin = onGuestLogin,
@@ -211,7 +229,7 @@ fun LoginScreen(
                             password
                         )
                     },
-                    onGoogleLogin = onGoogleLogin,
+                    onGoogleLogin = launchGoogleSignIn,
                     onRegisterClick = onRegisterClick,
                     onBack = onBack,
                     onGuestLogin = onGuestLogin,
@@ -336,6 +354,7 @@ private fun DesktopLoginLayout(
      */
 
     val contentWidth = 320.dp
+    val strings = LocalRoomifyStrings.current
 
     Box(
         modifier = Modifier
@@ -462,7 +481,7 @@ private fun DesktopLoginLayout(
                    ==================================================== */
 
                 Text(
-                    text = "Welcome Back",
+                    text = strings.welcomeBack,
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Black,
                     color = LoginColors.TextDark
@@ -473,7 +492,7 @@ private fun DesktopLoginLayout(
                 )
 
                 Text(
-                    text = "Sign in to your account",
+                    text = strings.signInToAccount,
                     fontSize = 15.sp,
                     color = LoginColors.TextSecondary,
                     fontWeight = FontWeight.Bold
@@ -495,7 +514,7 @@ private fun DesktopLoginLayout(
                         .height(60.dp),
                     label = {
                         Text(
-                            "Email Address",
+                            strings.emailAddress,
                             fontSize = 13.sp
                         )
                     },
@@ -543,7 +562,7 @@ private fun DesktopLoginLayout(
                         .height(60.dp),
                     label = {
                         Text(
-                            "Password",
+                            strings.password,
                             fontSize = 13.sp
                         )
                     },
@@ -629,7 +648,7 @@ private fun DesktopLoginLayout(
 
                         Text(
                             text =
-                                "Forgot Password?",
+                                strings.forgotPassword,
                             fontSize = 12.sp,
                             fontWeight =
                                 FontWeight.SemiBold,
@@ -693,7 +712,7 @@ private fun DesktopLoginLayout(
                     } else {
 
                         Text(
-                            text = "LOG IN",
+                            text = strings.login,
                             fontSize = 14.sp,
                             fontWeight =
                                 FontWeight.Bold,
@@ -727,7 +746,7 @@ private fun DesktopLoginLayout(
                     )
 
                     Text(
-                        text = "OR",
+                        text = strings.or,
                         fontSize = 12.sp,
                         color =
                             LoginColors.TextSecondary,
@@ -785,7 +804,7 @@ private fun DesktopLoginLayout(
 
                     Text(
                         text =
-                            "Continue with Google",
+                            strings.continueWithGoogle,
                         fontSize = 13.sp,
                         fontWeight =
                             FontWeight.Medium,
@@ -826,7 +845,7 @@ private fun DesktopLoginLayout(
                     ) {
 
                         Text(
-                            text = "Guest",
+                            text = strings.guest,
                             fontSize = 12.sp,
                             fontWeight =
                                 FontWeight.Medium,
@@ -852,7 +871,7 @@ private fun DesktopLoginLayout(
                     ) {
 
                         Text(
-                            text = "Sign Up",
+                            text = strings.signUp,
                             fontSize = 12.sp,
                             fontWeight =
                                 FontWeight.Medium,
@@ -894,7 +913,7 @@ private fun DesktopLoginLayout(
                     )
 
                     Text(
-                        text = "Back",
+                        text = strings.back,
                         fontSize = 12.sp,
                         color =
                             LoginColors.TextSecondary
@@ -914,6 +933,7 @@ private fun DesktopLoginLayout(
 private fun LoginBrand(
     compact: Boolean
 ) {
+    val strings = LocalRoomifyStrings.current
 
     Column(
         horizontalAlignment =
@@ -940,7 +960,7 @@ private fun LoginBrand(
         )
 
         Text(
-            text = "Find your next home",
+            text = strings.findYourNextHome,
             fontSize = 12.sp,
             color = LoginColors.TextSecondary
         )
@@ -1013,6 +1033,7 @@ private fun LoginFormCard(
     onGuestLogin: () -> Unit,
     onForgotPassword: () -> Unit
 ) {
+    val strings = LocalRoomifyStrings.current
 
     Card(
         modifier = modifier,
@@ -1037,7 +1058,7 @@ private fun LoginFormCard(
         ) {
 
             Text(
-                text = "Sign in",
+                text = strings.signIn,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 color = LoginColors.TextDark
@@ -1048,8 +1069,7 @@ private fun LoginFormCard(
             )
 
             Text(
-                text =
-                    "Enter your details to continue.",
+                text = strings.enterDetailsToContinue,
                 fontSize = 13.sp,
                 color = LoginColors.TextSecondary
             )
@@ -1068,7 +1088,7 @@ private fun LoginFormCard(
                     .height(60.dp),
                 label = {
                     Text(
-                        "Email",
+                        strings.email,
                         fontSize = 13.sp
                     )
                 },
@@ -1114,7 +1134,7 @@ private fun LoginFormCard(
                     .height(60.dp),
                 label = {
                     Text(
-                        "Password",
+                        strings.password,
                         fontSize = 13.sp
                     )
                 },
@@ -1194,7 +1214,7 @@ private fun LoginFormCard(
                 ) {
 
                     Text(
-                        text = "Forgot?",
+                        text = strings.forgot,
                         fontSize = 11.sp,
                         fontWeight =
                             FontWeight.SemiBold,
@@ -1253,7 +1273,7 @@ private fun LoginFormCard(
                 } else {
 
                     Text(
-                        text = "Sign In",
+                        text = strings.signIn,
                         fontSize = 14.sp,
                         fontWeight =
                             FontWeight.Bold,
@@ -1283,7 +1303,7 @@ private fun LoginFormCard(
                 )
 
                 Text(
-                    text = "OR",
+                    text = strings.or,
                     fontSize = 11.sp,
                     color =
                         LoginColors.TextSecondary,
@@ -1377,7 +1397,7 @@ private fun LoginFormCard(
                 ) {
 
                     Text(
-                        text = "Guest",
+                        text = strings.guest,
                         fontSize = 12.sp,
                         fontWeight =
                             FontWeight.Medium,
@@ -1403,7 +1423,7 @@ private fun LoginFormCard(
                 ) {
 
                     Text(
-                        text = "Sign Up",
+                        text = strings.signUp,
                         fontSize = 12.sp,
                         fontWeight =
                             FontWeight.Medium,
@@ -1443,7 +1463,7 @@ private fun LoginFormCard(
                 )
 
                 Text(
-                    text = "Back",
+                    text = strings.back,
                     fontSize = 12.sp,
                     color =
                         LoginColors.TextSecondary

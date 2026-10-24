@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import kotlinx.coroutines.launch
+import org.com.i18n.LocalRoomifyStrings
 import org.com.model.User
 import org.com.model.initials
 import org.com.network.RoomifyApi
@@ -45,6 +46,7 @@ fun RoomifySidebar(
     var locationSuggestions by remember { mutableStateOf<List<String>>(emptyList()) }
     var showSuggestions by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
+    val strings = LocalRoomifyStrings.current
 
     LaunchedEffect(locationInput) {
         if (locationInput.isNotBlank()) {
@@ -126,7 +128,7 @@ fun RoomifySidebar(
                 when (upperRole) {
                     "TENANT" -> {
                         Text(
-                            "My Dashboard",
+                            strings.myDashboard,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF111827),
@@ -141,7 +143,7 @@ fun RoomifySidebar(
                             FilterChip(
                                 selected = false,
                                 onClick = { onNavigate("tenant"); onClose() },
-                                label = { Text("Overview", fontWeight = FontWeight.Bold) },
+                                label = { Text(strings.overview, fontWeight = FontWeight.Bold) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     containerColor = Color(0xFFF1F5F9),
                                     labelColor = TextDarkGray
@@ -150,7 +152,7 @@ fun RoomifySidebar(
                             FilterChip(
                                 selected = false,
                                 onClick = { onNavigate("saved"); onClose() },
-                                label = { Text("Favourites", fontWeight = FontWeight.Bold) },
+                                label = { Text(strings.favourites, fontWeight = FontWeight.Bold) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     containerColor = Color(0xFFF1F5F9),
                                     labelColor = TextDarkGray
@@ -159,7 +161,7 @@ fun RoomifySidebar(
                             FilterChip(
                                 selected = false,
                                 onClick = { onNavigate("bookings"); onClose() },
-                                label = { Text("My Bookings", fontWeight = FontWeight.Bold) },
+                                label = { Text(strings.myBookings, fontWeight = FontWeight.Bold) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     containerColor = Color(0xFFF1F5F9),
                                     labelColor = TextDarkGray
@@ -168,7 +170,7 @@ fun RoomifySidebar(
                             FilterChip(
                                 selected = false,
                                 onClick = { onNavigate("messages"); onClose() },
-                                label = { Text("Messages", fontWeight = FontWeight.Bold) },
+                                label = { Text(strings.messages, fontWeight = FontWeight.Bold) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     containerColor = Color(0xFFF1F5F9),
                                     labelColor = TextDarkGray
@@ -179,7 +181,7 @@ fun RoomifySidebar(
                     }
                     "OWNER" -> {
                         Text(
-                            "Management",
+                            strings.management,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF111827),
@@ -194,7 +196,7 @@ fun RoomifySidebar(
                             FilterChip(
                                 selected = false,
                                 onClick = { onNavigate("ownerdashboard"); onClose() },
-                                label = { Text("Dashboard", fontWeight = FontWeight.Bold) },
+                                label = { Text(strings.dashboard, fontWeight = FontWeight.Bold) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     containerColor = Color(0xFFF1F5F9),
                                     labelColor = TextDarkGray
@@ -203,7 +205,7 @@ fun RoomifySidebar(
                             FilterChip(
                                 selected = false,
                                 onClick = { onNavigate("postroom"); onClose() },
-                                label = { Text("Post a Room", fontWeight = FontWeight.Bold) },
+                                label = { Text(strings.postARoom, fontWeight = FontWeight.Bold) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     containerColor = Color(0xFFF1F5F9),
                                     labelColor = TextDarkGray
@@ -214,7 +216,7 @@ fun RoomifySidebar(
                     }
                     "DALALI" -> {
                         Text(
-                            "Dalali Tools",
+                            strings.dalaliTools,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF111827),
@@ -229,7 +231,7 @@ fun RoomifySidebar(
                             FilterChip(
                                 selected = false,
                                 onClick = { onNavigate("dalalidashboard"); onClose() },
-                                label = { Text("Dashboard", fontWeight = FontWeight.Bold) },
+                                label = { Text(strings.dashboard, fontWeight = FontWeight.Bold) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     containerColor = Color(0xFFF1F5F9),
                                     labelColor = TextDarkGray
@@ -238,7 +240,7 @@ fun RoomifySidebar(
                             FilterChip(
                                 selected = false,
                                 onClick = { onNavigate("postroom"); onClose() },
-                                label = { Text("Post a Room", fontWeight = FontWeight.Bold) },
+                                label = { Text(strings.postARoom, fontWeight = FontWeight.Bold) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     containerColor = Color(0xFFF1F5F9),
                                     labelColor = TextDarkGray
@@ -249,7 +251,7 @@ fun RoomifySidebar(
                     }
                     "ADMIN", "SUPER_ADMIN" -> {
                         Text(
-                            "Administration",
+                            strings.administration,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF111827),
@@ -264,7 +266,7 @@ fun RoomifySidebar(
                             FilterChip(
                                 selected = false,
                                 onClick = { onNavigate("admindashboard"); onClose() },
-                                label = { Text("Admin Panel", fontWeight = FontWeight.Bold) },
+                                label = { Text(strings.adminPanel, fontWeight = FontWeight.Bold) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     containerColor = Color(0xFFF1F5F9),
                                     labelColor = TextDarkGray
@@ -289,7 +291,7 @@ fun RoomifySidebar(
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryColor)
                 ) {
                     Text(
-                        text = "Nearby me",
+                        text = strings.nearbyMe,
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
                         color = PrimaryColor
@@ -310,7 +312,7 @@ fun RoomifySidebar(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            "Preferences",
+                            strings.preferences,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF111827),
@@ -337,7 +339,7 @@ fun RoomifySidebar(
                                     singleLine = true,
                                     decorationBox = { inner ->
                                         if (locationInput.isEmpty()) {
-                                            Text("Location", color = Color(0xFF9CA3AF), fontSize = 13.sp)
+                                            Text(strings.location, color = Color(0xFF9CA3AF), fontSize = 13.sp)
                                         }
                                         inner()
                                     }
@@ -389,14 +391,14 @@ fun RoomifySidebar(
 
                         // What are you looking for?
                         Text(
-                            "What are you looking for?",
+                            strings.whatAreYouLookingFor,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = TextDarkGray,
                             modifier = Modifier.padding(bottom = 8.dp).align(Alignment.Start)
                         )
 
-                        val propertyTypes = listOf("ALL", "Room", "Apartment", "Studio", "House", "Office")
+                        val propertyTypes = listOf(strings.all, "Room", "Apartment", "Studio", "House", "Office")
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -441,7 +443,7 @@ fun RoomifySidebar(
                                     singleLine = true,
                                     decorationBox = { inner ->
                                         if (budgetInput.isEmpty()) {
-                                            Text("Max budget", color = Color(0xFF9CA3AF), fontSize = 13.sp)
+                                            Text(strings.maxBudget, color = Color(0xFF9CA3AF), fontSize = 13.sp)
                                         }
                                         inner()
                                     }
@@ -463,14 +465,14 @@ fun RoomifySidebar(
 
                         // Status Section
                         Text(
-                            "Status",
+                            strings.status,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = TextDarkGray,
                             modifier = Modifier.padding(bottom = 8.dp).align(Alignment.Start)
                         )
 
-                        val statusOptions = listOf("All", "Available", "Pending", "Rented")
+                        val statusOptions = listOf(strings.all, strings.available, strings.pending, strings.rented)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -510,7 +512,7 @@ fun RoomifySidebar(
                                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
                             ) {
                                 Text(
-                                    "Apply Filter",
+                                    strings.applyFilter,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 13.sp,
                                     letterSpacing = 0.5.sp
@@ -527,7 +529,7 @@ fun RoomifySidebar(
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryColor)
                             ) {
                                 Text(
-                                    "Clear Filter",
+                                    strings.clearFilter,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 13.sp,
                                     letterSpacing = 0.5.sp
@@ -548,14 +550,14 @@ fun RoomifySidebar(
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                     Text(
-                                        "No properties found",
+                                        strings.noPropertiesFound,
                                         fontWeight = FontWeight.Bold,
                                         color = Color(0xFF991B1B),
                                         fontSize = 14.sp
                                     )
                                     Spacer(Modifier.height(4.dp))
                                     Text(
-                                        "Try changing your location, property type, or budget filters.",
+                                        strings.tryChangingFilters,
                                         color = Color(0xFF7F1D1D),
                                         fontSize = 12.sp,
                                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -567,7 +569,7 @@ fun RoomifySidebar(
                                         shape = RoundedCornerShape(8.dp),
                                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                                     ) {
-                                        Text("Clear Filters", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                        Text(strings.clearFilters, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
@@ -598,7 +600,7 @@ fun RoomifySidebar(
                         ) {
                             Icon(
                                 Icons.Default.Chair,
-                                contentDescription = "Furniture Hub",
+                                contentDescription = strings.furnitureHub,
                                 tint = Color.White,
                                 modifier = Modifier.size(24.dp)
                             )
@@ -606,14 +608,14 @@ fun RoomifySidebar(
                         Spacer(Modifier.width(14.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                "Furniture Hub",
+                                strings.furnitureHub,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 15.sp,
                                 color = PrimaryColor
                             )
                             Spacer(Modifier.height(2.dp))
                             Text(
-                                "Furnish Your Space",
+                                strings.furnishYourSpace,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 12.sp,
                                 color = Color(0xFF283593)
@@ -643,7 +645,7 @@ fun RoomifySidebar(
                     ) {
                         Icon(Icons.AutoMirrored.Filled.Login, null, tint = PrimaryColor, modifier = Modifier.size(20.dp))
                         Spacer(Modifier.width(12.dp))
-                        Text("Login / Register", fontWeight = FontWeight.Bold, color = PrimaryColor, fontSize = 15.sp)
+                        Text(strings.loginRegister, fontWeight = FontWeight.Bold, color = PrimaryColor, fontSize = 15.sp)
                     }
                 } else {
                     Row(
@@ -663,7 +665,7 @@ fun RoomifySidebar(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(user.name, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF111827))
                             Spacer(Modifier.height(2.dp))
-                            Text("Account Settings", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = TextDarkGray)
+                            Text(strings.accountSettings, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = TextDarkGray)
                         }
                         IconButton(onClick = onLogout) {
                             Icon(Icons.AutoMirrored.Filled.Logout, null, tint = Color.Red, modifier = Modifier.size(18.dp))
@@ -677,6 +679,8 @@ fun RoomifySidebar(
 
 @Composable
 private fun SidebarHeader(onClose: () -> Unit) {
+    val strings = LocalRoomifyStrings.current
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -695,7 +699,7 @@ private fun SidebarHeader(onClose: () -> Unit) {
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = "Your living space partner",
+                text = strings.yourLivingSpacePartner,
                 color = Color.White.copy(alpha = 0.95f),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium

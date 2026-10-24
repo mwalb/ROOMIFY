@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.com.i18n.LocalRoomifyStrings
 import org.com.ui.AppColors
 
 @Composable
@@ -29,6 +30,7 @@ fun RoleSelectionScreen(
     onRoleSelected: (String) -> Unit,
     onBack: () -> Unit
 ) {
+    val strings = LocalRoomifyStrings.current
 
     Box(
         modifier = Modifier
@@ -53,7 +55,7 @@ fun RoleSelectionScreen(
         ) {
 
             Text(
-                text = "Welcome to Roomify",
+                text = strings.welcomeToRoomify,
                 color = Color.White,
                 fontSize = 30.sp,
                 fontWeight = FontWeight.Bold
@@ -64,7 +66,7 @@ fun RoleSelectionScreen(
             )
 
             Text(
-                text = "Choose how you want to continue",
+                text = strings.chooseHowToContinue,
                 color = Color.White.copy(alpha = 0.75f),
                 fontSize = 16.sp
             )
@@ -74,7 +76,7 @@ fun RoleSelectionScreen(
             )
 
             RoleButton(
-                title = "Tenant",
+                title = strings.tenantRole,
                 selected = selectedRole == "tenant",
                 onClick = {
                     onRoleSelected("tenant")
@@ -86,7 +88,7 @@ fun RoleSelectionScreen(
             )
 
             RoleButton(
-                title = "Property Owner",
+                title = strings.propertyOwner,
                 selected = selectedRole == "owner",
                 onClick = {
                     onRoleSelected("owner")
@@ -98,7 +100,7 @@ fun RoleSelectionScreen(
             )
 
             RoleButton(
-                title = "Dalali / Agent",
+                title = strings.dalaliAgent,
                 selected = selectedRole == "dalali",
                 onClick = {
                     onRoleSelected("dalali")
@@ -118,7 +120,7 @@ fun RoleSelectionScreen(
                 ),
                 shape = RoundedCornerShape(14.dp)
             ) {
-                Text("Back")
+                Text(strings.back)
             }
         }
     }

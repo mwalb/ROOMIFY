@@ -43,17 +43,32 @@ fun FurnitureDashboard(
     onNavigate: (String) -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(0) }
-    val categories = listOf("All", "Bed", "Sofa", "Table", "Electronics", "Decor")
-    var selectedCategory by remember { mutableStateOf("All") }
+    val categories = listOf(
+        "Zote",
+        "Samani",
+        "Mapambo",
+        "Maua na Mimea",
+        "Taa na Mwanga",
+        "Vifaa vya Nyumbani",
+        "Huduma",
+        "Nyingine"
+    )
+    var selectedCategory by remember { mutableStateOf("Zote") }
+    var searchQuery by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
             Column(Modifier.background(Color.White)) {
                 CenterAlignedTopAppBar(
-                    title = { Text("Furniture Hub", fontWeight = FontWeight.Black) },
+                    title = {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("Soko la Samani na Mapambo", fontWeight = FontWeight.Black, fontSize = 18.sp)
+                            Text("Samani, Maua, Mapambo na Huduma", fontSize = 11.sp, color = Color.Gray)
+                        }
+                    },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color(0xFF1A237E))
                         }
                     },
                     actions = {
@@ -61,56 +76,112 @@ fun FurnitureDashboard(
                             if (selectedTab == 0) onNavigate("post_furniture")
                             else onNavigate("post_shop")
                         }) {
-                            Icon(Icons.Default.Add, null)
+                            Icon(Icons.Default.Add, "Posta Yako", tint = Color(0xFF1A237E))
                         }
                     },
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
                 )
-                
-                TabRow(selectedTabIndex = selectedTab, containerColor = Color.White, contentColor = Color(0xFF6200EE)) {
+
+                // Search Bar
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("Tafuta samani, maua, mapambo...") },
+                    leadingIcon = { Icon(Icons.Default.Search, null, tint = Color.Gray) },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { searchQuery = "" }) {
+                                Icon(Icons.Default.Close, null, tint = Color.Gray)
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = Color(0xFFF8FAFC),
+                        unfocusedContainerColor = Color(0xFFF8FAFC),
+                        focusedBorderColor = Color(0xFF1A237E)
+                    ),
+                    singleLine = true
+                )
+
+                TabRow(
+                    selectedTabIndex = selectedTab,
+                    containerColor = Color.White,
+                    contentColor = Color(0xFF1A237E)
+                ) {
                     Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }) {
-                        Text("Products", modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold)
+                        Text("Bidhaa & Huduma (${furnitures.size})", modifier = Modifier.padding(14.dp), fontWeight = FontWeight.Bold)
                     }
                     Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }) {
-                        Text("Shops", modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold)
+                        Text("Maduka & Wafanyabiashara (${shops.size})", modifier = Modifier.padding(14.dp), fontWeight = FontWeight.Bold)
                     }
                 }
             }
+        },
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = { onNavigate("post_furniture") },
+                icon = { Icon(Icons.Default.AddCircle, null) },
+                text = { Text("Posta Bidhaa Yako", fontWeight = FontWeight.Bold) },
+                containerColor = Color(0xFF1A237E),
+                contentColor = Color.White,
+                shape = RoundedCornerShape(20.dp)
+            )
         }
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(Color(0xFFF8F9FA))
+                .background(Color(0xFFF8FAFC))
         ) {
             if (selectedTab == 0) {
-                // Category Selector
+                // Category Filter Row
                 LazyRow(
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(categories) { category ->
                         FilterChip(
                             selected = selectedCategory == category,
                             onClick = { selectedCategory = category },
-                            label = { Text(category) },
-                            shape = RoundedCornerShape(12.dp)
+                            label = { Text(category, fontWeight = if (selectedCategory == category) FontWeight.Bold else FontWeight.Normal) },
+                            shape = RoundedCornerShape(14.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = Color(0xFF1A237E),
+                                selectedLabelColor = Color.White
+                            )
                         )
                     }
                 }
 
-                // Furniture List
+                // Furniture & Decor List
+                val filtered = furnitures.filter { item ->
+                    val matchesCategory = selectedCategory == "Zote" ||
+                            item.category.contains(selectedCategory, ignoreCase = true) ||
+                            (selectedCategory == "Samani" && listOf("Bed", "Sofa", "Table", "Chair", "Furniture").any { item.category.contains(it, ignoreCase = true) }) ||
+                            (selectedCategory == "Mapambo" && listOf("Decor", "Picha", "Vioo").any { item.category.contains(it, ignoreCase = true) }) ||
+                            (selectedCategory == "Maua na Mimea" && listOf("Maua", "Mimea", "Flower", "Plant").any { item.category.contains(it, ignoreCase = true) })
+
+                    val matchesSearch = searchQuery.isBlank() ||
+                            item.title.contains(searchQuery, ignoreCase = true) ||
+                            item.description.contains(searchQuery, ignoreCase = true) ||
+                            item.category.contains(searchQuery, ignoreCase = true) ||
+                            (item.address?.contains(searchQuery, ignoreCase = true) ?: false)
+
+                    matchesCategory && matchesSearch
+                }
+
                 LazyColumn(
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    val filtered = if (selectedCategory == "All") furnitures
-                                   else furnitures.filter { it.category.equals(selectedCategory, ignoreCase = true) }
-
                     if (filtered.isEmpty()) {
                         item {
-                            EmptyStatePlaceholder("Hakuna bidhaa zilizopatikana")
+                            EmptyStatePlaceholder("Hakuna bidhaa zilizopatikana kulingana na utafutaji wako")
                         }
                     } else {
                         items(filtered) { item ->
@@ -121,16 +192,23 @@ fun FurnitureDashboard(
                 }
             } else {
                 // Shops List
+                val filteredShops = shops.filter { shop ->
+                    searchQuery.isBlank() ||
+                            shop.name.contains(searchQuery, ignoreCase = true) ||
+                            (shop.description?.contains(searchQuery, ignoreCase = true) ?: false) ||
+                            (shop.address?.contains(searchQuery, ignoreCase = true) ?: false)
+                }
+
                 LazyColumn(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    if (shops.isEmpty()) {
+                    if (filteredShops.isEmpty()) {
                         item {
                             EmptyStatePlaceholder("Hakuna maduka yaliyosajiliwa bado")
                         }
                     } else {
-                        items(shops) { shop ->
+                        items(filteredShops) { shop ->
                             ShopCard(shop, onClick = { onViewShop(shop) })
                         }
                     }
@@ -143,11 +221,11 @@ fun FurnitureDashboard(
 
 @Composable
 private fun EmptyStatePlaceholder(text: String) {
-    Box(Modifier.fillMaxWidth().height(400.dp), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    Box(Modifier.fillMaxWidth().height(350.dp), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(24.dp)) {
             Icon(Icons.Default.Inventory, null, modifier = Modifier.size(64.dp), tint = Color.LightGray)
             Spacer(Modifier.height(16.dp))
-            Text(text, color = Color.Gray)
+            Text(text, color = Color.Gray, textAlign = TextAlign.Center, fontSize = 14.sp)
         }
     }
 }
@@ -162,7 +240,7 @@ fun ShopCard(shop: Shop, onClick: () -> Unit) {
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(80.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFFF0F2F5)), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(80.dp).clip(RoundedCornerShape(14.dp)).background(Color(0xFFF0F2F5)), contentAlignment = Alignment.Center) {
                 if (shop.firstImageUrl != null) {
                     KamelImage(
                         resource = { asyncPainterResource(shop.firstImageUrl!!) },
@@ -178,13 +256,14 @@ fun ShopCard(shop: Shop, onClick: () -> Unit) {
             Spacer(Modifier.width(16.dp))
             
             Column(Modifier.weight(1f)) {
-                Text(shop.name, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                Text(shop.name, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                Spacer(Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.LocationOn, null, tint = Color.Gray, modifier = Modifier.size(14.dp))
                     Spacer(Modifier.width(4.dp))
                     Text(shop.address ?: "Mtaa haujatajwa", color = Color.Gray, fontSize = 12.sp, maxLines = 1)
                 }
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(6.dp))
                 if (shop.hasVideo) {
                     Surface(color = Color(0xFFFFEBEE), shape = CircleShape) {
                         Row(Modifier.padding(horizontal = 8.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -215,30 +294,46 @@ fun FurnitureCard(furniture: Furniture, onClick: () -> Unit) {
                 KamelImage(
                     resource = { asyncPainterResource(furniture.firstImageUrl ?: "") },
                     contentDescription = null,
-                    modifier = Modifier.fillMaxWidth().height(200.dp),
+                    modifier = Modifier.fillMaxWidth().height(210.dp),
                     contentScale = ContentScale.Crop,
                     onLoading = { 
                         Box(Modifier.fillMaxSize().background(Color(0xFFF0F2F5)), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp, color = Color(0xFF6200EE))
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp, color = Color(0xFF1A237E))
                         }
                     },
                     onFailure = {
                         Box(Modifier.fillMaxSize().background(Color(0xFFF0F2F5)), contentAlignment = Alignment.Center) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp)) {
                                 Icon(Icons.Default.BrokenImage, null, tint = Color.LightGray, modifier = Modifier.size(32.dp))
-                                Text("Image Unavailable", fontSize = 10.sp, color = Color.Gray, textAlign = TextAlign.Center)
+                                Text("Picha haipatikani", fontSize = 11.sp, color = Color.Gray, textAlign = TextAlign.Center)
                             }
                         }
                     }
                 )
 
+                if (furniture.category.isNotBlank()) {
+                    Surface(
+                        modifier = Modifier.align(Alignment.TopStart).padding(12.dp),
+                        color = Color(0xFF1A237E).copy(alpha = 0.85f),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            furniture.category.uppercase(),
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+
                 Surface(
                     modifier = Modifier.align(Alignment.TopEnd).padding(12.dp),
-                    color = Color.Black.copy(alpha = 0.6f),
+                    color = Color.Black.copy(alpha = 0.65f),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        furniture.condition,
+                        furniture.condition.ifBlank { "MPYA" },
                         color = Color.White,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
@@ -253,13 +348,14 @@ fun FurnitureCard(furniture: Furniture, onClick: () -> Unit) {
                         furniture.title,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
+                        color = Color(0xFF0F172A),
                         modifier = Modifier.weight(1f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         furniture.formattedPrice,
-                        color = Color(0xFF6200EE),
+                        color = Color(0xFF1A237E),
                         fontWeight = FontWeight.Black,
                         fontSize = 16.sp
                     )
@@ -270,7 +366,7 @@ fun FurnitureCard(furniture: Furniture, onClick: () -> Unit) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.LocationOn, null, tint = Color.Gray, modifier = Modifier.size(14.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text(furniture.address ?: "Location unknown", color = Color.Gray, fontSize = 12.sp)
+                    Text(furniture.address ?: "Eneo halijatajwa", color = Color.Gray, fontSize = 12.sp)
                 }
 
                 Spacer(Modifier.height(12.dp))
@@ -280,10 +376,10 @@ fun FurnitureCard(furniture: Furniture, onClick: () -> Unit) {
                         Icon(Icons.Default.Person, null, modifier = Modifier.size(16.dp), tint = Color.Gray)
                     }
                     Spacer(Modifier.width(8.dp))
-                    Text(furniture.ownerName ?: "Seller", fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                    Text(furniture.ownerName ?: "Muuzaji", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color(0xFF334155))
                     Spacer(Modifier.weight(1f))
                     Surface(color = Color(0xFFE8F5E9), shape = CircleShape) {
-                        Text("Miliki sasa", modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp), color = Color(0xFF2E7D32), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Text("Angalia Zote", modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp), color = Color(0xFF2E7D32), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }

@@ -657,29 +657,12 @@ fun App() {
                     }
 
                     currentRoute == "furniture_choice" -> {
-                        val sampleFurniture = Furniture(
-                            id = 1,
-                            title = "Sofa ya Kisasa (Modern Sofa)",
-                            description = "Sofa ya kisasa na ya kiwango cha juu, inayofaa kwa sebule au ofisi.",
-                            price = 850000.0,
-                            category = "Sofa",
-                            condition = "NEW",
-                            ownerName = "Roomify Furniture Store",
-                            contactPhone = "+255700000000",
-                            contactEmail = "info@roomify.co.tz",
-                            address = "Kijitonyama, Dar es Salaam",
-                            latitude = -6.7783,
-                            longitude = 39.2433,
-                            images = listOf("https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80"),
-                            status = "AVAILABLE"
-                        )
                         org.com.ui.FurnitureChoiceScreen(
                             onOption1 = {
-                                pendingFurniture = furnitureList.firstOrNull() ?: sampleFurniture
-                                currentRoute = "furniture_detail"
+                                currentRoute = "furniture_dashboard"
                             },
                             onOption2 = {
-                                currentRoute = "furniture_dashboard"
+                                currentRoute = "post_furniture"
                             },
                             onBack = {
                                 currentRoute = "map"
@@ -719,7 +702,7 @@ fun App() {
                     currentRoute == "furniture_detail" && pendingFurniture != null -> {
                         org.com.ui.FurnitureDetailScreen(
                             furniture = pendingFurniture!!,
-                            onBack = { currentRoute = "furniture_choice" }
+                            onBack = { currentRoute = "furniture_dashboard" }
                         )
                     }
 
@@ -740,6 +723,12 @@ fun App() {
                                             if (files.isNotEmpty()) {
                                                 val imageBytes = files.map { it.readByteArray(ctx) }
                                                 RoomifyApi.uploadFurnitureImages(furnitureId, imageBytes)
+                                            }
+
+                                            // 3. Upload Video if any
+                                            videoFile?.let {
+                                                val videoBytes = it.readByteArray(ctx)
+                                                RoomifyApi.uploadFurnitureVideo(furnitureId, videoBytes)
                                             }
                                             
                                             // 3. Refresh List and Redirect
@@ -1145,8 +1134,8 @@ fun App() {
                                 onRegister = { request ->
                                     scope.launch { authManager.register(request) }
                                 },
-                                onGoogleRegister = { idToken, role ->
-                                    scope.launch { authManager.googleRegister(idToken, role) }
+                                onGoogleRegister = { request ->
+                                    scope.launch { authManager.googleRegister(request) }
                                 },
                                 onLoginClick = { currentRoute = "login" },
                                 onBack = { currentRoute = "login" }
@@ -1158,9 +1147,9 @@ fun App() {
                                     println("App: 🔐 Login called for $email")
                                     scope.launch { authManager.login(email, password) }
                                 },
-                                onGoogleLogin = {
+                                onGoogleLogin = { idToken ->
                                     println("App: 🔐 Google login called")
-                                    scope.launch { authManager.googleLogin("") } // Need idToken here normally
+                                    scope.launch { authManager.googleLogin(idToken) }
                                 },
                                 onRegisterClick = {
                                     println("App: 📝 Navigate to Register")
@@ -1192,8 +1181,8 @@ fun App() {
                                     onRegister = { request ->
                                         scope.launch { authManager.register(request) }
                                     },
-                                    onGoogleRegister = { idToken, role ->
-                                        scope.launch { authManager.googleRegister(idToken, role) }
+                                    onGoogleRegister = { request ->
+                                        scope.launch { authManager.googleRegister(request) }
                                     },
                                     onLoginClick = { currentRoute = "login" },
                                     onBack = { currentRoute = "login" }
@@ -1206,9 +1195,9 @@ fun App() {
                                     println("App: 🔐 Login called for $email")
                                     scope.launch { authManager.login(email, password) }
                                 },
-                                onGoogleLogin = {
+                                onGoogleLogin = { idToken ->
                                     println("App: 🔐 Google login called")
-                                    scope.launch { authManager.googleLogin("") }
+                                    scope.launch { authManager.googleLogin(idToken) }
                                 },
                                     onRegisterClick = {
                                         println("App: 📝 Navigate to Register")
@@ -1460,5 +1449,3 @@ private fun AppMapContainer(
         mapContent()
     }
 }
-
-

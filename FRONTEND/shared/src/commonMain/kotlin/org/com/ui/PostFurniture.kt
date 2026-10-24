@@ -19,7 +19,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -32,7 +31,6 @@ import com.mohamedrejeb.calf.picker.rememberFilePickerLauncher
 import org.com.model.Furniture
 import org.com.model.Shop
 import org.com.network.RoomifyApi
-import org.com.ui.AddressResult
 import org.com.ui.components.AutocompleteTextField
 import org.com.ui.components.LocationPickerModal
 
@@ -46,8 +44,9 @@ fun PostFurniture(
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
-    var category by remember { mutableStateOf("Bed") }
-    var condition by remember { mutableStateOf("NEW") }
+    // Category selection is mandatory - initialized to empty string
+    var category by remember { mutableStateOf("") }
+    var condition by remember { mutableStateOf("MPYA") }
     var address by remember { mutableStateOf("") }
     var latitude by remember { mutableStateOf("") }
     var longitude by remember { mutableStateOf("") }
@@ -59,13 +58,24 @@ fun PostFurniture(
     var showMapModal by remember { mutableStateOf(false) }
     var selectedFullAddress by remember { mutableStateOf("") }
     
-    // Contact Info (for guest posters)
+    // Contact Info (for traders / posters)
     var sellerName by remember { mutableStateOf("") }
     var sellerPhone by remember { mutableStateOf("") }
     var sellerEmail by remember { mutableStateOf("") }
 
     val scrollState = rememberScrollState()
-    val categories = listOf("Bed", "Sofa", "Table", "Electronics", "Decor", "Other")
+
+    val categories = listOf(
+        "Samani (Furniture)",
+        "Mapambo (Home Decor)",
+        "Maua na Mimea (Flowers & Plants)",
+        "Taa na Mwanga (Lighting)",
+        "Vifaa vya Nyumbani (Home Appliances)",
+        "Huduma za Ndani (Interior Services)",
+        "Nyingine (Other)"
+    )
+
+    val conditions = listOf("MPYA", "ZILIZOTUMIKA", "Custom / Made to Order")
 
     var areaSuggestions by remember { mutableStateOf(emptyList<String>()) }
     LaunchedEffect(Unit) {
@@ -86,10 +96,16 @@ fun PostFurniture(
         onResult = { selectedVideo = it.firstOrNull() }
     )
 
+    val isFormValid = title.isNotBlank() &&
+            price.isNotBlank() &&
+            category.isNotBlank() &&
+            selectedImages.isNotEmpty() &&
+            (selectedShop != null || (sellerName.isNotBlank() && sellerPhone.isNotBlank()))
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Posta Bidhaa Yako", fontWeight = FontWeight.Black) },
+                title = { Text("Posta Bidhaa au Huduma", fontWeight = FontWeight.Black) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
@@ -99,31 +115,42 @@ fun PostFurniture(
         },
         bottomBar = {
             Surface(tonalElevation = 8.dp, shadowElevation = 16.dp, color = Color.White) {
-                Button(
-                    onClick = {
-                        val furniture = Furniture(
-                            title = title,
-                            description = description,
-                            price = price.toDoubleOrNull() ?: 0.0,
-                            category = category,
-                            condition = condition,
-                            address = if (selectedShop != null) selectedShop!!.address else address,
-                            latitude = if (selectedShop != null) selectedShop!!.latitude else (latitude.toDoubleOrNull() ?: 0.0),
-                            longitude = if (selectedShop != null) selectedShop!!.longitude else (longitude.toDoubleOrNull() ?: 0.0),
-                            ownerName = if (selectedShop != null) selectedShop!!.name else sellerName,
-                            contactPhone = if (selectedShop != null) selectedShop!!.contactPhone else sellerPhone,
-                            contactEmail = if (selectedShop != null) selectedShop!!.contactEmail else sellerEmail,
-                            shopId = selectedShop?.id,
-                            status = "AVAILABLE"
+                Column(Modifier.padding(16.dp)) {
+                    if (category.isBlank()) {
+                        Text(
+                            "⚠️ Lazima uchague Aina ya Bidhaa/Huduma ili kupost",
+                            color = Color(0xFFD32F2F),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(bottom = 8.dp).align(Alignment.CenterHorizontally)
                         )
-                        onSubmit(furniture, selectedImages, selectedVideo)
-                    },
-                    enabled = title.isNotBlank() && price.isNotBlank() && selectedImages.isNotEmpty() && (selectedShop != null || (sellerName.isNotBlank() && sellerPhone.isNotBlank())),
-                    modifier = Modifier.fillMaxWidth().padding(16.dp).height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6200EE))
-                ) {
-                    Text("POSTA BIDHAA", fontWeight = FontWeight.Bold)
+                    }
+                    Button(
+                        onClick = {
+                            val furniture = Furniture(
+                                title = title,
+                                description = description,
+                                price = price.toDoubleOrNull() ?: 0.0,
+                                category = category,
+                                condition = condition,
+                                address = if (selectedShop != null) selectedShop!!.address else address,
+                                latitude = if (selectedShop != null) selectedShop!!.latitude else (latitude.toDoubleOrNull() ?: 0.0),
+                                longitude = if (selectedShop != null) selectedShop!!.longitude else (longitude.toDoubleOrNull() ?: 0.0),
+                                ownerName = if (selectedShop != null) selectedShop!!.name else sellerName,
+                                contactPhone = if (selectedShop != null) selectedShop!!.contactPhone else sellerPhone,
+                                contactEmail = if (selectedShop != null) selectedShop!!.contactEmail else sellerEmail,
+                                shopId = selectedShop?.id,
+                                status = "AVAILABLE"
+                            )
+                            onSubmit(furniture, selectedImages, selectedVideo)
+                        },
+                        enabled = isFormValid,
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A237E))
+                    ) {
+                        Text("POSTA BIDHAA SASA", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    }
                 }
             }
         }
@@ -136,6 +163,22 @@ fun PostFurniture(
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
+            // Header Banner
+            Surface(
+                color = Color(0xFFEEF2FF),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, Color(0xFFC7D2FE))
+            ) {
+                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Storefront, null, tint = Color(0xFF1A237E), modifier = Modifier.size(32.dp))
+                    Spacer(Modifier.width(12.dp))
+                    Column {
+                        Text("Tangaza Samani, Maua na Mapambo", fontWeight = FontWeight.Bold, color = Color(0xFF1A237E))
+                        Text("Wafanyabiashara wa samani, maua, mapambo na utengenezaji wanakaribishwa!", fontSize = 12.sp, color = Color(0xFF3730A3))
+                    }
+                }
+            }
+
             // Shop Selection
             Text("Chagua Duka (Kama unalo)", fontWeight = FontWeight.Bold)
             var shopExpanded by remember { mutableStateOf(false) }
@@ -145,18 +188,18 @@ fun PostFurniture(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 OutlinedTextField(
-                    value = selectedShop?.name ?: "Binafsi (Sio duka)",
+                    value = selectedShop?.name ?: "Binafsi / Mfanyabiashara Hurust (Sio duka)",
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Duka la Bidhaa") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = shopExpanded) },
                     modifier = Modifier.menuAnchor().fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    leadingIcon = { Icon(Icons.Default.Storefront, null, tint = Color(0xFF6200EE)) }
+                    leadingIcon = { Icon(Icons.Default.Storefront, null, tint = Color(0xFF1A237E)) }
                 )
                 ExposedDropdownMenu(expanded = shopExpanded, onDismissRequest = { shopExpanded = false }) {
                     DropdownMenuItem(
-                        text = { Text("Binafsi (Sio duka)") },
+                        text = { Text("Binafsi / Mfanyabiashara Huru (Sio duka)") },
                         onClick = { selectedShop = null; shopExpanded = false }
                     )
                     shops.forEach { shop ->
@@ -168,17 +211,50 @@ fun PostFurniture(
                 }
             }
 
+            // Mandatory Category Selection
+            Text("Aina ya Bidhaa / Huduma (MANDATORY *)", fontWeight = FontWeight.Black, color = if (category.isBlank()) Color(0xFFD32F2F) else Color(0xFF1A237E))
+            var categoryExpanded by remember { mutableStateOf(false) }
+            ExposedDropdownMenuBox(
+                expanded = categoryExpanded,
+                onExpandedChange = { categoryExpanded = it },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = if (category.isNotBlank()) category else "-- Chagua Aina ya Bidhaa/Huduma --",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Aina ya Bidhaa / Category *") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
+                    modifier = Modifier.menuAnchor().fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    isError = category.isBlank(),
+                    leadingIcon = { Icon(Icons.Default.Category, null, tint = Color(0xFF1A237E)) },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF1A237E),
+                        unfocusedBorderColor = if (category.isBlank()) Color(0xFFD32F2F) else Color.Gray
+                    )
+                )
+                ExposedDropdownMenu(expanded = categoryExpanded, onDismissRequest = { categoryExpanded = false }) {
+                    categories.forEach { cat ->
+                        DropdownMenuItem(
+                            text = { Text(cat, fontWeight = FontWeight.Medium) },
+                            onClick = { category = cat; categoryExpanded = false }
+                        )
+                    }
+                }
+            }
+
             // Media Selection
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Picha za Bidhaa", fontWeight = FontWeight.Black, modifier = Modifier.weight(1f))
-                Text("${selectedImages.size} selected", fontSize = 12.sp, color = Color.Gray)
+                Text("Picha za Bidhaa (Angalau picha 1) *", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                Text("${selectedImages.size} zilizochaguliwa", fontSize = 12.sp, color = Color.Gray)
             }
             
             Surface(
                 modifier = Modifier.fillMaxWidth().height(150.dp),
-                color = Color(0xFFF8F9FA),
+                color = Color(0xFFF8FAFC),
                 shape = RoundedCornerShape(20.dp),
-                border = BorderStroke(1.dp, Color(0xFFEEEEEE))
+                border = BorderStroke(1.5.dp, if (selectedImages.isEmpty()) Color(0xFFE2E8F0) else Color(0xFF1A237E))
             ) {
                 if (selectedImages.isEmpty()) {
                     Box(
@@ -186,9 +262,9 @@ fun PostFurniture(
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.AddPhotoAlternate, null, tint = Color(0xFF6200EE), modifier = Modifier.size(44.dp))
+                            Icon(Icons.Default.AddPhotoAlternate, null, tint = Color(0xFF1A237E), modifier = Modifier.size(44.dp))
                             Spacer(Modifier.height(8.dp))
-                            Text("Gusa kuongeza picha", color = Color.Gray, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                            Text("Gusa hapa kuongeza picha za bidhaa", color = Color.Gray, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                         }
                     }
                 } else {
@@ -210,7 +286,6 @@ fun PostFurniture(
                                     }
                                 }
                                 
-                                // Remove button
                                 IconButton(
                                     onClick = { selectedImages = selectedImages - file },
                                     modifier = Modifier
@@ -231,14 +306,14 @@ fun PostFurniture(
                                 modifier = Modifier.size(110.dp),
                                 shape = RoundedCornerShape(16.dp),
                                 color = Color.White,
-                                border = BorderStroke(2.dp, Color(0xFF6200EE).copy(alpha = 0.2f))
+                                border = BorderStroke(2.dp, Color(0xFF1A237E).copy(alpha = 0.3f))
                             ) {
                                 Column(
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     verticalArrangement = Arrangement.Center
                                 ) {
-                                    Icon(Icons.Default.Add, null, tint = Color(0xFF6200EE))
-                                    Text("Add More", fontSize = 11.sp, color = Color(0xFF6200EE), fontWeight = FontWeight.Bold)
+                                    Icon(Icons.Default.Add, null, tint = Color(0xFF1A237E))
+                                    Text("Ongeza", fontSize = 11.sp, color = Color(0xFF1A237E), fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
@@ -247,10 +322,10 @@ fun PostFurniture(
             }
 
             // Video Demo Selection
-            Text("Video Demo (Optional)", fontWeight = FontWeight.Bold)
+            Text("Video Demo (Sio lazima)", fontWeight = FontWeight.Bold)
             Surface(
-                modifier = Modifier.fillMaxWidth().height(80.dp).clickable { videoPicker.launch() },
-                color = if (selectedVideo != null) Color(0xFFE8F5E9) else Color(0xFFF8F9FA),
+                modifier = Modifier.fillMaxWidth().height(70.dp).clickable { videoPicker.launch() },
+                color = if (selectedVideo != null) Color(0xFFE8F5E9) else Color(0xFFF8FAFC),
                 shape = RoundedCornerShape(16.dp),
                 border = BorderStroke(1.dp, if (selectedVideo != null) Color(0xFF2E7D32) else Color(0xFFEEEEEE))
             ) {
@@ -266,7 +341,7 @@ fun PostFurniture(
                     )
                     Spacer(Modifier.width(12.dp))
                     Text(
-                        if (selectedVideo != null) "Video selected" else "Add item video demo",
+                        if (selectedVideo != null) "Video imechaguliwa" else "Weka video mafupi ya bidhaa",
                         color = if (selectedVideo != null) Color(0xFF2E7D32) else Color.Gray
                     )
                 }
@@ -276,7 +351,8 @@ fun PostFurniture(
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
-                label = { Text("Jina la Bidhaa") },
+                label = { Text("Jina la Bidhaa / Huduma *") },
+                placeholder = { Text("e.g. Sofa Set ya Viti 5 au Maua ya Ukutani") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp)
             )
@@ -285,31 +361,32 @@ fun PostFurniture(
                 OutlinedTextField(
                     value = price,
                     onValueChange = { price = it },
-                    label = { Text("Bei (TZS)") },
+                    label = { Text("Bei (TZS) *") },
+                    placeholder = { Text("e.g. 250000") },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp)
                 )
 
-                var expanded by remember { mutableStateOf(false) }
+                var conditionExpanded by remember { mutableStateOf(false) }
                 ExposedDropdownMenuBox(
-                    expanded = expanded,
-                    onExpandedChange = { expanded = it },
+                    expanded = conditionExpanded,
+                    onExpandedChange = { conditionExpanded = it },
                     modifier = Modifier.weight(1f)
                 ) {
                     OutlinedTextField(
-                        value = category,
+                        value = condition,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Aina") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        label = { Text("Hali ya Bidhaa") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = conditionExpanded) },
                         modifier = Modifier.menuAnchor().fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp)
                     )
-                    ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                        categories.forEach { cat ->
+                    ExposedDropdownMenu(expanded = conditionExpanded, onDismissRequest = { conditionExpanded = false }) {
+                        conditions.forEach { cond ->
                             DropdownMenuItem(
-                                text = { Text(cat) },
-                                onClick = { category = cat; expanded = false }
+                                text = { Text(cond) },
+                                onClick = { condition = cond; conditionExpanded = false }
                             )
                         }
                     }
@@ -319,19 +396,19 @@ fun PostFurniture(
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                label = { Text("Maelezo zaidi") },
-                modifier = Modifier.fillMaxWidth().height(120.dp),
+                label = { Text("Maelezo Zaidi (Vipimo, Rangi, Aina ya Mti/Maua)") },
+                modifier = Modifier.fillMaxWidth().height(110.dp),
                 shape = RoundedCornerShape(12.dp),
                 singleLine = false
             )
 
             if (selectedShop == null) {
                 // Contact Information
-                Text("Taarifa za Muuzaji", fontWeight = FontWeight.Bold)
+                Text("Taarifa za Muuzaji / Mfanyabiashara", fontWeight = FontWeight.Bold)
                 OutlinedTextField(
                     value = sellerName,
                     onValueChange = { sellerName = it },
-                    label = { Text("Jina Kamili") },
+                    label = { Text("Jina Kamili la Muuzaji *") },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     leadingIcon = { Icon(Icons.Default.Person, null) }
@@ -341,7 +418,8 @@ fun PostFurniture(
                     OutlinedTextField(
                         value = sellerPhone,
                         onValueChange = { sellerPhone = it },
-                        label = { Text("Namba ya Simu") },
+                        label = { Text("Namba ya Simu *") },
+                        placeholder = { Text("07xxxxxxx") },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp),
                         leadingIcon = { Icon(Icons.Default.Phone, null) }
@@ -357,7 +435,7 @@ fun PostFurniture(
                 }
 
                 // Location
-                Text("Eneo la Bidhaa", fontWeight = FontWeight.Bold)
+                Text("Eneo Bidhaa/Huduma Inapopatikana", fontWeight = FontWeight.Bold)
                 
                 if (latitude.isNotBlank() && longitude.isNotBlank()) {
                     Surface(
@@ -370,7 +448,7 @@ fun PostFurniture(
                             Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF2E7D32))
                             Spacer(Modifier.width(12.dp))
                             Column(Modifier.weight(1f)) {
-                                Text(address.ifBlank { "Location Selected" }, fontWeight = FontWeight.Bold, color = Color(0xFF1B5E20))
+                                Text(address.ifBlank { "Eneo limechaguliwa" }, fontWeight = FontWeight.Bold, color = Color(0xFF1B5E20))
                                 if (selectedFullAddress.isNotBlank()) {
                                     Text(selectedFullAddress, fontSize = 11.sp, color = Color(0xFF2E7D32))
                                 }
@@ -386,7 +464,7 @@ fun PostFurniture(
                         onValueChange = { address = it },
                         suggestions = areaSuggestions,
                         label = "Mtaa / Eneo (Andika hapa)",
-                        placeholder = "e.g. Mbezi Beach, Dar es Salaam",
+                        placeholder = "e.g. Kijitonyama, Dar es Salaam",
                         onSuggestionSelected = { address = it }
                     )
 
@@ -394,17 +472,16 @@ fun PostFurniture(
 
                     Button(
                         onClick = { showMapModal = true },
-                        modifier = Modifier.fillMaxWidth().height(54.dp),
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A237E), contentColor = Color.White)
                     ) {
                         Icon(Icons.Default.Map, null)
                         Spacer(Modifier.width(10.dp))
-                        Text("Chagua kwenye Ramani (Recommended)", fontWeight = FontWeight.Bold)
+                        Text("Chagua Eneo kwenye Ramani", fontWeight = FontWeight.Bold)
                     }
                 }
             } else {
-                // Show selected shop info summary
                 Surface(
                     color = Color(0xFFE3F2FD),
                     shape = RoundedCornerShape(16.dp),
@@ -415,142 +492,11 @@ fun PostFurniture(
                         Icon(Icons.Default.Storefront, null, tint = Color(0xFF1976D2))
                         Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) {
-                            Text("Bidhaa itapostiwa chini ya duka:", fontSize = 11.sp, color = Color.Gray)
+                            Text("Bidhaa hii itapostiwa chini ya duka:", fontSize = 11.sp, color = Color.Gray)
                             Text(selectedShop!!.name, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
                             Text(selectedShop!!.address ?: "Eneo la duka", fontSize = 12.sp, color = Color(0xFF1976D2))
                         }
                     }
-                }
-            }
-
-            // Form Fields
-            OutlinedTextField(
-                value = title,
-                onValueChange = { title = it },
-                label = { Text("Jina la Bidhaa") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
-            )
-
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
-                    value = price,
-                    onValueChange = { price = it },
-                    label = { Text("Bei (TZS)") },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp)
-                )
-
-                var expanded by remember { mutableStateOf(false) }
-                ExposedDropdownMenuBox(
-                    expanded = expanded,
-                    onExpandedChange = { expanded = it },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    OutlinedTextField(
-                        value = category,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Aina") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                        modifier = Modifier.menuAnchor(),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                        categories.forEach { cat ->
-                            DropdownMenuItem(
-                                text = { Text(cat) },
-                                onClick = { category = cat; expanded = false }
-                            )
-                        }
-                    }
-                }
-            }
-
-            OutlinedTextField(
-                value = description,
-                onValueChange = { description = it },
-                label = { Text("Maelezo zaidi") },
-                modifier = Modifier.fillMaxWidth().height(120.dp),
-                shape = RoundedCornerShape(12.dp),
-                singleLine = false
-            )
-
-            // Contact Information
-            Text("Taarifa za Muuzaji", fontWeight = FontWeight.Bold)
-            OutlinedTextField(
-                value = sellerName,
-                onValueChange = { sellerName = it },
-                label = { Text("Jina Kamili") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                leadingIcon = { Icon(Icons.Default.Person, null) }
-            )
-
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
-                    value = sellerPhone,
-                    onValueChange = { sellerPhone = it },
-                    label = { Text("Namba ya Simu") },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                    leadingIcon = { Icon(Icons.Default.Phone, null) }
-                )
-                OutlinedTextField(
-                    value = sellerEmail,
-                    onValueChange = { sellerEmail = it },
-                    label = { Text("Email (Sio lazima)") },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                    leadingIcon = { Icon(Icons.Default.Email, null) }
-                )
-            }
-
-            // Location
-            Text("Eneo la Bidhaa", fontWeight = FontWeight.Bold)
-            
-            if (latitude.isNotBlank() && longitude.isNotBlank()) {
-                Surface(
-                    color = Color(0xFFE8F5E9),
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                    border = BorderStroke(1.dp, Color(0xFF2E7D32).copy(alpha = 0.2f))
-                ) {
-                    Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF2E7D32))
-                        Spacer(Modifier.width(12.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(address.ifBlank { "Location Selected" }, fontWeight = FontWeight.Bold, color = Color(0xFF1B5E20))
-                            if (selectedFullAddress.isNotBlank()) {
-                                Text(selectedFullAddress, fontSize = 11.sp, color = Color(0xFF2E7D32))
-                            }
-                        }
-                        IconButton(onClick = { showMapModal = true }) {
-                            Icon(Icons.Default.EditLocationAlt, null, tint = Color(0xFF1B5E20))
-                        }
-                    }
-                }
-            } else {
-                AutocompleteTextField(
-                    value = address,
-                    onValueChange = { address = it },
-                    suggestions = areaSuggestions,
-                    label = "Mtaa / Eneo (Andika hapa)",
-                    placeholder = "e.g. Mbezi Beach, Dar es Salaam",
-                    onSuggestionSelected = { address = it }
-                )
-
-                Spacer(Modifier.height(8.dp))
-
-                Button(
-                    onClick = { showMapModal = true },
-                    modifier = Modifier.fillMaxWidth().height(54.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A237E), contentColor = Color.White)
-                ) {
-                    Icon(Icons.Default.Map, null)
-                    Spacer(Modifier.width(10.dp))
-                    Text("Chagua kwenye Ramani (Recommended)", fontWeight = FontWeight.Bold)
                 }
             }
 

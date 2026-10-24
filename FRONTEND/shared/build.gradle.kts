@@ -107,6 +107,7 @@ kotlin {
         // =========================
         androidMain.dependencies {
             implementation("io.ktor:ktor-client-okhttp:3.2.3")
+            implementation(libs.play.services.auth)
 
             // Google Maps
             implementation("com.google.maps.android:maps-compose:4.4.1")

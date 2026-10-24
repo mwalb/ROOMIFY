@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Chair
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.LocalFlorist
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -43,7 +44,7 @@ fun FurnitureChoiceScreen(
             TopAppBar(
                 title = {
                     Text(
-                        "Samani",
+                        "Samani, Maua & Mapambo",
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF111827)
                     )
@@ -102,8 +103,8 @@ fun FurnitureChoiceScreen(
                     Spacer(Modifier.height(16.dp))
 
                     Text(
-                        text = "Unatafuta Samani?",
-                        fontSize = 24.sp,
+                        text = "Unatafuta Samani au Mapambo?",
+                        fontSize = 22.sp,
                         fontWeight = FontWeight.Black,
                         color = Color(0xFF0F172A),
                         textAlign = TextAlign.Center
@@ -112,7 +113,7 @@ fun FurnitureChoiceScreen(
                     Spacer(Modifier.height(6.dp))
 
                     Text(
-                        text = "Unataka kufanya nini?",
+                        text = "Unataka kufanya nini leo?",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Medium,
                         color = SecondaryText,
@@ -121,23 +122,23 @@ fun FurnitureChoiceScreen(
 
                     Spacer(Modifier.height(28.dp))
 
-                    // Option 1 Card
+                    // Option 1 Card: Buyer / Browser
                     ChoiceOptionCard(
                         emoji = "🛋️",
                         icon = Icons.Default.Chair,
                         title = "Unatafuta thamani/vitu vya ndani?",
-                        subtitle = "Tafuta na angalia bidhaa",
+                        subtitle = "Angalia samani, maua, mapambo na huduma zote",
                         onClick = onOption1
                     )
 
                     Spacer(Modifier.height(16.dp))
 
-                    // Option 2 Card
+                    // Option 2 Card: Trader / Seller
                     ChoiceOptionCard(
                         emoji = "📦",
                         icon = Icons.Default.Storefront,
                         title = "Namiliki bidhaa au nataka kupost",
-                        subtitle = "Ongeza na simamia bidhaa",
+                        subtitle = "Posta samani, maua, mapambo au duka lako sasa",
                         onClick = onOption2
                     )
                 }

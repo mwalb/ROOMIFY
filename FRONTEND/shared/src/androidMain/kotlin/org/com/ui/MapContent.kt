@@ -88,6 +88,7 @@ import androidx.compose.ui.unit.sp
 import org.com.i18n.LocalRoomifyStrings
 import org.com.i18n.LocalLocalizationManager
 import org.com.i18n.Language
+import kotlin.math.*
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import org.com.model.*
@@ -209,10 +210,6 @@ private fun formatCompactPrice(price: Double): String {
         return "Price on request"
     }
     return "${price.roundToInt().toStringWithCommas()} TZS"
-}
-            "TZS ${price.roundToInt().toStringWithCommas()}"
-        }
-    }
 }
 
 /*
@@ -482,7 +479,7 @@ actual fun MapContent(
 
     LaunchedEffect(rooms, shouldFitBounds) {
         if (shouldFitBounds && rooms.isNotEmpty()) {
-            val validRooms = rooms.filter { it.latitude != 0.0 && it.longitude != 0.0 && kotlin.math.isFinite(it.latitude) && kotlin.math.isFinite(it.longitude) }
+            val validRooms = rooms.filter { it.latitude != 0.0 && it.longitude != 0.0 && !it.latitude.isNaN() && !it.latitude.isInfinite() && !it.longitude.isNaN() && !it.longitude.isInfinite() }
             if (validRooms.size == 1) {
                 val room = validRooms[0]
                 cameraPositionState.animate(

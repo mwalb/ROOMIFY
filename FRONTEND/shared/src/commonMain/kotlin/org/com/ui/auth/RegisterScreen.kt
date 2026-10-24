@@ -76,6 +76,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.com.auth.AuthState
+import org.com.auth.rememberGoogleSignInLauncher
+import org.com.i18n.LocalRoomifyStrings
+import org.com.model.GoogleRegisterRequest
 import org.com.model.RegisterRequest
 import org.com.ui.AppColors
 
@@ -114,7 +117,7 @@ private object RegisterColors {
 fun RegisterScreen(
     authState: AuthState,
     onRegister: (RegisterRequest) -> Unit,
-    onGoogleRegister: (String, String) -> Unit,
+    onGoogleRegister: (GoogleRegisterRequest) -> Unit,
     onLoginClick: () -> Unit,
     onBack: () -> Unit
 ) {
@@ -146,7 +149,9 @@ fun RegisterScreen(
     var locationArea by remember { mutableStateOf("") }
 
     val loading = authState is AuthState.Loading
-    val errorMessage = (authState as? AuthState.Error)?.message
+    var googleSignInError by remember { mutableStateOf<String?>(null) }
+    val googleSignInLauncher = rememberGoogleSignInLauncher()
+    val errorMessage = googleSignInError ?: (authState as? AuthState.Error)?.message
 
     val passwordsMatch = password == confirmPassword
 
@@ -629,7 +634,43 @@ fun RegisterScreen(
 
                 // GOOGLE BUTTON
                 OutlinedButton(
-                    onClick = { onGoogleRegister("", selectedRole) },
+                    onClick = {
+                        googleSignInError = null
+                        when {
+                            phone.isBlank() -> {
+                                googleSignInError = "Enter your phone number before continuing with Google."
+                            }
+                            !roleFieldsValid -> {
+                                googleSignInError = "Complete the required profile details for this role."
+                            }
+                            else -> {
+                                googleSignInLauncher.launchGoogleSignIn { idToken ->
+                                    if (idToken.isNullOrBlank()) {
+                                        googleSignInError = "Google sign-in was cancelled or could not be started."
+                                    } else {
+                                        onGoogleRegister(
+                                            GoogleRegisterRequest(
+                                                idToken = idToken,
+                                                role = selectedRole,
+                                                phone = phone.trim(),
+                                                nidaNumber = nidaNumber.trim().ifBlank { null },
+                                                businessName = businessName.trim().ifBlank { null },
+                                                localAuthorityName = localAuthorityName.trim().ifBlank { null },
+                                                localAuthorityPhone = localAuthorityPhone.trim().ifBlank { null },
+                                                localAuthorityArea = localAuthorityArea.trim().ifBlank { null },
+                                                localAuthorityVillage = localAuthorityVillage.trim().ifBlank { null },
+                                                localAuthorityWard = localAuthorityWard.trim().ifBlank { null },
+                                                localAuthorityDistrict = localAuthorityDistrict.trim().ifBlank { null },
+                                                localAuthorityRegion = localAuthorityRegion.trim().ifBlank { null },
+                                                licenseNumber = licenseNumber.trim().ifBlank { null },
+                                                locationArea = locationArea.trim().ifBlank { null }
+                                            )
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    },
                     enabled = !loading,
                     modifier = Modifier
                         .width(contentWidth)

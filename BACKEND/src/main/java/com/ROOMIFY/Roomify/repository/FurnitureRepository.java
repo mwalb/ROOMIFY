@@ -9,4 +9,6 @@ import java.util.List;
 public interface FurnitureRepository extends JpaRepository<Furniture, Long> {
     List<Furniture> findByStatus(String status);
     List<Furniture> findByCategory(String category);
+    List<Furniture> findByShopId(Long shopId);
+    List<Furniture> findByPostedBy(Long postedBy);
 }

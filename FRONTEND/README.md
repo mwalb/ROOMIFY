@@ -25,6 +25,10 @@ Use the run configurations provided by the run widget in your IDE's toolbar. You
   - JS target (slower, supports older browsers): `./gradlew :webApp:jsBrowserDevelopmentRun`
 - iOS app: open the [/iosApp](./iosApp) directory in Xcode and run it from there.
 
+### Google sign-in setup
+
+For Android, provide `androidApp/google-services.json` for the `org.com` application with a Web OAuth client ID. The Google Services Gradle plugin generates the client ID used by the Android sign-in launcher. Set the backend environment variable `GOOGLE_CLIENT_ID` to that same Web OAuth client ID so the backend can verify ID tokens. Google registration also requires a phone number; owner and dalali accounts must provide their required role details.
+
 ### Running tests
 
 Use the run button in your IDE's editor gutter, or run tests using Gradle tasks:

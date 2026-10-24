@@ -92,12 +92,12 @@ fun AuthScreen(
                     }
                 },
 
-                onGoogleLogin = {
+                onGoogleLogin = { idToken ->
 
                     scope.launch {
 
                         authManager.googleLogin(
-                            idToken = ""
+                            idToken = idToken
                         )
                     }
                 },
@@ -164,13 +164,12 @@ fun AuthScreen(
                     }
                 },
 
-                onGoogleRegister = { idToken, role ->
+                onGoogleRegister = { request ->
 
                     scope.launch {
 
                         authManager.googleRegister(
-                            idToken = idToken,
-                            role = role
+                            request = request
                         )
                     }
                 },

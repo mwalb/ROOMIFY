@@ -3,19 +3,16 @@ package com.ROOMIFY.Roomify.controller;
 import com.ROOMIFY.Roomify.Component.JwtUtil;
 import com.ROOMIFY.Roomify.dto.ApiResponse;
 import com.ROOMIFY.Roomify.dto.AuthResponse;
+import com.ROOMIFY.Roomify.dto.GoogleRegisterRequest;
 import com.ROOMIFY.Roomify.dto.RegisterRequest;
 import com.ROOMIFY.Roomify.model.User;
 import com.ROOMIFY.Roomify.model.UserRole;
 import com.ROOMIFY.Roomify.repository.UserRepository;
-import com.ROOMIFY.Roomify.service.JwtService;
 import com.ROOMIFY.Roomify.service.UserService;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
-import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.jackson2.JacksonFactory;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -23,8 +20,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
 
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -46,145 +44,191 @@ public class AuthController {
 
     @Value("${google.client.id:}")
     private String googleClientId;
+
     @PostMapping("/google")
     @Transactional
     public ResponseEntity<?> googleLogin(@RequestBody Map<String, String> request) {
-        System.out.println("=== GOOGLE LOGIN REQUEST RECEIVED ===");
+        String idTokenString = request.get("idToken");
+        if (idTokenString == null || idTokenString.isBlank()) {
+            return ResponseEntity.badRequest().body(
+                    Map.of("success", false, "message", "Missing Google ID token")
+            );
+        }
+        if (googleClientId == null || googleClientId.isBlank()) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(
+                    Map.of("success", false, "message", "Google sign-in is not configured")
+            );
+        }
 
         try {
-            String idTokenString = request.get("idToken");
-            String role = request.get("role");
-
-            System.out.println("Role: " + role);
-            System.out.println("Token length: " + (idTokenString != null ? idTokenString.length() : 0));
-
-            if (idTokenString == null || idTokenString.isBlank()) {
-                return ResponseEntity.badRequest().body(
-                        Map.of("success", false, "message", "Missing Google ID token")
-                );
-            }
-
-            // Try multiple verification methods
-            String email = null;
-            String name = null;
-            Exception lastError = null;
-
-            // Method 1: Try tokeninfo endpoint (most reliable)
-            try {
-                System.out.println("Trying tokeninfo endpoint...");
-                RestTemplate restTemplate = new RestTemplate();
-                String tokenInfoUrl = "https://oauth2.googleapis.com/tokeninfo?id_token=" + idTokenString;
-                Map<String, Object> tokenInfo = restTemplate.getForObject(tokenInfoUrl, Map.class);
-
-                if (tokenInfo != null && tokenInfo.containsKey("email")) {
-                    email = (String) tokenInfo.get("email");
-                    name = (String) tokenInfo.get("name");
-                    System.out.println("Tokeninfo successful: " + email);
-                }
-            } catch (Exception e) {
-                System.out.println("Tokeninfo failed: " + e.getMessage());
-                lastError = e;
-            }
-
-            // Method 2: Try GoogleIdTokenVerifier if tokeninfo failed
-            if (email == null && googleClientId != null && !googleClientId.isEmpty()) {
-                try {
-                    System.out.println("Trying GoogleIdTokenVerifier...");
-                    GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
-                            GoogleNetHttpTransport.newTrustedTransport(),
-                            JacksonFactory.getDefaultInstance()
-                    )
-                            .setAudience(Collections.singletonList(googleClientId))
-                            .build();
-
-                    GoogleIdToken idToken = verifier.verify(idTokenString);
-                    if (idToken != null) {
-                        GoogleIdToken.Payload payload = idToken.getPayload();
-                        email = payload.getEmail();
-                        name = (String) payload.get("name");
-                        System.out.println("Verifier successful: " + email);
-                    }
-                } catch (Exception e) {
-                    System.out.println("Verifier failed: " + e.getMessage());
-                    lastError = e;
-                }
-            }
-
-            // Method 3: Manual JWT decode (last resort)
-            if (email == null) {
-                try {
-                    System.out.println("Trying manual JWT decode...");
-                    String[] parts = idTokenString.split("\\.");
-                    if (parts.length >= 2) {
-                        String payload = new String(Base64.getUrlDecoder().decode(parts[1]));
-                        // Parse JSON manually
-                        payload = payload.replace("true", "true").replace("false", "false");
-                        Map<String, Object> claims = parseJsonToMap(payload);
-                        email = (String) claims.get("email");
-                        name = (String) claims.get("name");
-                        System.out.println("Manual decode successful: " + email);
-                    }
-                } catch (Exception e) {
-                    System.out.println("Manual decode failed: " + e.getMessage());
-                    lastError = e;
-                }
-            }
-
-            if (email == null) {
-                System.err.println("All verification methods failed");
+            GoogleIdToken verifiedToken = verifyGoogleIdToken(idTokenString);
+            if (verifiedToken == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
-                        Map.of("success", false, "message", "Could not verify Google token: " + (lastError != null ? lastError.getMessage() : "Unknown error"))
+                        Map.of("success", false, "message", "Invalid or expired Google ID token")
                 );
             }
 
-            // Process the user
-            return processGoogleUser(email, name, role);
+            GoogleIdToken.Payload payload = verifiedToken.getPayload();
+            String email = payload.getEmail();
+            if (email == null || email.isBlank() || !Boolean.TRUE.equals(payload.getEmailVerified())) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+                        Map.of("success", false, "message", "Google account email is not verified")
+                );
+            }
 
+            return processGoogleUser(email, (String) payload.get("name"));
+        } catch (IOException | GeneralSecurityException e) {
+            System.err.println("Google ID token verification could not be completed: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(
+                    Map.of("success", false, "message", "Google sign-in verification is temporarily unavailable")
+            );
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Google login failed: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-                    Map.of("success", false, "message", "Google login failed: " + e.getMessage())
+                    Map.of("success", false, "message", "Google login failed")
             );
         }
     }
 
-    private Map<String, Object> parseJsonToMap(String json) {
-        Map<String, Object> map = new HashMap<>();
-        try {
-            // Simple JSON parsing (remove braces and split)
-            json = json.trim();
-            if (json.startsWith("{") && json.endsWith("}")) {
-                json = json.substring(1, json.length() - 1);
-                String[] pairs = json.split(",");
-                for (String pair : pairs) {
-                    String[] keyValue = pair.split(":", 2);
-                    if (keyValue.length == 2) {
-                        String key = keyValue[0].trim().replace("\"", "");
-                        String value = keyValue[1].trim().replace("\"", "");
-                        map.put(key, value);
-                    }
-                }
-            }
-        } catch (Exception e) {
-            System.err.println("Error parsing JSON: " + e.getMessage());
+    @PostMapping("/google/register")
+    @Transactional
+    public ResponseEntity<?> googleRegister(@RequestBody GoogleRegisterRequest request) {
+        if (request == null || request.getIdToken() == null || request.getIdToken().isBlank()) {
+            return ResponseEntity.badRequest().body(
+                    Map.of("success", false, "message", "Missing Google ID token")
+            );
         }
-        return map;
+        if (googleClientId == null || googleClientId.isBlank()) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(
+                    Map.of("success", false, "message", "Google sign-in is not configured")
+            );
+        }
+
+        UserRole role;
+        try {
+            role = UserRole.valueOf(request.getRole().trim().toUpperCase(Locale.ROOT));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(
+                    Map.of("success", false, "message", "Choose a valid account role")
+            );
+        }
+        if (role != UserRole.TENANT && role != UserRole.OWNER && role != UserRole.DALALI) {
+            return ResponseEntity.badRequest().body(
+                    Map.of("success", false, "message", "This role cannot be registered with Google")
+            );
+        }
+        if (!hasRequiredGoogleRegistrationDetails(request, role)) {
+            return ResponseEntity.badRequest().body(
+                    Map.of("success", false, "message", "Complete the required profile details for this role")
+            );
+        }
+
+        try {
+            GoogleIdToken verifiedToken = verifyGoogleIdToken(request.getIdToken());
+            if (verifiedToken == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+                        Map.of("success", false, "message", "Invalid or expired Google ID token")
+                );
+            }
+
+            GoogleIdToken.Payload payload = verifiedToken.getPayload();
+            String email = payload.getEmail();
+            if (email == null || email.isBlank() || !Boolean.TRUE.equals(payload.getEmailVerified())) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+                        Map.of("success", false, "message", "Google account email is not verified")
+                );
+            }
+            if (userService.existsByEmail(email)) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                        Map.of("success", false, "message", "Email already registered. Please login instead.")
+                );
+            }
+
+            User user = new User();
+            String googleName = (String) payload.get("name");
+            user.setName(googleName == null || googleName.isBlank() ? email.substring(0, email.indexOf('@')) : googleName);
+            user.setEmail(email);
+            user.setRole(role);
+            user.setEmailVerified(true);
+            user.setPhone(request.getPhone());
+            user.setNidaNumber(request.getNidaNumber());
+            user.setBusinessName(request.getBusinessName());
+            user.setLocalAuthorityName(request.getLocalAuthorityName());
+            user.setLocalAuthorityPhone(request.getLocalAuthorityPhone());
+            user.setLocalAuthorityArea(request.getLocalAuthorityArea());
+            user.setLocalAuthorityVillage(request.getLocalAuthorityVillage());
+            user.setLocalAuthorityWard(request.getLocalAuthorityWard());
+            user.setLocalAuthorityDistrict(request.getLocalAuthorityDistrict());
+            user.setLocalAuthorityRegion(request.getLocalAuthorityRegion());
+            user.setLicenseNumber(request.getLicenseNumber());
+            user.setLocationArea(request.getLocationArea());
+            user.setCreatedAt(LocalDateTime.now());
+            user.setLastLoginAt(LocalDateTime.now());
+
+            User savedUser = userService.save(user);
+            String jwt = jwtUtil.generateToken(savedUser.getEmail(), savedUser.getRole().name());
+            return ResponseEntity.ok(new AuthResponse(true, jwt, savedUser, "Google registration successful"));
+        } catch (IOException | GeneralSecurityException e) {
+            System.err.println("Google ID token verification could not be completed: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(
+                    Map.of("success", false, "message", "Google sign-in verification is temporarily unavailable")
+            );
+        } catch (Exception e) {
+            System.err.println("Google registration failed: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                    Map.of("success", false, "message", "Google registration failed")
+            );
+        }
     }
 
-    private ResponseEntity<?> processGoogleUser(String email, String name, String role) {
-        System.out.println("Processing user: " + email + ", role: " + role);
+    private boolean hasRequiredGoogleRegistrationDetails(GoogleRegisterRequest request, UserRole role) {
+        if (!hasText(request.getPhone())) {
+            return false;
+        }
+        if (role == UserRole.TENANT) {
+            return true;
+        }
+        boolean hasCommonDetails = hasText(request.getBusinessName())
+                && hasText(request.getNidaNumber())
+                && hasText(request.getLocalAuthorityName())
+                && hasText(request.getLocalAuthorityPhone())
+                && hasText(request.getLocalAuthorityArea())
+                && hasText(request.getLocalAuthorityVillage());
+        return hasCommonDetails && (role != UserRole.DALALI || hasText(request.getLocationArea()));
+    }
 
-        User user = userRepository.findByEmail(email)
-                .orElseGet(() -> {
-                    User newUser = new User();
-                    newUser.setEmail(email);
-                    newUser.setName(name != null && !name.isEmpty() ? name : email.split("@")[0]);
-                    newUser.setRole(UserRole.valueOf(role.toUpperCase()));
-                    newUser.setCreatedAt(LocalDateTime.now());
-                    newUser.setEmailVerified(true);
-                    System.out.println("Created new user: " + email);
-                    return userRepository.save(newUser);
-                });
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
+    }
+
+    private GoogleIdToken verifyGoogleIdToken(String idTokenString)
+            throws IOException, GeneralSecurityException {
+        GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
+                GoogleNetHttpTransport.newTrustedTransport(),
+                JacksonFactory.getDefaultInstance()
+        )
+                .setAudience(Collections.singletonList(googleClientId))
+                .build();
+        return verifier.verify(idTokenString);
+    }
+
+    private ResponseEntity<?> processGoogleUser(String email, String name) {
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    Map.of("success", false, "message", "No Roomify account is registered for this Google email")
+            );
+        }
+        if ("SUSPENDED".equalsIgnoreCase(user.getStatus())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+                    Map.of("success", false, "message", "This account has been suspended")
+            );
+        }
+
+        if (name != null && !name.isBlank() && (user.getName() == null || user.getName().isBlank())) {
+            user.setName(name);
+        }
+        user.setEmailVerified(true);
 
         user.setLastLoginAt(LocalDateTime.now());
         user = userRepository.save(user);
@@ -324,7 +368,7 @@ public class AuthController {
             }
 
             // Verify password
-            if (!passwordEncoder.matches(password, user.getPassword())) {
+            if (user.getPassword() == null || !passwordEncoder.matches(password, user.getPassword())) {
                 response.put("success", false);
                 response.put("message", "Invalid password");
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);

@@ -260,12 +260,12 @@ fun ProfileScreen(
                         .offset(y = (-20).dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    SectionHeader("Account Details")
+                    SectionHeader(strings.accountDetails)
                     
                     ProfileOptionItem(
                         icon = Icons.Default.Edit,
-                        title = "Edit Profile Info",
-                        subtitle = "Name, Phone, Bio",
+                        title = strings.editProfileInfo,
+                        subtitle = strings.namePhoneBio,
                         color = PrimaryColor,
                         onClick = { showEditDialog = true }
                     )
@@ -284,18 +284,18 @@ fun ProfileScreen(
                         }
                     )
 
-                    SectionHeader("Security & Settings")
+                    SectionHeader(strings.securitySettings)
 
                     ProfileOptionItem(
                         icon = Icons.Default.Lock,
-                        title = "Change Password",
+                        title = strings.changePassword,
                         color = Color(0xFFF9A825),
                         onClick = { /* TODO */ }
                     )
 
                     ProfileOptionItem(
                         icon = Icons.AutoMirrored.Filled.HelpCenter,
-                        title = "Help & Support",
+                        title = strings.helpSupport,
                         color = Color(0xFF7E57C2),
                         onClick = { /* TODO */ }
                     )
@@ -409,6 +409,7 @@ private fun EditProfileDialog(
     onDismiss: () -> Unit,
     onSave: (User) -> Unit
 ) {
+    val strings = LocalRoomifyStrings.current
     var name by remember { mutableStateOf(user.name) }
     var phone by remember { mutableStateOf(user.phone ?: "") }
     var businessName by remember { mutableStateOf(user.businessName ?: "") }
@@ -427,12 +428,12 @@ private fun EditProfileDialog(
                 Modifier.padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text("Edit Profile", fontSize = 20.sp, fontWeight = FontWeight.Black, color = PrimaryColor)
+                Text(strings.editProfile, fontSize = 20.sp, fontWeight = FontWeight.Black, color = PrimaryColor)
                 
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Full Name") },
+                    label = { Text(strings.fullName) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp)
                 )
@@ -440,7 +441,7 @@ private fun EditProfileDialog(
                 OutlinedTextField(
                     value = phone,
                     onValueChange = { phone = it },
-                    label = { Text("Phone Number") },
+                    label = { Text(strings.phoneNumber) },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text("+255...") },
                     shape = RoundedCornerShape(12.dp)
@@ -467,7 +468,7 @@ private fun EditProfileDialog(
                         modifier = Modifier.weight(1f).height(50.dp),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("CANCEL")
+                        Text(strings.cancel.uppercase())
                     }
                     
                     Button(
@@ -487,7 +488,7 @@ private fun EditProfileDialog(
                         if (isSaving) {
                             CircularProgressIndicator(Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
                         } else {
-                            Text("SAVE CHANGES", fontWeight = FontWeight.Bold)
+                            Text(strings.saveChanges.uppercase(), fontWeight = FontWeight.Bold)
                         }
                     }
                 }

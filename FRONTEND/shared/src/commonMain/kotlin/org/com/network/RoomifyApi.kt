@@ -38,8 +38,7 @@ object RoomifyApi {
         return ApiClient.post("auth/google", request)  // ✅ Fixed
     }
 
-    suspend fun googleRegister(idToken: String, role: String): AuthResponse {
-        val request = GoogleRegisterRequest(idToken = idToken, role = role)
+    suspend fun googleRegister(request: GoogleRegisterRequest): AuthResponse {
         val response: AuthResponse = ApiClient.post("auth/google/register", request)  // ✅ Fixed
 
         response.token?.let { token ->
@@ -271,6 +270,26 @@ object RoomifyApi {
                                     append(HttpHeaders.ContentDisposition, "filename=\"furniture_$index.jpg\"")
                                 })
                             }
+                        }
+                    )
+                )
+            }
+            response.body()
+        } catch (e: Exception) {
+            ApiResponse(success = false, message = e.message ?: "Upload failed")
+        }
+    }
+
+    suspend fun uploadFurnitureVideo(furnitureId: Long, videoBytes: ByteArray): ApiResponse<String> {
+        return try {
+            val response = ApiClient.client.post("furniture/$furnitureId/video") {
+                setBody(
+                    MultiPartFormDataContent(
+                        formData {
+                            append("video", videoBytes, Headers.build {
+                                append(HttpHeaders.ContentType, "video/mp4")
+                                append(HttpHeaders.ContentDisposition, "filename=\"furniture_video.mp4\"")
+                            })
                         }
                     )
                 )

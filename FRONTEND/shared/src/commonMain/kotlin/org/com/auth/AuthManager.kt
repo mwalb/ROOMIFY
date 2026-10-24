@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.com.model.GoogleLoginRequest
+import org.com.model.GoogleRegisterRequest
 import org.com.model.LoginRequest
 import org.com.model.RegisterRequest
 import org.com.model.User
@@ -104,12 +105,12 @@ class AuthManager {
     // GOOGLE REGISTER
     // ============================================================
 
-    suspend fun googleRegister(idToken: String, role: String) {
+    suspend fun googleRegister(request: GoogleRegisterRequest) {
         _authState.value = AuthState.Loading
 
         try {
             println("AuthManager: Google register started")
-            val response = RoomifyApi.googleRegister(idToken, role)
+            val response = RoomifyApi.googleRegister(request)
             handleResponse(response)
 
         } catch (e: Exception) {
