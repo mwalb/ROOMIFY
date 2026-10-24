@@ -516,7 +516,14 @@ fun App() {
                 currentRoute = "admindashboard"
             }
             "postroom" -> {
-                currentRoute = "postroom"
+                withAuth("postroom") {
+                    currentRoute = "postroom"
+                }
+            }
+            "post_furniture", "post_shop" -> {
+                withAuth(route) {
+                    currentRoute = route
+                }
             }
             "profile" -> {
                 currentRoute = "profile"
