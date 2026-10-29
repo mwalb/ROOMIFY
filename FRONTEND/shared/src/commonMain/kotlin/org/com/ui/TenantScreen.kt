@@ -18,7 +18,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ListAlt
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -56,7 +58,7 @@ fun TenantScreen(
     recentlyViewed: List<Room> = emptyList(),
     savedRooms: List<Room> = emptyList(),
     isRefreshing: Boolean = false,
-    onExploreRooms: () -> Unit, 
+    onExploreRooms: () -> Unit,
     onViewProperty: (Room) -> Unit = {},
     onViewAll: () -> Unit = {},
     onLogout: () -> Unit = {},
@@ -64,88 +66,105 @@ fun TenantScreen(
     onNavigate: (String) -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
+    var isSidebarVisible by remember { mutableStateOf(true) }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8F9FA))
+            .background(Brush.verticalGradient(listOf(PrimaryColor, PrimaryLight))),
+        contentAlignment = Alignment.Center
     ) {
-        Column(
+        Card(
             modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState)
+                .fillMaxWidth(0.96f)
+                .fillMaxHeight(0.94f)
+                .padding(vertical = 8.dp),
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FA)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 16.dp)
         ) {
-            // HEADER (Blue Background)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        brush = Brush.verticalGradient(
-                            listOf(PrimaryColor, PrimaryLight)
-                        ),
-                        shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    modifier = Modifier
-                        .widthIn(max = 800.dp)
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp)
-                        .padding(top = 48.dp, bottom = 48.dp),
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
+            Row(modifier = Modifier.fillMaxSize()) {
+                // Animated Left Sidebar
+                AnimatedVisibility(
+                    visible = isSidebarVisible,
+                    enter = expandHorizontally() + fadeIn(),
+                    exit = shrinkHorizontally() + fadeOut()
                 ) {
-                    // Top row with Profile info (Hamburger removed)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .width(260.dp),
+                        color = PrimaryColor,
+                        shape = RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp)
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(20.dp),
+                            verticalArrangement = Arrangement.SpaceBetween
+                        ) {
                             Column {
-                                @Suppress("DEPRECATION")
-                                Text(
-                                    "${user.name} 👋", 
-                                    color = Color.White, 
-                                    fontSize = 24.sp, 
-                                    fontWeight = FontWeight.Black
-                                )
-                                @Suppress("DEPRECATION")
-                                Text(
-                                    "Find a place that feels like home.", 
-                                    color = Color.White.copy(alpha = 0.7f), 
-                                    fontSize = 14.sp
-                                )
-                            }
-                        }
-
-                            if (!user.profileImage.isNullOrBlank() && !user.profileImage!!.contains("profile/image")) {
-                                val fullUrl = ApiClient.resolveUrl(user.profileImage!!)
-                                
-                                Box(
-                                    modifier = Modifier
-                                        .size(52.dp)
-                                        .clip(CircleShape)
-                                        .border(2.dp, Color.White.copy(alpha = 0.5f), CircleShape)
-                                        .clickable { onNavigate("profile") }
-                                ) {
-                                    KamelImage(
-                                        resource = { asyncPainterResource(fullUrl) },
-                                        contentDescription = "Profile",
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier.fillMaxSize()
-                                    )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(42.dp)
+                                            .background(Color.White.copy(alpha = 0.15f), CircleShape),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(Icons.Default.Home, null, tint = Color.White, modifier = Modifier.size(22.dp))
+                                    }
+                                    Spacer(Modifier.width(12.dp))
+                                    Column {
+                                        Text("ROOMIFY", color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp)
+                                        Text("Customer Panel", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
                                 }
-                            } else {
-                                Surface(
-                                    modifier = Modifier.size(52.dp).clickable { onNavigate("profile") },
-                                    shape = CircleShape,
-                                    color = Color.White.copy(alpha = 0.2f),
-                                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.3f))
+
+                                Spacer(Modifier.height(32.dp))
+
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    TenantSidebarNavItem("Dashboard", Icons.Default.Dashboard, true) { }
+                                    TenantSidebarNavItem("Explore Map", Icons.Default.Map, false) { onExploreRooms() }
+                                    TenantSidebarNavItem("My Bookings", Icons.AutoMirrored.Filled.ListAlt, false) { onNavigate("bookings") }
+                                    TenantSidebarNavItem("Saved Places", Icons.Default.Favorite, false) { onNavigate("saved") }
+                                    TenantSidebarNavItem("Messages", Icons.Default.Email, false) { onNavigate("messages") }
+                                    TenantSidebarNavItem("Profile", Icons.Default.Person, false) { onNavigate("profile") }
+                                }
+                            }
+
+                            // Profile & Logout Footer
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onNavigate("profile") },
+                                color = Color.White.copy(alpha = 0.08f),
+                                shape = RoundedCornerShape(16.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        @Suppress("DEPRECATION")
-                                        Text(user.name.take(1).uppercase(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .clip(CircleShape)
+                                            .background(Color.White.copy(alpha = 0.2f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            user.name.take(1).uppercase(),
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp
+                                        )
+                                    }
+                                    Spacer(Modifier.width(10.dp))
+                                    Column(Modifier.weight(1f)) {
+                                        Text(user.name, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        Text("Logged In", color = SuccessColor, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                    IconButton(onClick = onLogout, modifier = Modifier.size(32.dp)) {
+                                        Icon(Icons.AutoMirrored.Filled.Logout, null, tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.size(16.dp))
                                     }
                                 }
                             }
@@ -153,221 +172,122 @@ fun TenantScreen(
                     }
                 }
 
-                // DASHBOARD CONTENT
-                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                // Main Content
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .background(Color(0xFFF8F9FA))
+                ) {
+                    // Top Bar with Menu Toggle & Search Button
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color.White)
+                            .padding(horizontal = 24.dp, vertical = 16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                IconButton(
+                                    onClick = { isSidebarVisible = !isSidebarVisible },
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .background(PrimaryColor.copy(alpha = 0.08f), CircleShape)
+                                ) {
+                                    Icon(Icons.Default.Menu, "Toggle Sidebar", tint = PrimaryColor, modifier = Modifier.size(18.dp))
+                                }
+                                Spacer(Modifier.width(14.dp))
+                                Column {
+                                    Text("Welcome back, ${user.name}! 👋", fontSize = 18.sp, fontWeight = FontWeight.Black, color = Color(0xFF0F172A))
+                                    Text("What place or room are you looking for today?", fontSize = 12.sp, color = Color.Gray)
+                                }
+                            }
+
+                            Button(
+                                onClick = onExploreRooms,
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(Icons.Default.Search, null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("Search Places", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                    // Body Content
                     Column(
                         modifier = Modifier
-                            .widthIn(max = 800.dp)
+                            .weight(1f)
                             .fillMaxWidth()
+                            .verticalScroll(scrollState)
                             .padding(24.dp),
-                        verticalArrangement = Arrangement.spacedBy(32.dp)
+                        verticalArrangement = Arrangement.spacedBy(28.dp)
                     ) {
-                        // QUICK ACTIONS
-                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                            @Suppress("DEPRECATION")
-                            Text("Quick Actions", fontWeight = FontWeight.Black, fontSize = 18.sp, color = Color(0xFF111111))
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                QuickActionItem(
-                                    title = "Explore Map", 
-                                    icon = Icons.Default.Map, 
-                                    color = Color(0xFF2196F3),
-                                    modifier = Modifier.weight(1f)
-                                ) { onExploreRooms() }
-                                
-                                QuickActionItem(
-                                    title = "Filter Rooms", 
-                                    icon = Icons.Default.Tune, 
-                                    color = Color(0xFF4CAF50),
-                                    modifier = Modifier.weight(1f)
-                                ) { onNavigate("discovery") }
-                            }
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                    QuickActionItem(
-                                        title = "Favourites", 
-                                        icon = Icons.Default.Favorite, 
-                                        color = Color(0xFFE91E63),
-                                        modifier = Modifier.weight(1f)
-                                    ) { onNavigate("saved") }
-                                
-                                QuickActionItem(
-                                    title = "My Bookings", 
-                                    icon = Icons.AutoMirrored.Filled.ListAlt, 
-                                    color = Color(0xFFFF9800),
-                                    modifier = Modifier.weight(1f)
-                                ) { onNavigate("bookings") }
-                            }
+                        // Quick Action Buttons
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                            QuickActionItem("Explore Map", Icons.Default.Map, Color(0xFF2196F3), Modifier.weight(1f), onExploreRooms)
+                            QuickActionItem("Filter Rooms", Icons.Default.Tune, Color(0xFF4CAF50), Modifier.weight(1f)) { onNavigate("discovery") }
+                            QuickActionItem("Saved Places", Icons.Default.Favorite, Color(0xFFE91E63), Modifier.weight(1f)) { onNavigate("saved") }
+                            QuickActionItem("My Bookings", Icons.AutoMirrored.Filled.ListAlt, Color(0xFFFF9800), Modifier.weight(1f)) { onNavigate("bookings") }
                         }
 
                         // RECOMMENDED FOR YOU
                         if (allRooms.isNotEmpty()) {
-                            DashboardSectionWithAction(
-                                title = "Recommended For You", 
-                                actionLabel = null,
-                                content = {
-                                    LazyRow(
-                                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                        contentPadding = PaddingValues(bottom = 8.dp)
-                                    ) {
-                                        items(allRooms.filter { it.status == "AVAILABLE" }.take(5)) { room ->
-                                            TenantPropertyCard(room) { onViewProperty(room) }
-                                        }
+                            DashboardSectionWithAction("Recommended For You", null) {
+                                LazyRow(
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                    contentPadding = PaddingValues(bottom = 8.dp)
+                                ) {
+                                    items(allRooms.filter { it.status == "AVAILABLE" }.take(6)) { room ->
+                                        TenantPropertyCard(room) { onViewProperty(room) }
                                     }
                                 }
-                            )
+                            }
                         }
 
                         // RECENTLY VIEWED
                         if (recentlyViewed.isNotEmpty()) {
-                            DashboardSectionWithAction(
-                                title = "Recently Viewed", 
-                                actionLabel = null,
-                                content = {
-                                    LazyRow(
-                                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                        contentPadding = PaddingValues(bottom = 8.dp)
-                                    ) {
-                                        items(recentlyViewed) { room ->
-                                            TenantPropertyCard(room) { onViewProperty(room) }
-                                        }
-                                    }
-                                }
-                            )
-                        }
-
-                        // FAVOURITES PREVIEW
-                        DashboardSectionWithAction(
-                            title = "Favourites", 
-                            actionLabel = "View All", 
-                            onActionClick = { onNavigate("saved") },
-                            content = {
-                                Surface(
-                                    modifier = Modifier.fillMaxWidth().clickable { onNavigate("saved") },
-                                    shape = RoundedCornerShape(20.dp),
-                                    color = Color(0xFFFFF1F0),
-                                    border = BorderStroke(1.dp, Color(0xFFFFCDD2).copy(alpha = 0.5f))
+                            DashboardSectionWithAction("Recently Viewed", null) {
+                                LazyRow(
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                    contentPadding = PaddingValues(bottom = 8.dp)
                                 ) {
-                                    Row(
-                                        modifier = Modifier.padding(20.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Box(
-                                            modifier = Modifier.size(44.dp).background(Color(0xFFF44336), CircleShape),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(Icons.Default.Favorite, null, tint = Color.White, modifier = Modifier.size(20.dp))
-                                        }
-                                        Spacer(Modifier.width(16.dp))
-                                        @Suppress("DEPRECATION")
-                                        Column(Modifier.weight(1f)) {
-                                            Text("My Favourites", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFFD32F2F))
-                                            Text(
-                                                if (savedRooms.isEmpty()) "Access your bookmarked properties" 
-                                                else "${savedRooms.size} favourite properties",
-                                                fontSize = 12.sp, 
-                                                color = Color.Gray
-                                            )
-                                        }
-                                        Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = Color(0xFFD32F2F), modifier = Modifier.size(20.dp))
+                                    items(recentlyViewed) { room ->
+                                        TenantPropertyCard(room) { onViewProperty(room) }
                                     }
                                 }
                             }
-                        )
+                        }
 
                         // MY BOOKINGS PREVIEW
                         if (bookings.isNotEmpty()) {
-                            DashboardSectionWithAction(
-                                title = "My Bookings", 
-                                actionLabel = "View All", 
-                                onActionClick = { onNavigate("bookings") },
-                                content = {
-                                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                        bookings.take(2).forEach { booking ->
-                                            val room = allRooms.find { it.id == booking.roomId }
-                                            BookingStatusCardCompactPreview(booking, room) {
-                                                room?.let { onViewProperty(it) }
-                                            }
+                            DashboardSectionWithAction("My Bookings", "View All", { onNavigate("bookings") }) {
+                                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    bookings.take(3).forEach { booking ->
+                                        val room = allRooms.find { it.id == booking.roomId }
+                                        BookingStatusCardCompactPreview(booking, room) {
+                                            room?.let { onViewProperty(it) }
                                         }
                                     }
                                 }
-                            )
+                            }
                         }
 
-                        // MESSAGES PREVIEW
-                        DashboardSectionWithAction(
-                            title = "Messages", 
-                            actionLabel = "View All", 
-                            onActionClick = { onNavigate("messages") },
-                            content = {
-                                Surface(
-                                    modifier = Modifier.fillMaxWidth().clickable { onNavigate("messages") },
-                                    shape = RoundedCornerShape(20.dp),
-                                    color = Color(0xFFE3F2FD),
-                                    border = BorderStroke(1.dp, Color(0xFFBBDEFB).copy(alpha = 0.5f))
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(20.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Box(
-                                            modifier = Modifier.size(44.dp).background(Color(0xFF2196F3), CircleShape),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(Icons.Default.Email, null, tint = Color.White, modifier = Modifier.size(20.dp))
-                                        }
-                                        Spacer(Modifier.width(16.dp))
-                                        @Suppress("DEPRECATION")
-                                        Column(Modifier.weight(1f)) {
-                                            Text("Inbox", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF1976D2))
-                                            Text("Chat with owners and agents", fontSize = 12.sp, color = Color.Gray)
-                                        }
-                                        Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = Color(0xFF1976D2), modifier = Modifier.size(20.dp))
-                                    }
-                                }
-                            }
-                        )
-
-                        // NEARBY PROPERTIES MAP SHORTCUT
-                        DashboardSectionWithAction(
-                            title = "Nearby Properties", 
-                            actionLabel = null,
-                            content = {
-                                Surface(
-                                    modifier = Modifier.fillMaxWidth().clickable { onExploreRooms() },
-                                    shape = RoundedCornerShape(24.dp),
-                                    color = Color.Black
-                                ) {
-                                    Box(modifier = Modifier.height(180.dp)) {
-                                        Box(modifier = Modifier.fillMaxSize().background(
-                                            brush = Brush.linearGradient(listOf(Color(0xFF1E3C72), Color(0xFF2A5298)))
-                                        ).graphicsLayer { alpha = 0.6f })
-                                        
-                                        Column(
-                                            modifier = Modifier.fillMaxSize().padding(24.dp),
-                                            verticalArrangement = Arrangement.Center,
-                                            horizontalAlignment = Alignment.CenterHorizontally
-                                        ) {
-                                            Icon(Icons.Default.LocationOn, null, tint = Color.White, modifier = Modifier.size(36.dp))
-                                            Spacer(Modifier.height(12.dp))
-                                            @Suppress("DEPRECATION")
-                                            Text("Explore on Map", color = Color.White, fontWeight = FontWeight.Black, fontSize = 18.sp)
-                                            @Suppress("DEPRECATION")
-                                            Text("See available properties around you", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
-                                        }
-                                    }
-                                }
-                            }
-                        )
-
-                        // VIEW ALL Action
+                        // ALL PROPERTIES BUTTON
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 8.dp)
                                 .clickable { onViewAll() },
                             shape = RoundedCornerShape(20.dp),
                             color = PrimaryColor
                         ) {
-                            @Suppress("DEPRECATION")
                             Column(
                                 modifier = Modifier.padding(24.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
@@ -376,25 +296,49 @@ fun TenantScreen(
                                 Text("Browse the complete property catalog", color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
                             }
                         }
-
-                        Spacer(Modifier.height(40.dp))
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun TenantSidebarNavItem(title: String, icon: ImageVector, active: Boolean, onClick: () -> Unit) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        color = if (active) Color.White.copy(alpha = 0.18f) else Color.Transparent,
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(icon, null, tint = if (active) Color.White else Color.White.copy(alpha = 0.7f), modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(12.dp))
+            Text(
+                title,
+                color = if (active) Color.White else Color.White.copy(alpha = 0.7f),
+                fontSize = 13.sp,
+                fontWeight = if (active) FontWeight.Black else FontWeight.Bold
+            )
+        }
+    }
+}
 
 @Composable
 private fun QuickActionItem(title: String, icon: ImageVector, color: Color, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Surface(
-        modifier = modifier.height(100.dp).clickable { onClick() },
+        modifier = modifier.height(96.dp).clickable { onClick() },
         shape = RoundedCornerShape(20.dp),
         color = Color.White,
-        border = BorderStroke(1.dp, Color(0xFFEEEEEE)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         shadowElevation = 2.dp
     ) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(12.dp),
+            modifier = Modifier.fillMaxSize().padding(14.dp),
             horizontalAlignment = Alignment.Start,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
@@ -403,8 +347,7 @@ private fun QuickActionItem(title: String, icon: ImageVector, color: Color, modi
                     Icon(icon, null, tint = color, modifier = Modifier.size(20.dp))
                 }
             }
-            @Suppress("DEPRECATION")
-            Text(title, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF333333))
+            Text(title, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
         }
     }
 }
@@ -417,7 +360,7 @@ private fun TenantPropertyCard(room: Room, onClick: () -> Unit) {
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        border = BorderStroke(1.dp, Color(0xFFF0F0F0))
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column {
             Box {
@@ -437,38 +380,21 @@ private fun TenantPropertyCard(room: Room, onClick: () -> Unit) {
                         }
                     }
                 )
-                
-                if (room.propertyId != null) {
-                    Surface(
-                        modifier = Modifier.align(Alignment.TopStart).padding(8.dp),
-                        color = PrimaryColor,
-                        shape = CircleShape
-                    ) {
-                        Icon(
-                            Icons.Default.CorporateFare,
-                            null,
-                            tint = Color.White,
-                            modifier = Modifier.padding(4.dp).size(14.dp)
-                        )
-                    }
-                }
 
                 Surface(
                     modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
-                    color = Color.Black.copy(alpha = 0.6f),
+                    color = Color.Black.copy(alpha = 0.65f),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    @Suppress("DEPRECATION")
                     Text(
-                        room.propertyType ?: "Room", 
+                        room.propertyType ?: "Room",
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        color = Color.White, 
-                        fontSize = 10.sp, 
+                        color = Color.White,
+                        fontSize = 10.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
-            @Suppress("DEPRECATION")
             Column(Modifier.padding(12.dp)) {
                 Text(room.title ?: "Property", fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
@@ -491,11 +417,9 @@ private fun DashboardSectionWithAction(title: String, actionLabel: String?, onAc
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            @Suppress("DEPRECATION")
-            Text(title, fontSize = 18.sp, fontWeight = FontWeight.Black, color = Color(0xFF111111))
+            Text(title, fontSize = 18.sp, fontWeight = FontWeight.Black, color = Color(0xFF0F172A))
             if (actionLabel != null) {
                 TextButton(onClick = onActionClick) {
-                    @Suppress("DEPRECATION")
                     Text(actionLabel, fontWeight = FontWeight.Bold, color = PrimaryColor, fontSize = 14.sp)
                 }
             }
@@ -509,11 +433,12 @@ private fun BookingStatusCardCompactPreview(booking: Booking, room: Room?, onCli
     Surface(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         color = Color.White,
-        shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.dp, Color(0xFFEEEEEE))
+        shape = RoundedCornerShape(18.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        shadowElevation = 2.dp
     ) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(50.dp).clip(RoundedCornerShape(10.dp))) {
+            Box(Modifier.size(52.dp).clip(RoundedCornerShape(12.dp))) {
                 KamelImage(
                     resource = { asyncPainterResource(room?.firstImageUrl ?: "") },
                     contentDescription = null,
@@ -531,19 +456,17 @@ private fun BookingStatusCardCompactPreview(booking: Booking, room: Room?, onCli
                     }
                 )
             }
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                @Suppress("DEPRECATION")
                 Text(booking.roomTitle ?: "Room", fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                 val statusColor = when(booking.status) {
                     "ACCEPTED" -> SuccessColor
                     "PENDING" -> Color(0xFFF9A825)
                     else -> Color.Red
                 }
-                @Suppress("DEPRECATION")
                 Text(booking.status, fontSize = 11.sp, color = statusColor, fontWeight = FontWeight.Bold)
             }
-            Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = Color.LightGray, modifier = Modifier.size(16.dp))
+            Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = Color.LightGray, modifier = Modifier.size(18.dp))
         }
     }
 }

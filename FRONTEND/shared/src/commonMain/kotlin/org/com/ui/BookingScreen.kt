@@ -54,7 +54,7 @@ private enum class BookingStep {
 fun BookingScreen(
     room: Room,
     onBack: () -> Unit,
-    onConfirmBooking: suspend (Booking) -> String?
+    onConfirmBooking: suspend (Booking, String, String) -> String?
 ) {
     val scope = rememberCoroutineScope()
     val today = Instant.fromEpochMilliseconds(org.com.currentTimeMillis()).toLocalDateTime(TimeZone.currentSystemDefault()).date
@@ -66,7 +66,7 @@ fun BookingScreen(
     var guests by remember { mutableStateOf(1) }
     var specialRequests by remember { mutableStateOf("") }
     
-    var selectedPaymentMethod by remember { mutableStateOf("M-Pesa") }
+    var selectedPaymentMethod by remember { mutableStateOf("Pay in Hand (Cash)") }
     var paymentPhoneNumber by remember { mutableStateOf("") }
 
     var isSubmitting by remember { mutableStateOf(false) }
@@ -302,6 +302,10 @@ fun BookingScreen(
 
                     BookingStep.PAYMENT -> {
                         // Payment Information Card
+                        val rentPrice = room.price ?: 0.0
+                        val dalaliFee = room.effectiveFacilitationFee
+                        val totalPayment = rentPrice + dalaliFee
+
                         Surface(
                             color = PrimaryColor.copy(alpha = 0.05f),
                             shape = RoundedCornerShape(16.dp),
@@ -316,14 +320,48 @@ fun BookingScreen(
                                 Text("Check-in: $startDate  •  Check-out: $endDate", fontSize = 12.sp, color = Color.DarkGray)
                                 Text("Guests: $guests", fontSize = 12.sp, color = Color.DarkGray)
                                 HorizontalDivider(Modifier.padding(vertical = 10.dp))
+                                
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Rent (100% to Landlord):", fontSize = 13.sp, color = Color.DarkGray)
+                                    Text(room.formattedPrice, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                }
+                                
+                                if (!room.isDirectByOwner) {
+                                    Spacer(Modifier.height(4.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text("Dalali Facilitation Fee:", fontSize = 13.sp, color = Color.DarkGray)
+                                        Text(room.formattedFacilitationFee, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = PrimaryLight)
+                                    }
+                                }
+                                
+                                Spacer(Modifier.height(6.dp))
+                                HorizontalDivider(Modifier.padding(vertical = 4.dp))
+
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("Amount to Pay:", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                    Text(room.formattedPrice, fontWeight = FontWeight.Black, fontSize = 18.sp, color = PrimaryColor)
+                                    Text("Total Due:", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                    Text("TZS ${totalPayment.toLong()}", fontWeight = FontWeight.Black, fontSize = 18.sp, color = PrimaryColor)
                                 }
+
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    text = if (room.isDirectByOwner)
+                                        "✨ Direct Owner Listing: 0% Broker Fee. Landlord gets 100% rent."
+                                    else
+                                        "🛡️ Decoupled Fee Model: Landlord receives 100% rent. Dalali facilitation fee is paid separately for listing verification.",
+                                    fontSize = 11.sp,
+                                    color = if (room.isDirectByOwner) SuccessColor else PrimaryLight,
+                                    lineHeight = 15.sp
+                                )
                             }
                         }
 
@@ -333,18 +371,25 @@ fun BookingScreen(
                         Text("Select Payment Method", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.Gray)
                         Spacer(Modifier.height(8.dp))
                         
-                        val paymentMethods = listOf("M-Pesa", "Tigo Pesa", "Airtel Money", "Bank Card", "Pay on Check-In")
+                        val paymentMethods = listOf(
+                            "Pay in Hand (Cash)",
+                            "M-Pesa",
+                            "Tigo Pesa",
+                            "Airtel Money",
+                            "Bank Card"
+                        )
                         paymentMethods.forEach { method ->
+                            val isSelected = selectedPaymentMethod == method
                             Surface(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(vertical = 4.dp)
                                     .clickable { selectedPaymentMethod = method },
                                 shape = RoundedCornerShape(12.dp),
-                                color = if (selectedPaymentMethod == method) PrimaryColor.copy(alpha = 0.1f) else Color.White,
+                                color = if (isSelected) PrimaryColor.copy(alpha = 0.08f) else Color.White,
                                 border = BorderStroke(
                                     1.dp,
-                                    if (selectedPaymentMethod == method) PrimaryColor else Color(0xFFE0E0E0)
+                                    if (isSelected) PrimaryColor else Color(0xFFE0E0E0)
                                 )
                             ) {
                                 Row(
@@ -352,17 +397,41 @@ fun BookingScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     RadioButton(
-                                        selected = selectedPaymentMethod == method,
+                                        selected = isSelected,
                                         onClick = { selectedPaymentMethod = method },
                                         colors = RadioButtonDefaults.colors(selectedColor = PrimaryColor)
                                     )
                                     Spacer(Modifier.width(8.dp))
-                                    Text(method, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                    if (method.contains("Hand", ignoreCase = true)) {
+                                        Icon(Icons.Default.Payments, null, tint = SuccessColor, modifier = Modifier.size(20.dp))
+                                        Spacer(Modifier.width(8.dp))
+                                    }
+                                    Text(
+                                        method,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                                        fontSize = 14.sp
+                                    )
                                 }
                             }
                         }
 
-                        if (selectedPaymentMethod in listOf("M-Pesa", "Tigo Pesa", "Airtel Money")) {
+                        if (selectedPaymentMethod.contains("Hand", ignoreCase = true)) {
+                            Surface(
+                                color = Color(0xFFE8F5E9),
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(1.dp, Color(0xFFA5D6A7)),
+                                modifier = Modifier.fillMaxWidth().padding(top = 10.dp)
+                            ) {
+                                Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Payments, null, tint = Color(0xFF2E7D32), modifier = Modifier.size(24.dp))
+                                    Spacer(Modifier.width(10.dp))
+                                    Column {
+                                        Text("Lipa Mkononi (Cash on Arrival)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF1B5E20))
+                                        Text("Huna haja ya kulipa sasa. Utalipa fedha taslimu moja kwa moja kwa mwenye nyumba wakati wa kufika kukagua na kukabidhiwa chumba.", fontSize = 11.sp, color = Color(0xFF2E7D32))
+                                    }
+                                }
+                            }
+                        } else if (selectedPaymentMethod in listOf("M-Pesa", "Tigo Pesa", "Airtel Money")) {
                             Spacer(Modifier.height(16.dp))
                             BookingTextField(
                                 value = paymentPhoneNumber,
@@ -388,9 +457,13 @@ fun BookingScreen(
                                         endDate = endDate.toString(),
                                         numberOfGuests = guests,
                                         specialRequests = specialRequests,
-                                        totalPrice = room.price
+                                        rentAmount = room.price ?: 0.0,
+                                        facilitationFee = room.effectiveFacilitationFee,
+                                        listingType = if (room.isDirectByOwner) "DIRECT_BY_OWNER" else "DALALI_VERIFIED",
+                                        dalaliId = room.dalaliId,
+                                        totalPrice = (room.price ?: 0.0) + room.effectiveFacilitationFee
                                     )
-                                    val error = onConfirmBooking(booking)
+                                    val error = onConfirmBooking(booking, selectedPaymentMethod, paymentPhoneNumber)
                                     if (error == null) {
                                         currentStep = BookingStep.CONFIRMATION
                                     } else {
@@ -407,7 +480,13 @@ fun BookingScreen(
                             if (isSubmitting) {
                                 CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                             } else {
-                                Text("CONFIRM & PROCESS PAYMENT (${room.formattedPrice})", fontWeight = FontWeight.Black, fontSize = 13.sp)
+                                val totalDisplay = "TZS ${((room.price ?: 0.0) + room.effectiveFacilitationFee).toLong()}"
+                                val buttonText = if (selectedPaymentMethod.contains("Hand", ignoreCase = true)) {
+                                    "CONFIRM & PAY IN HAND ($totalDisplay)"
+                                } else {
+                                    "CONFIRM & PROCESS PAYMENT ($totalDisplay)"
+                                }
+                                Text(buttonText, fontWeight = FontWeight.Black, fontSize = 13.sp)
                             }
                         }
 
@@ -422,7 +501,16 @@ fun BookingScreen(
                             Spacer(Modifier.height(16.dp))
                             Text("Booking & Payment Submitted!", fontSize = 20.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
                             Spacer(Modifier.height(8.dp))
-                            Text("Your booking request is pending owner confirmation. Payment status: PENDING_PAYMENT / AWAITING_APPROVAL", color = Color.Gray, fontSize = 13.sp, textAlign = TextAlign.Center)
+                            val isHandPay = selectedPaymentMethod.contains("Hand", ignoreCase = true)
+                            Text(
+                                text = if (isHandPay)
+                                    "Your room reservation is confirmed! Payment status: PENDING DIRECT CASH PAYMENT TO OWNER UPON ARRIVAL."
+                                else
+                                    "Your booking request is pending owner confirmation. Payment status: COMPLETED / AWAITING CHECK-IN.",
+                                color = Color.Gray,
+                                fontSize = 13.sp,
+                                textAlign = TextAlign.Center
+                            )
                             Spacer(Modifier.height(24.dp))
                             
                             Surface(
@@ -435,8 +523,22 @@ fun BookingScreen(
                                     Spacer(Modifier.height(6.dp))
                                     Text("• Property: ${room.title}", fontSize = 12.sp)
                                     Text("• Dates: $startDate to $endDate", fontSize = 12.sp)
-                                    Text("• Payment Method: $selectedPaymentMethod", fontSize = 12.sp)
-                                    Text("• Amount: ${room.formattedPrice}", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    Text("• Payment Method: $selectedPaymentMethod", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                    Text("• Landlord Rent: ${room.formattedPrice} (100% Direct)", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    if (!room.isDirectByOwner) {
+                                        Text("• Dalali Facilitation Fee: ${room.formattedFacilitationFee} (Verified)", fontSize = 12.sp, color = PrimaryLight)
+                                    }
+                                    Text("• Total Amount: TZS ${((room.price ?: 0.0) + room.effectiveFacilitationFee).toLong()}", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = PrimaryColor)
+                                    if (isHandPay) {
+                                        Spacer(Modifier.height(6.dp))
+                                        Text("• Note: Pay the rent directly to the property owner upon arrival. No broker cuts into the rent.", fontSize = 12.sp, color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                                    if (isHandPay) {
+                                        Spacer(Modifier.height(6.dp))
+                                        Text("• Note: Please prepare the cash upon check-in with the owner.", fontSize = 12.sp, color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold)
+                                    }
                                 }
                             }
 

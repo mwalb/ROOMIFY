@@ -92,7 +92,13 @@ public class Room {
     @Column(name = "unit_number")
     private String unitNumber;
 
-    // ==================== DALALI (AGENT) FIELDS ====================
+    // ==================== DALALI (AGENT) & LISTING TYPE FIELDS ====================
+
+    @Column(name = "listing_type")
+    private String listingType = "DIRECT_BY_OWNER"; // "DIRECT_BY_OWNER" or "DALALI_VERIFIED"
+
+    @Column(name = "facilitation_fee")
+    private Double facilitationFee = 0.0;
 
     @Column(name = "dalali_id")
     private Long dalaliId;

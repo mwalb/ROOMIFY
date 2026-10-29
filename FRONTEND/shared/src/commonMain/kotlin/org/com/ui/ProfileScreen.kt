@@ -67,6 +67,9 @@ fun ProfileScreen(
     val context = LocalPlatformContext.current
 
     var showEditDialog by remember { mutableStateOf(false) }
+    var showChangePasswordDialog by remember { mutableStateOf(false) }
+    var showHelpDialog by remember { mutableStateOf(false) }
+    var showDeleteAccountDialog by remember { mutableStateOf(false) }
     var isUploading by remember { mutableStateOf(false) }
     
     // Entry animations
@@ -290,14 +293,22 @@ fun ProfileScreen(
                         icon = Icons.Default.Lock,
                         title = strings.changePassword,
                         color = Color(0xFFF9A825),
-                        onClick = { /* TODO */ }
+                        onClick = { showChangePasswordDialog = true }
                     )
 
                     ProfileOptionItem(
                         icon = Icons.AutoMirrored.Filled.HelpCenter,
                         title = strings.helpSupport,
                         color = Color(0xFF7E57C2),
-                        onClick = { /* TODO */ }
+                        onClick = { showHelpDialog = true }
+                    )
+
+                    ProfileOptionItem(
+                        icon = Icons.Default.DeleteForever,
+                        title = "Delete Account",
+                        subtitle = "Permanently deactivate your account & data",
+                        color = Color(0xFFD32F2F),
+                        onClick = { showDeleteAccountDialog = true }
                     )
 
                     Spacer(Modifier.height(16.dp))
@@ -337,6 +348,203 @@ fun ProfileScreen(
             onSave = { updatedUser ->
                 onUpdateUser(updatedUser)
                 showEditDialog = false
+            }
+        )
+    }
+
+    if (showChangePasswordDialog) {
+        var oldPassword by remember { mutableStateOf("") }
+        var newPassword by remember { mutableStateOf("") }
+        var confirmPassword by remember { mutableStateOf("") }
+        var isSubmitting by remember { mutableStateOf(false) }
+        var errorMsg by remember { mutableStateOf<String?>(null) }
+        var successMsg by remember { mutableStateOf<String?>(null) }
+
+        AlertDialog(
+            onDismissRequest = { if (!isSubmitting) showChangePasswordDialog = false },
+            title = { Text(strings.changePassword, fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    if (successMsg != null) {
+                        Text(successMsg!!, color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold)
+                    } else {
+                        OutlinedTextField(
+                            value = oldPassword,
+                            onValueChange = { oldPassword = it },
+                            label = { Text("Current Password") },
+                            visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = newPassword,
+                            onValueChange = { newPassword = it },
+                            label = { Text("New Password (min 6 chars)") },
+                            visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = confirmPassword,
+                            onValueChange = { confirmPassword = it },
+                            label = { Text("Confirm New Password") },
+                            visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        if (errorMsg != null) {
+                            Text(errorMsg!!, color = Color.Red, fontSize = 12.sp)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                if (successMsg != null) {
+                    Button(onClick = { showChangePasswordDialog = false }) {
+                        Text("OK")
+                    }
+                } else {
+                    Button(
+                        onClick = {
+                            if (newPassword.length < 6) {
+                                errorMsg = "Password must be at least 6 characters"
+                                return@Button
+                            }
+                            if (newPassword != confirmPassword) {
+                                errorMsg = "New passwords do not match"
+                                return@Button
+                            }
+                            scope.launch {
+                                isSubmitting = true
+                                errorMsg = null
+                                try {
+                                    val res = RoomifyApi.changePassword(oldPassword, newPassword)
+                                    if (res.success) {
+                                        successMsg = "Password changed successfully!"
+                                    } else {
+                                        errorMsg = res.message ?: "Failed to change password"
+                                    }
+                                } catch (e: Exception) {
+                                    errorMsg = e.message ?: "Error changing password"
+                                } finally {
+                                    isSubmitting = false
+                                }
+                            }
+                        },
+                        enabled = !isSubmitting && oldPassword.isNotBlank() && newPassword.isNotBlank()
+                    ) {
+                        if (isSubmitting) {
+                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        } else {
+                            Text("SAVE")
+                        }
+                    }
+                }
+            },
+            dismissButton = {
+                if (successMsg == null) {
+                    TextButton(onClick = { showChangePasswordDialog = false }) {
+                        Text("CANCEL")
+                    }
+                }
+            }
+        )
+    }
+
+    if (showHelpDialog) {
+        val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+        AlertDialog(
+            onDismissRequest = { showHelpDialog = false },
+            title = { Text(strings.helpSupport, fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Text("Our customer support team is here to assist you with room listings, bookings, and inquiries.", fontSize = 13.sp, color = Color.DarkGray)
+                    
+                    Surface(
+                        color = Color(0xFFF5F5F5),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Phone, null, tint = PrimaryColor, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("+255 754 000 111 / +255 682 000 222", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Email, null, tint = PrimaryColor, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("support@roomify.co.tz", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Schedule, null, tint = PrimaryColor, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("Mon - Sat: 8:00 AM - 8:00 PM EAT", fontSize = 12.sp, color = Color.Gray)
+                            }
+                        }
+                    }
+
+                    Button(
+                        onClick = { uriHandler.openUri("tel:+255754000111") },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(Icons.Default.Call, null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Call Support Now", fontWeight = FontWeight.Bold)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showHelpDialog = false }) {
+                    Text("CLOSE")
+                }
+            }
+        )
+    }
+
+    if (showDeleteAccountDialog) {
+        var isDeleting by remember { mutableStateOf(false) }
+        AlertDialog(
+            onDismissRequest = { if (!isDeleting) showDeleteAccountDialog = false },
+            title = { Text("Delete Account?", color = Color.Red, fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    "Are you sure you want to permanently delete your Roomify account? All your personal information, room listings, favorites, and history will be deactivated. This action cannot be undone.",
+                    fontSize = 13.sp
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        scope.launch {
+                            isDeleting = true
+                            try {
+                                RoomifyApi.deleteAccount()
+                                showDeleteAccountDialog = false
+                                onLogout()
+                            } catch (e: Exception) {
+                                println("Delete account error: ${e.message}")
+                            } finally {
+                                isDeleting = false
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                    enabled = !isDeleting
+                ) {
+                    if (isDeleting) {
+                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                    } else {
+                        Text("DELETE PERMANENTLY", fontWeight = FontWeight.Bold)
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteAccountDialog = false }, enabled = !isDeleting) {
+                    Text("CANCEL")
+                }
             }
         )
     }

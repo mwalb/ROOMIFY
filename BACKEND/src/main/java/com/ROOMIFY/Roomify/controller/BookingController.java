@@ -94,13 +94,26 @@ public class BookingController {
             LocalDateTime startDate = startLocalDate.atStartOfDay();
             LocalDateTime endDate = endLocalDate.atStartOfDay();
 
+            // Decoupled Fee Calculation:
+            // Rent belongs 100% to the Owner (room.getPrice()).
+            // If Dalali is attached, a separate standalone facilitation fee is added, NEVER deducted from rent!
+            boolean isDalaliListing = room.getDalaliId() != null && room.getDalaliId() > 0;
+            String listingType = isDalaliListing ? "DALALI_VERIFIED" : "DIRECT_BY_OWNER";
+            double rentAmount = room.getPrice();
+            double facilitationFee = isDalaliListing ? (room.getFacilitationFee() != null && room.getFacilitationFee() > 0 ? room.getFacilitationFee() : 10000.0) : 0.0;
+            double calculatedTotal = rentAmount + facilitationFee;
+
             Booking booking = new Booking();
             booking.setRoom(room);
             booking.setUser(currentUser);
             booking.setStatus(bookingRequest.getStatus() != null ? bookingRequest.getStatus() : "PENDING");
             booking.setCreatedAt(LocalDateTime.now());
             booking.setUpdatedAt(LocalDateTime.now());
-            booking.setTotalPrice(bookingRequest.getTotalPrice() != null ? bookingRequest.getTotalPrice() : room.getPrice());
+            booking.setRentAmount(rentAmount);
+            booking.setFacilitationFee(facilitationFee);
+            booking.setListingType(listingType);
+            booking.setDalaliId(room.getDalaliId());
+            booking.setTotalPrice(calculatedTotal);
             booking.setStartDate(startDate);
             booking.setEndDate(endDate);
             booking.setNumberOfGuests(bookingRequest.getNumberOfGuests());
@@ -382,6 +395,10 @@ public class BookingController {
         dto.setId(booking.getId());
         dto.setStatus(booking.getStatus());
         dto.setTotalPrice(booking.getTotalPrice());
+        dto.setRentAmount(booking.getRentAmount() != null ? booking.getRentAmount() : (booking.getRoom() != null ? booking.getRoom().getPrice() : booking.getTotalPrice()));
+        dto.setFacilitationFee(booking.getFacilitationFee() != null ? booking.getFacilitationFee() : 0.0);
+        dto.setListingType(booking.getListingType() != null ? booking.getListingType() : "DIRECT_BY_OWNER");
+        dto.setDalaliId(booking.getDalaliId());
         dto.setStartDate(booking.getStartDate());
         dto.setEndDate(booking.getEndDate());
         dto.setCreatedAt(booking.getCreatedAt());

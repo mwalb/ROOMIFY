@@ -31,6 +31,8 @@ data class Room(
     val dalaliId: Long? = null,
     val dalaliName: String? = null,
     val commission: Double? = null,
+    val listingType: String = "DIRECT_BY_OWNER",
+    val facilitationFee: Double = 0.0,
     val featured: Boolean = false,
     val promoted: Boolean = false,
     val hasVideo: Boolean = false,
@@ -44,6 +46,22 @@ data class Room(
     val rejectionReason: String? = null,
     val neighbourhoodPlaces: List<String> = emptyList()
 ) {
+    val isDirectByOwner: Boolean
+        get() = dalaliId == null || dalaliId <= 0L || listingType.equals("DIRECT_BY_OWNER", ignoreCase = true)
+
+    val effectiveFacilitationFee: Double
+        get() = if (isDirectByOwner) 0.0 else (if (facilitationFee > 0.0) facilitationFee else 10000.0)
+
+    val formattedFacilitationFee: String
+        get() = if (effectiveFacilitationFee > 0) {
+            val formatted = effectiveFacilitationFee.toLong().toString()
+                .reversed()
+                .chunked(3)
+                .joinToString(",")
+                .reversed()
+            "$formatted TZS"
+        } else "FREE (Direct from Landlord)"
+
     val formattedPrice: String
         get() = if (price > 0) {
             val formatted = price.toLong().toString()

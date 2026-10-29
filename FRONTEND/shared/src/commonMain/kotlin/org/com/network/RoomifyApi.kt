@@ -545,4 +545,174 @@ object RoomifyApi {
             ApiResponse(success = false, message = e.message ?: "Failed to delete administrator")
         }
     }
+
+    // ============================================================
+    // ANALYTICS
+    // ============================================================
+
+    suspend fun getAnalyticsPriceRanges(): ApiResponse<List<PriceRangeAnalytics>> {
+        return try {
+            ApiClient.get("analytics/price-ranges")
+        } catch (e: Exception) {
+            ApiResponse.failure(e.message ?: "Failed to fetch price ranges")
+        }
+    }
+
+    suspend fun getAnalyticsMostBookedAreas(): ApiResponse<List<AreaBookingAnalytics>> {
+        return try {
+            ApiClient.get("analytics/most-booked-areas")
+        } catch (e: Exception) {
+            ApiResponse.failure(e.message ?: "Failed to fetch booked areas")
+        }
+    }
+
+    suspend fun getAnalyticsMonthlyTrends(): ApiResponse<List<MonthlyTrendAnalytics>> {
+        return try {
+            ApiClient.get("analytics/monthly-trends")
+        } catch (e: Exception) {
+            ApiResponse.failure(e.message ?: "Failed to fetch monthly trends")
+        }
+    }
+
+    suspend fun getAnalyticsTopRooms(): ApiResponse<List<TopRoomAnalytics>> {
+        return try {
+            ApiClient.get("analytics/top-rooms")
+        } catch (e: Exception) {
+            ApiResponse.failure(e.message ?: "Failed to fetch top rooms")
+        }
+    }
+
+    // ============================================================
+    // REVIEWS
+    // ============================================================
+
+    suspend fun getRoomReviews(roomId: Long): ApiResponse<List<Review>> {
+        return try {
+            ApiClient.get("reviews/room/$roomId")
+        } catch (e: Exception) {
+            ApiResponse.failure(e.message ?: "Failed to fetch reviews")
+        }
+    }
+
+    suspend fun createReview(review: Review): ApiResponse<Review> {
+        return try {
+            ApiClient.post("reviews", review)
+        } catch (e: Exception) {
+            ApiResponse.failure(e.message ?: "Failed to submit review")
+        }
+    }
+
+    // ============================================================
+    // PAYMENTS & FINANCES
+    // ============================================================
+
+    suspend fun processPayment(bookingId: Long, phone: String, amount: Double, provider: String = "M-PESA", userId: Long? = null): ApiResponse<Payment> {
+        return try {
+            val payload = mutableMapOf<String, Any>(
+                "bookingId" to bookingId,
+                "phone" to phone,
+                "amount" to amount,
+                "provider" to provider
+            )
+            if (userId != null) {
+                payload["userId"] = userId
+            }
+            ApiClient.post("payments/checkout", payload)
+        } catch (e: Exception) {
+            ApiResponse.failure(e.message ?: "Payment failed")
+        }
+    }
+
+    suspend fun getOwnerFinances(ownerId: Long): ApiResponse<FinancesSummary> {
+        return try {
+            ApiClient.get("payments/finances/$ownerId")
+        } catch (e: Exception) {
+            ApiResponse.failure(e.message ?: "Failed to fetch finances")
+        }
+    }
+
+    suspend fun getUserPayments(userId: Long): ApiResponse<List<Payment>> {
+        return try {
+            ApiClient.get("payments/user/$userId")
+        } catch (e: Exception) {
+            ApiResponse.failure(e.message ?: "Failed to fetch payments")
+        }
+    }
+
+    suspend fun confirmCashPayment(paymentId: Long): ApiResponse<Payment> {
+        return try {
+            ApiClient.put("payments/$paymentId/confirm-cash", Unit)
+        } catch (e: Exception) {
+            ApiResponse.failure(e.message ?: "Failed to confirm cash payment")
+        }
+    }
+
+    // ============================================================
+    // USER SECURITY & PROFILE
+    // ============================================================
+
+    suspend fun changePassword(oldPassword: String, newPassword: String): ApiResponse<Unit> {
+        return try {
+            val payload = mapOf("oldPassword" to oldPassword, "newPassword" to newPassword)
+            ApiClient.post("users/change-password", payload)
+        } catch (e: Exception) {
+            ApiResponse.failure(e.message ?: "Failed to change password")
+        }
+    }
+
+    suspend fun deleteAccount(): ApiResponse<Unit> {
+        return try {
+            ApiClient.post("users/delete-account", emptyMap<String, String>())
+        } catch (e: Exception) {
+            ApiResponse.failure(e.message ?: "Failed to delete account")
+        }
+    }
+
+    // ============================================================
+    // IN-APP NOTIFICATIONS
+    // ============================================================
+
+    suspend fun getInAppNotifications(userId: Long): ApiResponse<List<InAppNotification>> {
+        return try {
+            ApiClient.get("notifications/user/$userId")
+        } catch (e: Exception) {
+            ApiResponse.failure(e.message ?: "Failed to fetch notifications")
+        }
+    }
+
+    suspend fun markNotificationAsRead(notificationId: Long): ApiResponse<Unit> {
+        return try {
+            ApiClient.put("notifications/$notificationId/read", Unit)
+        } catch (e: Exception) {
+            ApiResponse.failure(e.message ?: "Failed to update notification")
+        }
+    }
+
+    suspend fun getNotificationUnreadCount(userId: Long): ApiResponse<Long> {
+        return try {
+            ApiClient.get("notifications/user/$userId/unread-count")
+        } catch (e: Exception) {
+            ApiResponse.failure(e.message ?: "Failed to get unread count")
+        }
+    }
+
+    // ============================================================
+    // FORGOT / RESET PASSWORD
+    // ============================================================
+
+    suspend fun requestForgotPassword(email: String): ApiResponse<String> {
+        return try {
+            ApiClient.post("auth/forgot-password", mapOf("email" to email))
+        } catch (e: Exception) {
+            ApiResponse.failure(e.message ?: "Password reset failed")
+        }
+    }
+
+    suspend fun resetPassword(email: String, newPassword: String): ApiResponse<String> {
+        return try {
+            ApiClient.post("auth/reset-password", mapOf("email" to email, "newPassword" to newPassword))
+        } catch (e: Exception) {
+            ApiResponse.failure(e.message ?: "Password reset failed")
+        }
+    }
 }

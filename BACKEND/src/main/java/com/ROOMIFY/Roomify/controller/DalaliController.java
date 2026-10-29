@@ -20,6 +20,9 @@ public class DalaliController {
     private RoomRepository roomRepository;
 
     @Autowired
+    private com.ROOMIFY.Roomify.repository.BookingRepository bookingRepository;
+
+    @Autowired
     private UserRepository userRepository;
 
     @Autowired
@@ -77,8 +80,11 @@ public class DalaliController {
             stats.setPendingListings(roomRepository.countPendingByDalaliId(userId));
             stats.setRentedListings(roomRepository.countRentedByDalaliId(userId));
 
-            Double totalComm = roomRepository.sumCommissionByDalaliId(userId);
-            stats.setTotalCommission(totalComm != null ? totalComm : 0);
+            Double totalFees = bookingRepository.sumFacilitationFeesByDalaliId(userId);
+            if (totalFees == null || totalFees == 0) {
+                totalFees = roomRepository.sumCommissionByDalaliId(userId);
+            }
+            stats.setTotalCommission(totalFees != null ? totalFees : 0);
 
             Double monthlyComm = roomRepository.sumMonthlyCommissionByDalaliId(userId);
             stats.setMonthlyCommission(monthlyComm != null ? monthlyComm : 0);

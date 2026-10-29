@@ -46,14 +46,20 @@ fun ChatScreen(
     val scope = rememberCoroutineScope()
     
     LaunchedEffect(otherUserId, roomId) {
-        try {
-            val response = org.com.network.RoomifyApi.getChatHistory(currentUser.id, otherUserId, roomId)
-            if (response.success && response.data != null) {
-                messages.clear()
-                messages.addAll(response.data!!)
+        while (true) {
+            try {
+                val response = org.com.network.RoomifyApi.getChatHistory(currentUser.id, otherUserId, roomId)
+                if (response.success && response.data != null) {
+                    val newMessages = response.data!!
+                    if (newMessages.size != messages.size) {
+                        messages.clear()
+                        messages.addAll(newMessages)
+                    }
+                }
+            } catch (e: Exception) {
+                println("ChatScreen: Error fetching history: ${e.message}")
             }
-        } catch (e: Exception) {
-            println("ChatScreen: Error fetching history: ${e.message}")
+            kotlinx.coroutines.delay(3000L) // Poll every 3 seconds for real-time synchronization
         }
     }
 

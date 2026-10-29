@@ -49,6 +49,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -152,6 +156,12 @@ fun LoginScreen(
         }
     }
 
+    var showForgotPasswordDialog by remember { mutableStateOf(false) }
+    var resetEmail by remember { mutableStateOf("") }
+    var resetNewPassword by remember { mutableStateOf("") }
+    var resetMessage by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+
     val loading =
         authState is AuthState.Loading
 
@@ -164,6 +174,58 @@ fun LoginScreen(
 
     val layout =
         currentLoginLayout()
+
+    if (showForgotPasswordDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showForgotPasswordDialog = false },
+            title = { Text("Badilisha Nywila (Reset Password)", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (resetMessage != null) {
+                        Text(resetMessage!!, color = Color(0xFF15803D), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                    OutlinedTextField(
+                        value = resetEmail,
+                        onValueChange = { resetEmail = it },
+                        label = { Text("Barua Pepe (Email)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = resetNewPassword,
+                        onValueChange = { resetNewPassword = it },
+                        label = { Text("Nywila Mpya (New Password)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (resetEmail.isNotBlank() && resetNewPassword.isNotBlank()) {
+                            scope.launch {
+                                try {
+                                    val res = org.com.network.RoomifyApi.resetPassword(resetEmail.trim(), resetNewPassword)
+                                    resetMessage = res.message.ifBlank { "Nywila imebadilishwa kikamilifu!" }
+                                } catch (e: Exception) {
+                                    resetMessage = e.message ?: "Failed"
+                                }
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A237E))
+                ) {
+                    Text("Hifadhi", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showForgotPasswordDialog = false }) {
+                    Text("Ghairi")
+                }
+            }
+        )
+    }
 
     Box(
         modifier = Modifier
@@ -204,7 +266,7 @@ fun LoginScreen(
                     onRegisterClick = onRegisterClick,
                     onBack = onBack,
                     onGuestLogin = onGuestLogin,
-                    onForgotPassword = onForgotPassword
+                    onForgotPassword = { showForgotPasswordDialog = true }
                 )
             }
 
@@ -233,7 +295,7 @@ fun LoginScreen(
                     onRegisterClick = onRegisterClick,
                     onBack = onBack,
                     onGuestLogin = onGuestLogin,
-                    onForgotPassword = onForgotPassword
+                    onForgotPassword = { showForgotPasswordDialog = true }
                 )
             }
         }

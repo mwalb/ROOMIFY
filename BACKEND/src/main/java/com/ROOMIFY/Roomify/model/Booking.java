@@ -41,6 +41,18 @@ public class Booking {
     @Column(name = "total_price", nullable = false)
     private Double totalPrice;
 
+    @Column(name = "rent_amount")
+    private Double rentAmount = 0.0;
+
+    @Column(name = "facilitation_fee")
+    private Double facilitationFee = 0.0;
+
+    @Column(name = "listing_type")
+    private String listingType = "DIRECT_BY_OWNER";
+
+    @Column(name = "dalali_id")
+    private Long dalaliId;
+
     @Column(name = "start_date", nullable = false)
     private LocalDateTime startDate;
 

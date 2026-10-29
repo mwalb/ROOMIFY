@@ -74,6 +74,7 @@ fun PropertyDetailsScreen(
 ) {
     val strings = LocalRoomifyStrings.current
     val uriHandler = LocalUriHandler.current
+    val scope = rememberCoroutineScope()
     var isSaved by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
     
@@ -82,6 +83,33 @@ fun PropertyDetailsScreen(
     var parentProperty by remember { mutableStateOf<Property?>(null) }
     var otherUnitsInComplex by remember { mutableStateOf<List<Room>>(emptyList()) }
     var isLoadingComplex by remember { mutableStateOf(false) }
+
+    var reviews by remember { mutableStateOf<List<Review>>(emptyList()) }
+    var showWriteReviewDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(room.id) {
+        try {
+            val res = RoomifyApi.getRoomReviews(room.id)
+            if (res.success && res.data != null) {
+                reviews = res.data!!
+            }
+        } catch (e: Exception) {
+            println("PropertyDetails: Error loading reviews: ${e.message}")
+        }
+    }
+
+    LaunchedEffect(currentUser?.id, room.id) {
+        if (currentUser != null) {
+            try {
+                val favRes = RoomifyApi.isFavorite(currentUser.id, room.id)
+                if (favRes.success) {
+                    isSaved = favRes.data == true
+                }
+            } catch (e: Exception) {
+                // Ignore
+            }
+        }
+    }
 
     LaunchedEffect(room.propertyId) {
         if (room.propertyId != null) {
@@ -239,7 +267,25 @@ fun PropertyDetailsScreen(
                                 Icon(Icons.Default.Share, null, tint = Color.White, modifier = Modifier.size(18.dp))
                             }
                             if (!isMyProperty) {
-                                IconButton(onClick = { isSaved = !isSaved }, modifier = Modifier.size(36.dp).background(Color.Black.copy(alpha = 0.3f), CircleShape)) {
+                                IconButton(
+                                    onClick = {
+                                        if (currentUser == null) {
+                                            onLoginRequired()
+                                        } else {
+                                            scope.launch {
+                                                try {
+                                                    val res = RoomifyApi.toggleFavorite(currentUser.id, room.id)
+                                                    if (res.success && res.data != null) {
+                                                        isSaved = res.data!!
+                                                    }
+                                                } catch (e: Exception) {
+                                                    println("Favorite error: ${e.message}")
+                                                }
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.size(36.dp).background(Color.Black.copy(alpha = 0.3f), CircleShape)
+                                ) {
                                     Icon(if (isSaved) Icons.Default.Bookmark else Icons.Default.BookmarkBorder, null, tint = if (isSaved) Color(0xFFFFC107) else Color.White, modifier = Modifier.size(18.dp))
                                 }
                             }
@@ -286,6 +332,53 @@ fun PropertyDetailsScreen(
                         }
                         Spacer(Modifier.height(8.dp))
                         Text(text = room.title ?: "", fontSize = 24.sp, fontWeight = FontWeight.Black, color = Color(0xFF111111), lineHeight = 30.sp)
+
+                        // Listing Type & Fee Transparency Banner
+                        Spacer(Modifier.height(8.dp))
+                        if (room.isDirectByOwner) {
+                            Surface(
+                                color = Color(0xFFE8F5E9),
+                                shape = RoundedCornerShape(10.dp),
+                                border = BorderStroke(1.dp, Color(0xFFA5D6A7)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.VerifiedUser, null, tint = Color(0xFF2E7D32), modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        "Direct from Landlord • 0% Broker Fee (No Dalali)",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF1B5E20)
+                                    )
+                                }
+                            }
+                        } else {
+                            Surface(
+                                color = Color(0xFFE3F2FD),
+                                shape = RoundedCornerShape(10.dp),
+                                border = BorderStroke(1.dp, Color(0xFF90CAF9)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Handshake, null, tint = PrimaryColor, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Column {
+                                        Text(
+                                            "Dalali Listing (${room.dalaliName ?: "Verified Broker"}) • Facilitation Fee: ${room.formattedFacilitationFee}",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = PrimaryColor
+                                        )
+                                        Text(
+                                            "Rent is paid 100% to landlord. Facilitation fee covers viewing and agency service.",
+                                            fontSize = 10.sp,
+                                            color = Color(0xFF1565C0)
+                                        )
+                                    }
+                                }
+                            }
+                        }
 
                         if (statusUpper == "RENTED") {
                             Spacer(Modifier.height(8.dp))
@@ -605,6 +698,237 @@ fun PropertyDetailsScreen(
                             }
                         }
                     }
+
+                    // Section: Reviews & Ratings
+                    val avgRating = if (reviews.isNotEmpty()) reviews.map { it.rating }.average() else 0.0
+                    val formattedAvg = if (reviews.isNotEmpty()) ((avgRating * 10).toInt() / 10.0).toString() else "New"
+
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            SectionTitleDetails("Reviews & Ratings (${reviews.size})")
+                            OutlinedButton(
+                                onClick = {
+                                    if (currentUser == null) {
+                                        onLoginRequired()
+                                    } else {
+                                        showWriteReviewDialog = true
+                                    }
+                                },
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                border = BorderStroke(1.dp, PrimaryColor)
+                            ) {
+                                Icon(Icons.Default.RateReview, null, modifier = Modifier.size(16.dp), tint = PrimaryColor)
+                                Spacer(Modifier.width(6.dp))
+                                Text(strings.writeAReview, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryColor)
+                            }
+                        }
+
+                        // Summary Card
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = PrimaryColor.copy(alpha = 0.04f),
+                            border = BorderStroke(1.dp, PrimaryColor.copy(alpha = 0.1f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = formattedAvg,
+                                        fontSize = 28.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = PrimaryColor
+                                    )
+                                    Spacer(Modifier.width(12.dp))
+                                    Column {
+                                        Row {
+                                            val ratingInt = avgRating.toInt().coerceIn(0, 5)
+                                            repeat(5) { index ->
+                                                Icon(
+                                                    imageVector = if (index < ratingInt) Icons.Default.Star else Icons.Default.StarBorder,
+                                                    contentDescription = null,
+                                                    tint = Color(0xFFFFB300),
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
+                                        }
+                                        Text(
+                                            text = if (reviews.isNotEmpty()) "Based on ${reviews.size} tenant reviews" else "No ratings yet",
+                                            fontSize = 11.sp,
+                                            color = Color.Gray
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        if (reviews.isEmpty()) {
+                            Text(
+                                text = "No reviews yet. Be the first to share your experience with this property!",
+                                fontSize = 13.sp,
+                                color = Color.Gray,
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                        } else {
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                reviews.take(5).forEach { review ->
+                                    Surface(
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = Color(0xFFF9FAFB),
+                                        border = BorderStroke(1.dp, Color(0xFFEEEEEE)),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column(Modifier.padding(12.dp)) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(28.dp)
+                                                            .clip(CircleShape)
+                                                            .background(PrimaryColor.copy(alpha = 0.15f)),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Text(
+                                                            text = review.userName.take(1).uppercase().ifEmpty { "U" },
+                                                            fontSize = 12.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = PrimaryColor
+                                                        )
+                                                    }
+                                                    Spacer(Modifier.width(8.dp))
+                                                    Text(
+                                                        text = review.userName.ifEmpty { "Verified Tenant" },
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 13.sp
+                                                    )
+                                                }
+                                                Row {
+                                                    repeat(review.rating.coerceIn(1, 5)) {
+                                                        Icon(
+                                                            Icons.Default.Star,
+                                                            null,
+                                                            tint = Color(0xFFFFB300),
+                                                            modifier = Modifier.size(14.dp)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                            if (review.comment.isNotBlank()) {
+                                                Spacer(Modifier.height(6.dp))
+                                                Text(
+                                                    text = review.comment,
+                                                    fontSize = 13.sp,
+                                                    color = Color(0xFF333333)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Write Review Dialog
+                if (showWriteReviewDialog) {
+                    var selectedStars by remember { mutableStateOf(5) }
+                    var reviewComment by remember { mutableStateOf("") }
+                    var isSubmitting by remember { mutableStateOf(false) }
+
+                    AlertDialog(
+                        onDismissRequest = { if (!isSubmitting) showWriteReviewDialog = false },
+                        title = { Text(strings.writeAReview, fontWeight = FontWeight.Bold) },
+                        text = {
+                            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                Text("How was your experience with this property?", fontSize = 13.sp, color = Color.Gray)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    (1..5).forEach { star ->
+                                        IconButton(onClick = { selectedStars = star }) {
+                                            Icon(
+                                                imageVector = if (star <= selectedStars) Icons.Default.Star else Icons.Default.StarBorder,
+                                                contentDescription = null,
+                                                tint = Color(0xFFFFB300),
+                                                modifier = Modifier.size(32.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                                OutlinedTextField(
+                                    value = reviewComment,
+                                    onValueChange = { reviewComment = it },
+                                    label = { Text("Your Review") },
+                                    placeholder = { Text("Share details about the amenities, location, owner...") },
+                                    modifier = Modifier.fillMaxWidth().height(100.dp),
+                                    maxLines = 4,
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                            }
+                        },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    if (currentUser != null) {
+                                        scope.launch {
+                                            isSubmitting = true
+                                            try {
+                                                val newRev = Review(
+                                                    roomId = room.id,
+                                                    userId = currentUser.id,
+                                                    userName = currentUser.name,
+                                                    rating = selectedStars,
+                                                    comment = reviewComment
+                                                )
+                                                val res = RoomifyApi.createReview(newRev)
+                                                if (res.success && res.data != null) {
+                                                    reviews = listOf(res.data!!) + reviews
+                                                    showWriteReviewDialog = false
+                                                }
+                                            } catch (e: Exception) {
+                                                println("Submit review error: ${e.message}")
+                                            } finally {
+                                                isSubmitting = false
+                                            }
+                                        }
+                                    }
+                                },
+                                enabled = !isSubmitting,
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                            ) {
+                                if (isSubmitting) {
+                                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                                } else {
+                                    Text("SUBMIT REVIEW", fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(
+                                onClick = { showWriteReviewDialog = false },
+                                enabled = !isSubmitting
+                            ) {
+                                Text("CANCEL")
+                            }
+                        }
+                    )
                 }
 
                 // Bottom Action Bar

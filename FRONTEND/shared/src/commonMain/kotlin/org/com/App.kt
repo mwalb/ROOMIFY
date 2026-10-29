@@ -843,9 +843,23 @@ fun App() {
                         BookingScreen(
                             room = pendingRoom!!,
                             onBack = { currentRoute = "details" },
-                            onConfirmBooking = { booking ->
+                            onConfirmBooking = { booking, paymentMethod, paymentPhone ->
                                 val response = bookingApi.createBooking(booking.copy(userId = auth.user.id))
                                 if (response?.success == true) {
+                                    val bookingId = response.data?.id ?: 0L
+                                    if (bookingId > 0) {
+                                        try {
+                                            RoomifyApi.processPayment(
+                                                bookingId = bookingId,
+                                                phone = if (paymentPhone.isNotBlank()) paymentPhone else "0712345678",
+                                                amount = booking.totalPrice,
+                                                provider = paymentMethod,
+                                                userId = auth.user.id
+                                            )
+                                        } catch (e: Exception) {
+                                            println("Payment processing note: ${e.message}")
+                                        }
+                                    }
                                     loadTenantBookings()
                                     null
                                 } else {
@@ -1009,7 +1023,8 @@ fun App() {
                                     )
                                 }
                             "finances" -> {
-                                org.com.ui.FinancesScreen(onBack = { currentRoute = "ownerdashboard" })
+                                val currentAuthUser = (authState as? AuthState.Authenticated)?.user
+                                org.com.ui.FinancesScreen(currentUser = currentAuthUser, onBack = { currentRoute = "ownerdashboard" })
                             }
                             "postroom" -> {
                                     PostRoom(

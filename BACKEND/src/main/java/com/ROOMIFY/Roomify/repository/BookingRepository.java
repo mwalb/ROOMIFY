@@ -41,6 +41,9 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @Query("SELECT COUNT(b) > 0 FROM Booking b WHERE b.room.id = :roomId AND b.user.id != :userId")
     boolean existsOtherUserBooking(@Param("roomId") Long roomId, @Param("userId") Long userId);
 
+    @Query("SELECT COALESCE(SUM(b.facilitationFee), 0) FROM Booking b WHERE b.dalaliId = :dalaliId AND (b.status = 'ACCEPTED' OR b.status = 'CONFIRMED')")
+    Double sumFacilitationFeesByDalaliId(@Param("dalaliId") Long dalaliId);
+
     // ========== ANALYTICS METHODS (NATIVE QUERIES - MOST RELIABLE) ==========
 
     @Query(value = "SELECT " +

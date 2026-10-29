@@ -1,5 +1,6 @@
 package org.com.ui
 
+import org.com.network.RoomifyApi
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
@@ -56,10 +57,15 @@ fun AnalyticsScreen(onBack: () -> Unit) {
     
     var isLoading by remember { mutableStateOf(true) }
 
-    LaunchedEffect(isLoading) {
-        if (isLoading) {
-            // Simulate fetching analytics data independently
-            delay(1500)
+    LaunchedEffect(Unit) {
+        try {
+            RoomifyApi.getAnalyticsPriceRanges()
+            RoomifyApi.getAnalyticsMostBookedAreas()
+            RoomifyApi.getAnalyticsMonthlyTrends()
+            RoomifyApi.getAnalyticsTopRooms()
+        } catch (e: Exception) {
+            println("Analytics fetch error: ${e.message}")
+        } finally {
             isLoading = false
         }
     }

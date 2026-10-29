@@ -35,6 +35,9 @@ public class NotificationController {
     private NotificationSubscriptionRepository subscriptionRepository;
 
     @Autowired
+    private com.ROOMIFY.Roomify.repository.InAppNotificationRepository inAppNotificationRepository;
+
+    @Autowired
     private RoomRepository roomRepository;
 
     @Autowired
@@ -184,6 +187,59 @@ public class NotificationController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ApiResponse<>(false, false, "Error: " + e.getMessage()));
+        }
+    }
+
+    // ==========================================
+    // IN-APP NOTIFICATIONS
+    // ==========================================
+
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<ApiResponse<List<com.ROOMIFY.Roomify.model.InAppNotification>>> getUserNotifications(@PathVariable Long userId) {
+        try {
+            List<com.ROOMIFY.Roomify.model.InAppNotification> list = inAppNotificationRepository.findByUserIdOrderByCreatedAtDesc(userId);
+            return ResponseEntity.ok(new ApiResponse<>(true, list, "Notifications retrieved"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(new ApiResponse<>(false, new ArrayList<>(), e.getMessage()));
+        }
+    }
+
+    @PutMapping("/{id}/read")
+    public ResponseEntity<ApiResponse<Void>> markAsRead(@PathVariable Long id) {
+        try {
+            inAppNotificationRepository.findById(id).ifPresent(n -> {
+                n.setRead(true);
+                inAppNotificationRepository.save(n);
+            });
+            return ResponseEntity.ok(new ApiResponse<>(true, null, "Marked as read"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(new ApiResponse<>(false, null, e.getMessage()));
+        }
+    }
+
+    @PutMapping("/user/{userId}/read-all")
+    public ResponseEntity<ApiResponse<Void>> markAllAsRead(@PathVariable Long userId) {
+        try {
+            List<com.ROOMIFY.Roomify.model.InAppNotification> list = inAppNotificationRepository.findByUserIdOrderByCreatedAtDesc(userId);
+            for (com.ROOMIFY.Roomify.model.InAppNotification n : list) {
+                if (!n.isRead()) {
+                    n.setRead(true);
+                    inAppNotificationRepository.save(n);
+                }
+            }
+            return ResponseEntity.ok(new ApiResponse<>(true, null, "All marked as read"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(new ApiResponse<>(false, null, e.getMessage()));
+        }
+    }
+
+    @GetMapping("/user/{userId}/unread-count")
+    public ResponseEntity<ApiResponse<Long>> getUnreadCount(@PathVariable Long userId) {
+        try {
+            long count = inAppNotificationRepository.countByUserIdAndIsReadFalse(userId);
+            return ResponseEntity.ok(new ApiResponse<>(true, count, "Unread count retrieved"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(new ApiResponse<>(false, 0L, e.getMessage()));
         }
     }
 }

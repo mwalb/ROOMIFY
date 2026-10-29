@@ -12,6 +12,10 @@ public class BookingResponseDTO {
     private String roomTitle;
     private String status;
     private Double totalPrice;
+    private Double rentAmount;
+    private Double facilitationFee;
+    private String listingType;
+    private Long dalaliId;
     private LocalDateTime startDate;
     private LocalDateTime endDate;
     private LocalDateTime createdAt;
@@ -20,6 +24,17 @@ public class BookingResponseDTO {
     private String roomImageUrl;
 
     // Getters and setters for ALL fields
+    public Double getRentAmount() { return rentAmount; }
+    public void setRentAmount(Double rentAmount) { this.rentAmount = rentAmount; }
+
+    public Double getFacilitationFee() { return facilitationFee; }
+    public void setFacilitationFee(Double facilitationFee) { this.facilitationFee = facilitationFee; }
+
+    public String getListingType() { return listingType; }
+    public void setListingType(String listingType) { this.listingType = listingType; }
+
+    public Long getDalaliId() { return dalaliId; }
+    public void setDalaliId(Long dalaliId) { this.dalaliId = dalaliId; }
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

@@ -52,6 +52,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/api/furniture/**").permitAll()
+                        .requestMatchers("/api/reviews/**").permitAll()
+                        .requestMatchers("/api/payments/**").permitAll()
+                        .requestMatchers("/api/favorites/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/shops/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/error").permitAll()
@@ -79,9 +82,6 @@ public class SecurityConfig {
 
                         // Bookings require authentication
                         .requestMatchers("/api/bookings/**").authenticated()
-
-                        // Favorites require authentication
-                        .requestMatchers("/api/favorites/**").authenticated()
 
                         // AI endpoints require authentication
                         .requestMatchers("/api/ai/**").authenticated()
