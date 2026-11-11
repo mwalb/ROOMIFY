@@ -89,7 +89,7 @@ fun PropertyDetailsScreen(
 
     LaunchedEffect(room.id) {
         try {
-            val res = RoomifyApi.getRoomReviews(room.id)
+            val res = RoomifyApi.getRoomReviews(room.id ?: 0L)
             if (res.success && res.data != null) {
                 reviews = res.data!!
             }
@@ -101,7 +101,7 @@ fun PropertyDetailsScreen(
     LaunchedEffect(currentUser?.id, room.id) {
         if (currentUser != null) {
             try {
-                val favRes = RoomifyApi.isFavorite(currentUser.id, room.id)
+                val favRes = RoomifyApi.isFavorite(currentUser.id, room.id ?: 0L)
                 if (favRes.success) {
                     isSaved = favRes.data == true
                 }
@@ -274,7 +274,7 @@ fun PropertyDetailsScreen(
                                         } else {
                                             scope.launch {
                                                 try {
-                                                    val res = RoomifyApi.toggleFavorite(currentUser.id, room.id)
+                                                    val res = RoomifyApi.toggleFavorite(currentUser.id, room.id ?: 0L)
                                                     if (res.success && res.data != null) {
                                                         isSaved = res.data!!
                                                     }
@@ -890,7 +890,7 @@ fun PropertyDetailsScreen(
                                             isSubmitting = true
                                             try {
                                                 val newRev = Review(
-                                                    roomId = room.id,
+                                                    roomId = room.id ?: 0L,
                                                     userId = currentUser.id,
                                                     userName = currentUser.name,
                                                     rating = selectedStars,

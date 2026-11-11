@@ -535,12 +535,6 @@ fun BookingScreen(
                                     }
                                 }
                             }
-                                    if (isHandPay) {
-                                        Spacer(Modifier.height(6.dp))
-                                        Text("• Note: Please prepare the cash upon check-in with the owner.", fontSize = 12.sp, color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold)
-                                    }
-                                }
-                            }
 
                             Spacer(Modifier.height(24.dp))
                             Button(
