@@ -138,7 +138,7 @@ public class UserController {
 
             User user = userRepository.findById(userId).orElse(null);
             if (user != null) {
-                user.setEnabled(false);
+                user.setStatus("SUSPENDED");
                 user.setEmail("deleted_" + System.currentTimeMillis() + "_" + user.getEmail());
                 userRepository.save(user);
             }
