@@ -1,5 +1,5 @@
 package org.com.network
 
-actual fun getPlatformHost(): String {
-    return "localhost"
+actual fun getPlatformBaseUrl(): String {
+    return "http://localhost:8080"
 }

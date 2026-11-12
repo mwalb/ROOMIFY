@@ -24,7 +24,7 @@ import org.com.model.ApiResponse
 
 object ApiClient {
 
-    val MEDIA_BASE_URL = "http://${getPlatformHost()}:8080"
+    val MEDIA_BASE_URL = getPlatformBaseUrl()
     val BASE_URL = "$MEDIA_BASE_URL/api/"
     private var token: String? = null
 

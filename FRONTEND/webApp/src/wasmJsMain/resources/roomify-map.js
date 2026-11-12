@@ -33,7 +33,7 @@
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
             return 'http://' + window.location.hostname + ':8080';
         }
-        return '';
+        return 'https://roomifytz-backend.fly.dev';
     }
 
     function resolveMediaUrl(url) {
