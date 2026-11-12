@@ -531,8 +531,14 @@ fun FurnitureCard(
                     Spacer(Modifier.width(8.dp))
                     Text(furniture.ownerName ?: "Muuzaji", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color(0xFF334155))
                     Spacer(Modifier.weight(1f))
-                    Surface(color = Color(0xFFE8F5E9), shape = CircleShape) {
-                        Text("Angalia Zote", modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp), color = Color(0xFF2E7D32), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    if (furniture.shopId != null && furniture.shopId != 0L) {
+                        Surface(color = Color(0xFFE8F5E9), shape = CircleShape) {
+                            Text("Duka Rasmi", modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp), color = Color(0xFF2E7D32), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    } else {
+                        Surface(color = Color(0xFFF1F5F9), shape = CircleShape) {
+                            Text("Binafsi", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), color = Color(0xFF475569), fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                        }
                     }
                 }
             }
