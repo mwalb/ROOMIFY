@@ -107,24 +107,22 @@ fun ShopDetailScreen(
                 Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedButton(
                         onClick = { uriHandler.openUri("tel:${shop.contactPhone}") },
-                        modifier = Modifier.weight(1f).height(48.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        border = BorderStroke(1.5.dp, Color(0xFF1A237E)),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF1A237E))
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        Icon(Icons.Default.Call, null, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.Call, null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Piga Simu", fontWeight = FontWeight.Bold)
+                        Text("Piga Simu")
                     }
                     Button(
                         onClick = { uriHandler.openUri("https://www.google.com/maps/search/?api=1&query=${shop.latitude},${shop.longitude}") },
-                        modifier = Modifier.weight(1f).height(48.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A237E))
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
                     ) {
-                        Icon(Icons.Default.Map, null, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.Map, null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Ramani", fontWeight = FontWeight.Bold)
+                        Text("Ramani")
                     }
                 }
 
@@ -142,8 +140,6 @@ fun ShopDetailScreen(
                         Spacer(Modifier.height(16.dp))
                     }
                 }
-
-                Spacer(Modifier.height(48.dp))
             }
         }
     }

@@ -569,13 +569,12 @@ fun App() {
 
 
     RoomifyLocalization {
-        org.com.ui.theme.RoomifyTheme {
             MaterialTheme(typography = roomifyTypography) {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = Color.Transparent,
-                    tonalElevation = 0.dp
-                ) {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = Color.Transparent,
+                tonalElevation = 0.dp
+            ) {
                 when {
                     authState is AuthState.Loading -> {
                         // Show loading spinner
@@ -1332,7 +1331,6 @@ fun App() {
             }
         }
     }
-}
 }
 
 

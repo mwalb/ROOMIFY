@@ -227,7 +227,7 @@ fun LoginScreen(
         )
     }
 
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(
@@ -239,6 +239,7 @@ fun LoginScreen(
                 )
             )
     ) {
+        val layout = if (maxWidth < 640.dp) LoginLayout.MOBILE else LoginLayout.DESKTOP
 
         when (layout) {
 

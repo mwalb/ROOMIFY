@@ -1,6 +1,8 @@
 package org.com.ui
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -20,8 +22,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -33,6 +37,13 @@ import io.kamel.image.asyncPainterResource
 import org.com.model.Furniture
 import org.com.model.Shop
 import org.com.model.User
+
+private val BrandNavy = Color(0xFF1A237E)
+private val BrandIndigo = Color(0xFF3949AB)
+private val BrandAmber = Color(0xFFFF9800)
+private val BackgroundSurface = Color(0xFFF8FAFC)
+
+private data class CategoryItem(val name: String, val emoji: String)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,14 +61,14 @@ fun FurnitureDashboard(
 ) {
     var selectedTab by remember { mutableStateOf(0) }
     val categories = listOf(
-        "Zote",
-        "Samani",
-        "Mapambo",
-        "Maua na Mimea",
-        "Taa na Mwanga",
-        "Vifaa vya Nyumbani",
-        "Huduma",
-        "Nyingine"
+        CategoryItem("Zote", "✨"),
+        CategoryItem("Samani", "🛋️"),
+        CategoryItem("Mapambo", "🖼️"),
+        CategoryItem("Maua na Mimea", "🌿"),
+        CategoryItem("Taa na Mwanga", "💡"),
+        CategoryItem("Vifaa vya Nyumbani", "🍳"),
+        CategoryItem("Huduma", "🛠️"),
+        CategoryItem("Nyingine", "📦")
     )
     var selectedCategory by remember { mutableStateOf("Zote") }
     var searchQuery by remember { mutableStateOf("") }
@@ -67,77 +78,172 @@ fun FurnitureDashboard(
 
     Scaffold(
         topBar = {
-            Column(Modifier.background(Color.White)) {
-                CenterAlignedTopAppBar(
-                    title = {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("Soko la Samani na Mapambo", fontWeight = FontWeight.Black, fontSize = 18.sp)
-                            Text("Samani, Maua, Mapambo na Huduma", fontSize = 11.sp, color = Color.Gray)
-                        }
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color(0xFF1A237E))
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = { 
-                            if (selectedTab == 0) onNavigate("post_furniture")
-                            else onNavigate("post_shop")
-                        }) {
-                            Icon(Icons.Default.Add, "Posta Yako", tint = Color(0xFF1A237E))
-                        }
-                    },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
-                )
-
-                // Search Bar
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = { Text("Tafuta samani, maua, mapambo...") },
-                    leadingIcon = { Icon(Icons.Default.Search, null, tint = Color.Gray) },
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { searchQuery = "" }) {
-                                Icon(Icons.Default.Close, null, tint = Color.Gray)
-                            }
-                        }
-                    },
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.White)
+            ) {
+                // Vibrant Branded Hero App Bar
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = Color(0xFFF8FAFC),
-                        unfocusedContainerColor = Color(0xFFF8FAFC),
-                        focusedBorderColor = Color(0xFF1A237E)
-                    ),
-                    singleLine = true
-                )
-
-                TabRow(
-                    selectedTabIndex = selectedTab,
-                    containerColor = Color.White,
-                    contentColor = Color(0xFF1A237E)
+                        .background(Brush.horizontalGradient(listOf(BrandNavy, BrandIndigo)))
+                        .padding(horizontal = 16.dp, vertical = 14.dp)
                 ) {
-                    Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }) {
-                        Text("Bidhaa & Huduma (${furnitures.size})", modifier = Modifier.padding(14.dp), fontWeight = FontWeight.Bold)
-                    }
-                    Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }) {
-                        Text("Maduka & Wafanyabiashara (${shops.size})", modifier = Modifier.padding(14.dp), fontWeight = FontWeight.Bold)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(
+                                onClick = onBack,
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .background(Color.White.copy(alpha = 0.15f), CircleShape)
+                            ) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Rudi",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            Column {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text("ROOMIFY", color = BrandAmber, fontWeight = FontWeight.Black, fontSize = 11.sp, letterSpacing = 1.sp)
+                                    Spacer(Modifier.width(6.dp))
+                                    Surface(color = Color.White.copy(alpha = 0.2f), shape = RoundedCornerShape(4.dp)) {
+                                        Text("MARKET", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                    }
+                                }
+                                Text("Samani, Maua & Mapambo", fontWeight = FontWeight.Black, fontSize = 17.sp, color = Color.White)
+                            }
+                        }
+
+                        // Post action button
+                        Button(
+                            onClick = { 
+                                if (selectedTab == 0) onNavigate("post_furniture")
+                                else onNavigate("post_shop")
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = BrandAmber),
+                            shape = RoundedCornerShape(12.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Icon(Icons.Default.Add, null, tint = Color.White, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text(if (selectedTab == 0) "Posta" else "Sajili Duka", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
+
+                // Modern Search Input
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                ) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = { Text("Tafuta sofa, meza, vitanda, maua, vioo...", fontSize = 13.sp, color = Color(0xFF94A3B8)) },
+                        leadingIcon = { 
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .background(BrandNavy.copy(alpha = 0.08f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.Search, null, tint = BrandNavy, modifier = Modifier.size(18.dp))
+                            }
+                        },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(Icons.Default.Close, null, tint = Color.Gray, modifier = Modifier.size(18.dp))
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color(0xFFF8FAFC),
+                            unfocusedContainerColor = Color(0xFFF8FAFC),
+                            focusedBorderColor = BrandNavy,
+                            unfocusedBorderColor = Color(0xFFE2E8F0)
+                        ),
+                        singleLine = true
+                    )
+                }
+
+                // Animated Pill-style Tab Switcher
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .background(Color(0xFFF1F5F9), RoundedCornerShape(14.dp))
+                        .padding(4.dp)
+                ) {
+                    val tabModifier = Modifier.weight(1f)
+                    
+                    Surface(
+                        modifier = tabModifier.clickable { selectedTab = 0 },
+                        color = if (selectedTab == 0) BrandNavy else Color.Transparent,
+                        shape = RoundedCornerShape(12.dp),
+                        shadowElevation = if (selectedTab == 0) 3.dp else 0.dp
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(vertical = 10.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "🛋️ Bidhaa (${furnitures.size})",
+                                color = if (selectedTab == 0) Color.White else Color(0xFF475569),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp
+                            )
+                        }
+                    }
+
+                    Surface(
+                        modifier = tabModifier.clickable { selectedTab = 1 },
+                        color = if (selectedTab == 1) BrandNavy else Color.Transparent,
+                        shape = RoundedCornerShape(12.dp),
+                        shadowElevation = if (selectedTab == 1) 3.dp else 0.dp
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(vertical = 10.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "🏬 Maduka & Mafundi (${shops.size})",
+                                color = if (selectedTab == 1) Color.White else Color(0xFF475569),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp
+                            )
+                        }
+                    }
+                }
+                
+                Spacer(Modifier.height(4.dp))
             }
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = { onNavigate("post_furniture") },
+                onClick = { 
+                    if (selectedTab == 0) onNavigate("post_furniture")
+                    else onNavigate("post_shop")
+                },
                 icon = { Icon(Icons.Default.AddCircle, null) },
-                text = { Text("Posta Bidhaa Yako", fontWeight = FontWeight.Bold) },
-                containerColor = Color(0xFF1A237E),
+                text = { Text(if (selectedTab == 0) "Posta Bidhaa Yako" else "Sajili Duka Lako", fontWeight = FontWeight.Bold) },
+                containerColor = BrandNavy,
                 contentColor = Color.White,
-                shape = RoundedCornerShape(20.dp)
+                shape = RoundedCornerShape(20.dp),
+                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp)
             )
         }
     ) { padding ->
@@ -145,29 +251,42 @@ fun FurnitureDashboard(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(Color(0xFFF8FAFC))
+                .background(BackgroundSurface)
         ) {
             if (selectedTab == 0) {
-                // Category Filter Row
+                // Interactive Category Filter Bar with Emojis
                 LazyRow(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(categories) { category ->
-                        FilterChip(
-                            selected = selectedCategory == category,
-                            onClick = { selectedCategory = category },
-                            label = { Text(category, fontWeight = if (selectedCategory == category) FontWeight.Bold else FontWeight.Normal) },
-                            shape = RoundedCornerShape(14.dp),
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = Color(0xFF1A237E),
-                                selectedLabelColor = Color.White
-                            )
-                        )
+                    items(categories) { item ->
+                        val isSelected = selectedCategory == item.name
+                        Surface(
+                            modifier = Modifier
+                                .clickable { selectedCategory = item.name },
+                            shape = RoundedCornerShape(16.dp),
+                            color = if (isSelected) BrandNavy else Color.White,
+                            border = BorderStroke(1.dp, if (isSelected) BrandNavy else Color(0xFFE2E8F0)),
+                            shadowElevation = if (isSelected) 3.dp else 1.dp
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(item.emoji, fontSize = 14.sp)
+                                Text(
+                                    item.name,
+                                    fontSize = 12.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                                    color = if (isSelected) Color.White else Color(0xFF334155)
+                                )
+                            }
+                        }
                     }
                 }
 
-                // Furniture & Decor List
+                // Filter logic
                 val filtered = furnitures.filter { item ->
                     val matchesCategory = selectedCategory == "Zote" ||
                             item.category.contains(selectedCategory, ignoreCase = true) ||
@@ -184,27 +303,38 @@ fun FurnitureDashboard(
                     matchesCategory && matchesSearch
                 }
 
-                LazyColumn(
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    if (filtered.isEmpty()) {
-                        item {
-                            EmptyStatePlaceholder("Hakuna bidhaa zilizopatikana kulingana na utafutaji wako")
-                        }
+                AnimatedContent(
+                    targetState = filtered.isEmpty(),
+                    transitionSpec = { fadeIn() togetherWith fadeOut() }
+                ) { isEmpty ->
+                    if (isEmpty) {
+                        EmptyStatePlaceholder(
+                            title = if (searchQuery.isNotBlank()) "Hakuna matokeo ya utafutaji" else "Hakuna bidhaa zilizopatikana",
+                            description = if (searchQuery.isNotBlank()) 
+                                "Jaribu kubadilisha maneno ya utafutaji au chagua kategoria ya 'Zote'" 
+                            else 
+                                "Kuwa wa kwanza kuposti samani, mapambo, au vifaa vya nyumbani na ufikie maelfu ya wateja!",
+                            actionText = "Posta Bidhaa Sasa",
+                            onAction = { onNavigate("post_furniture") }
+                        )
                     } else {
-                        items(filtered) { item ->
-                            FurnitureCard(
-                                furniture = item,
-                                currentUser = currentUser,
-                                onClick = { onViewDetail(item) },
-                                onEdit = { itemToEdit = item },
-                                onDelete = { itemToDelete = item },
-                                onToggleStatus = { onToggleStatus?.invoke(item) }
-                            )
+                        LazyColumn(
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            items(filtered) { item ->
+                                FurnitureCard(
+                                    furniture = item,
+                                    currentUser = currentUser,
+                                    onClick = { onViewDetail(item) },
+                                    onEdit = { itemToEdit = item },
+                                    onDelete = { itemToDelete = item },
+                                    onToggleStatus = { onToggleStatus?.invoke(item) }
+                                )
+                            }
+                            item { Spacer(Modifier.height(88.dp)) }
                         }
                     }
-                    item { Spacer(Modifier.height(80.dp)) }
                 }
             } else {
                 // Shops List
@@ -215,20 +345,28 @@ fun FurnitureDashboard(
                             (shop.address?.contains(searchQuery, ignoreCase = true) ?: false)
                 }
 
-                LazyColumn(
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    if (filteredShops.isEmpty()) {
-                        item {
-                            EmptyStatePlaceholder("Hakuna maduka yaliyosajiliwa bado")
-                        }
+                AnimatedContent(
+                    targetState = filteredShops.isEmpty(),
+                    transitionSpec = { fadeIn() togetherWith fadeOut() }
+                ) { isEmpty ->
+                    if (isEmpty) {
+                        EmptyStatePlaceholder(
+                            title = "Hakuna maduka yaliyosajiliwa bado",
+                            description = "Je, unamiliki gereji, karakana ya samani au duka la vifaa vya ndani? Sajili duka lako bure hapa!",
+                            actionText = "Sajili Duka Lako Sasa",
+                            onAction = { onNavigate("post_shop") }
+                        )
                     } else {
-                        items(filteredShops) { shop ->
-                            ShopCard(shop, onClick = { onViewShop(shop) })
+                        LazyColumn(
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            items(filteredShops) { shop ->
+                                ShopCard(shop, onClick = { onViewShop(shop) })
+                            }
+                            item { Spacer(Modifier.height(88.dp)) }
                         }
                     }
-                    item { Spacer(Modifier.height(80.dp)) }
                 }
             }
         }
@@ -240,22 +378,24 @@ fun FurnitureDashboard(
     itemToDelete?.let { item ->
         AlertDialog(
             onDismissRequest = { itemToDelete = null },
+            icon = { Icon(Icons.Default.DeleteForever, null, tint = Color(0xFFDC2626), modifier = Modifier.size(36.dp)) },
             title = { Text("Futa Bidhaa", fontWeight = FontWeight.Bold) },
-            text = { Text("Je, una uhakika unataka kufuta '${item.title}'?") },
+            text = { Text("Je, una uhakika unataka kufuta '${item.title}' kabisa kutoka sokoni?") },
             confirmButton = {
                 Button(
                     onClick = {
                         onDeleteFurniture?.invoke(item)
                         itemToDelete = null
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626)),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Futa", color = Color.White)
+                    Text("Futa Kabisa", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { itemToDelete = null }) {
-                    Text("Ghairi")
+                    Text("Ghairi", fontWeight = FontWeight.Bold)
                 }
             }
         )
@@ -266,7 +406,7 @@ fun FurnitureDashboard(
     // ============================================================
     itemToEdit?.let { item ->
         var editTitle by remember { mutableStateOf(item.title) }
-        var editPrice by remember { mutableStateOf(item.price.toString()) }
+        var editPrice by remember { mutableStateOf(item.price.toLong().toString()) }
         var editDesc by remember { mutableStateOf(item.description) }
         var editAddress by remember { mutableStateOf(item.address ?: "") }
         var editStatus by remember { mutableStateOf(item.status) }
@@ -276,7 +416,9 @@ fun FurnitureDashboard(
             title = { Text("Hariri Bidhaa Yako", fontWeight = FontWeight.Bold) },
             text = {
                 Column(
-                    modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     OutlinedTextField(
@@ -284,14 +426,17 @@ fun FurnitureDashboard(
                         onValueChange = { editTitle = it },
                         label = { Text("Jina la Bidhaa") },
                         modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
                         singleLine = true
                     )
 
                     OutlinedTextField(
                         value = editPrice,
-                        onValueChange = { editPrice = it },
+                        onValueChange = { editPrice = it.filter { char -> char.isDigit() } },
                         label = { Text("Bei (TZS)") },
+                        prefix = { Text("TZS ", fontWeight = FontWeight.Bold) },
                         modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
                         singleLine = true
                     )
 
@@ -308,6 +453,7 @@ fun FurnitureDashboard(
                         onValueChange = { editAddress = it },
                         label = { Text("Anwani / Eneo") },
                         modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
                         singleLine = true
                     )
 
@@ -346,14 +492,15 @@ fun FurnitureDashboard(
                         onEditFurniture?.invoke(updated)
                         itemToEdit = null
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A237E))
+                    colors = ButtonDefaults.buttonColors(containerColor = BrandNavy),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Hifadhi Mabadiliko", color = Color.White)
+                    Text("Hifadhi Mabadiliko", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { itemToEdit = null }) {
-                    Text("Ghairi")
+                    Text("Ghairi", fontWeight = FontWeight.Bold)
                 }
             }
         )
@@ -361,12 +508,92 @@ fun FurnitureDashboard(
 }
 
 @Composable
-private fun EmptyStatePlaceholder(text: String) {
-    Box(Modifier.fillMaxWidth().height(350.dp), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(24.dp)) {
-            Icon(Icons.Default.Inventory, null, modifier = Modifier.size(64.dp), tint = Color.LightGray)
-            Spacer(Modifier.height(16.dp))
-            Text(text, color = Color.Gray, textAlign = TextAlign.Center, fontSize = 14.sp)
+private fun EmptyStatePlaceholder(
+    title: String,
+    description: String,
+    actionText: String,
+    onAction: () -> Unit
+) {
+    val infiniteTransition = rememberInfiniteTransition()
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.05f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        )
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(20.dp)
+            .heightIn(min = 360.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxWidth().scale(pulseScale),
+            shape = RoundedCornerShape(24.dp),
+            color = Color.White,
+            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+            shadowElevation = 6.dp
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(28.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .background(
+                            Brush.radialGradient(
+                                listOf(BrandAmber.copy(alpha = 0.25f), BrandNavy.copy(alpha = 0.08f))
+                            ),
+                            CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Weekend,
+                        contentDescription = null,
+                        modifier = Modifier.size(42.dp),
+                        tint = BrandNavy
+                    )
+                }
+
+                Spacer(Modifier.height(18.dp))
+
+                Text(
+                    text = title,
+                    fontWeight = FontWeight.Black,
+                    fontSize = 17.sp,
+                    color = Color(0xFF0F172A),
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                Text(
+                    text = description,
+                    color = Color(0xFF64748B),
+                    textAlign = TextAlign.Center,
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp
+                )
+
+                Spacer(Modifier.height(24.dp))
+
+                Button(
+                    onClick = onAction,
+                    colors = ButtonDefaults.buttonColors(containerColor = BrandNavy),
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.height(48.dp)
+                ) {
+                    Icon(Icons.Default.AddCircle, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(actionText, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                }
+            }
         }
     }
 }
@@ -531,14 +758,8 @@ fun FurnitureCard(
                     Spacer(Modifier.width(8.dp))
                     Text(furniture.ownerName ?: "Muuzaji", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color(0xFF334155))
                     Spacer(Modifier.weight(1f))
-                    if (furniture.shopId != null && furniture.shopId != 0L) {
-                        Surface(color = Color(0xFFE8F5E9), shape = CircleShape) {
-                            Text("Duka Rasmi", modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp), color = Color(0xFF2E7D32), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
-                    } else {
-                        Surface(color = Color(0xFFF1F5F9), shape = CircleShape) {
-                            Text("Binafsi", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), color = Color(0xFF475569), fontSize = 10.sp, fontWeight = FontWeight.Medium)
-                        }
+                    Surface(color = Color(0xFFE8F5E9), shape = CircleShape) {
+                        Text("Angalia Zote", modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp), color = Color(0xFF2E7D32), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }

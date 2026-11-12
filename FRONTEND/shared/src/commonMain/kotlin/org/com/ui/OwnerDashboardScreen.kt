@@ -74,170 +74,259 @@ fun OwnerDashboardScreen(
     var isSidebarVisible by remember { mutableStateOf(true) }
     val scrollState = rememberScrollState()
 
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(PrimaryColor, PrimaryLight))),
-        contentAlignment = Alignment.Center
+            .background(Brush.verticalGradient(listOf(PrimaryColor, PrimaryLight)))
     ) {
-        // Responsive Dashboard Container (Animated Side Navigation + Main Content)
-        Card(
-            modifier = Modifier
-                .fillMaxWidth(0.96f)
-                .fillMaxHeight(0.94f)
-                .padding(vertical = 8.dp),
-            shape = RoundedCornerShape(28.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FA)),
-            elevation = CardDefaults.cardElevation(defaultElevation = 16.dp)
-        ) {
-            Row(modifier = Modifier.fillMaxSize()) {
-                // Animated Left Sidebar
-                AnimatedVisibility(
-                    visible = isSidebarVisible,
-                    enter = expandHorizontally() + fadeIn(),
-                    exit = shrinkHorizontally() + fadeOut()
-                ) {
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .width(260.dp),
-                        color = PrimaryColor,
-                        shape = RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(20.dp),
-                            verticalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(42.dp)
-                                            .background(Color.White.copy(alpha = 0.15f), CircleShape),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(Icons.Default.Business, null, tint = Color.White, modifier = Modifier.size(22.dp))
-                                    }
-                                    Spacer(Modifier.width(12.dp))
-                                    Column {
-                                        Text("ROOMIFY", color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp)
-                                        Text("Owner Portal", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                    }
-                                }
+        val isMobile = maxWidth < 768.dp
+        var mobileDrawerOpen by remember { mutableStateOf(false) }
 
-                                Spacer(Modifier.height(32.dp))
-
-                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    SidebarNavItem("Dashboard", Icons.Default.Dashboard, selectedTab == 0) { selectedTab = 0 }
-                                    SidebarNavItem("Properties", Icons.Default.Home, selectedTab == 1) { selectedTab = 1 }
-                                    SidebarNavItem("Requests", Icons.Default.Bookmark, selectedTab == 2) { selectedTab = 2 }
-                                    SidebarNavItem("Messages", Icons.Default.Message, selectedTab == 3) { selectedTab = 3 }
-                                    SidebarNavItem("Analytics", Icons.AutoMirrored.Filled.TrendingUp, false) { onViewAnalytics() }
-                                    SidebarNavItem("Finances", Icons.Default.Payments, false) { onViewFinances() }
-                                }
-                            }
-
-                            // Profile & Logout Footer
-                            Surface(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { onNavigate("profile") },
-                                color = Color.White.copy(alpha = 0.08f),
-                                shape = RoundedCornerShape(16.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(36.dp)
-                                            .clip(CircleShape)
-                                            .background(Color.White.copy(alpha = 0.2f)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            user.name.take(1).uppercase(),
-                                            color = Color.White,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 14.sp
-                                        )
-                                    }
-                                    Spacer(Modifier.width(10.dp))
-                                    Column(Modifier.weight(1f)) {
-                                        Text(user.name, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                        Text("Online", color = SuccessColor, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                    }
-                                    IconButton(onClick = onLogout, modifier = Modifier.size(32.dp)) {
-                                        Icon(Icons.AutoMirrored.Filled.Logout, null, tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.size(16.dp))
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Right Main Content Area
+        // Sidebar Content Composable
+        val sidebarContent = @Composable {
+            Surface(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(if (isMobile) 280.dp else 260.dp),
+                color = PrimaryColor,
+                shape = if (isMobile) RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp) else RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp)
+            ) {
                 Column(
                     modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .background(Color(0xFFF8F9FA))
+                        .fillMaxSize()
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // Top Bar with Menu Toggle, Back, Welcome & Wallet Summary
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color.White)
-                            .padding(horizontal = 24.dp, vertical = 16.dp)
-                    ) {
+                    Column {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                IconButton(
-                                    onClick = onBack,
+                                Box(
                                     modifier = Modifier
-                                        .size(38.dp)
-                                        .background(PrimaryColor.copy(alpha = 0.08f), CircleShape)
+                                        .size(42.dp)
+                                        .background(Color.White.copy(alpha = 0.15f), CircleShape),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = PrimaryColor, modifier = Modifier.size(18.dp))
+                                    Icon(Icons.Default.Business, null, tint = Color.White, modifier = Modifier.size(22.dp))
                                 }
-                                Spacer(Modifier.width(8.dp))
-                                IconButton(
-                                    onClick = { isSidebarVisible = !isSidebarVisible },
-                                    modifier = Modifier
-                                        .size(38.dp)
-                                        .background(PrimaryColor.copy(alpha = 0.08f), CircleShape)
-                                ) {
-                                    Icon(Icons.Default.Menu, "Toggle Sidebar", tint = PrimaryColor, modifier = Modifier.size(18.dp))
-                                }
-                                Spacer(Modifier.width(14.dp))
+                                Spacer(Modifier.width(12.dp))
                                 Column {
-                                    Text("Welcome back, ${user.name} 👋", fontSize = 18.sp, fontWeight = FontWeight.Black, color = Color(0xFF0F172A))
-                                    Text("Here is your property performance today", fontSize = 12.sp, color = Color.Gray)
+                                    Text("ROOMIFY", color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp)
+                                    Text("Owner Portal", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                            if (isMobile) {
+                                IconButton(onClick = { mobileDrawerOpen = false }) {
+                                    Icon(Icons.Default.Close, "Funga Menu", tint = Color.White)
+                                }
+                            }
+                        }
+
+                        Spacer(Modifier.height(28.dp))
+
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            SidebarNavItem("Dashboard", Icons.Default.Dashboard, selectedTab == 0) { 
+                                selectedTab = 0 
+                                if (isMobile) mobileDrawerOpen = false
+                            }
+                            SidebarNavItem("Properties", Icons.Default.Home, selectedTab == 1) { 
+                                selectedTab = 1 
+                                if (isMobile) mobileDrawerOpen = false
+                            }
+                            SidebarNavItem("Requests", Icons.Default.Bookmark, selectedTab == 2) { 
+                                selectedTab = 2 
+                                if (isMobile) mobileDrawerOpen = false
+                            }
+                            SidebarNavItem("Messages", Icons.Default.Message, selectedTab == 3) { 
+                                selectedTab = 3 
+                                if (isMobile) mobileDrawerOpen = false
+                            }
+                            SidebarNavItem("Analytics", Icons.AutoMirrored.Filled.TrendingUp, false) { 
+                                onViewAnalytics() 
+                                if (isMobile) mobileDrawerOpen = false
+                            }
+                            SidebarNavItem("Finances", Icons.Default.Payments, false) { 
+                                onViewFinances() 
+                                if (isMobile) mobileDrawerOpen = false
+                            }
+                        }
+                    }
+
+                    // Profile & Logout Footer
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onNavigate("profile") },
+                        color = Color.White.copy(alpha = 0.08f),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.White.copy(alpha = 0.2f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    user.name.take(1).uppercase(),
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp
+                                )
+                            }
+                            Spacer(Modifier.width(10.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(user.name, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text("Online", color = SuccessColor, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            }
+                            IconButton(onClick = onLogout, modifier = Modifier.size(32.dp)) {
+                                Icon(Icons.AutoMirrored.Filled.Logout, null, tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.size(16.dp))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Dashboard Outer Card Container
+        Card(
+            modifier = if (isMobile) Modifier.fillMaxSize() else Modifier
+                .fillMaxWidth(0.96f)
+                .fillMaxHeight(0.94f)
+                .align(Alignment.Center)
+                .padding(vertical = 8.dp),
+            shape = if (isMobile) RoundedCornerShape(0.dp) else RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FA)),
+            elevation = CardDefaults.cardElevation(defaultElevation = if (isMobile) 0.dp else 16.dp)
+        ) {
+            Row(modifier = Modifier.fillMaxSize()) {
+                // Persistent Desktop Sidebar
+                if (!isMobile) {
+                    AnimatedVisibility(
+                        visible = isSidebarVisible,
+                        enter = expandHorizontally() + fadeIn(),
+                        exit = shrinkHorizontally() + fadeOut()
+                    ) {
+                        sidebarContent()
+                    }
+                }
+
+                // Main Content Area
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .background(Color(0xFFF8F9FA))
+                ) {
+                    // Responsive Top Bar
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = Color.White,
+                        shadowElevation = 1.dp
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = if (isMobile) 16.dp else 24.dp, vertical = 14.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    modifier = Modifier.weight(1f, fill = false),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    IconButton(
+                                        onClick = onBack,
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .background(PrimaryColor.copy(alpha = 0.08f), CircleShape)
+                                    ) {
+                                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = PrimaryColor, modifier = Modifier.size(18.dp))
+                                    }
+                                    Spacer(Modifier.width(8.dp))
+                                    IconButton(
+                                        onClick = { 
+                                            if (isMobile) mobileDrawerOpen = !mobileDrawerOpen
+                                            else isSidebarVisible = !isSidebarVisible
+                                        },
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .background(PrimaryColor.copy(alpha = 0.08f), CircleShape)
+                                    ) {
+                                        Icon(Icons.Default.Menu, "Toggle Menu", tint = PrimaryColor, modifier = Modifier.size(18.dp))
+                                    }
+                                    Spacer(Modifier.width(10.dp))
+                                    Column(modifier = Modifier.weight(1f, fill = false)) {
+                                        Text(
+                                            "Welcome back, ${user.name} 👋",
+                                            fontSize = if (isMobile) 15.sp else 18.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = Color(0xFF0F172A),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            "Property performance overview",
+                                            fontSize = 11.sp,
+                                            color = Color(0xFF64748B),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+
+                                // Wallet Balance Card (Desktop top bar)
+                                if (!isMobile) {
+                                    Surface(
+                                        color = PrimaryColor,
+                                        shape = RoundedCornerShape(16.dp),
+                                        shadowElevation = 2.dp
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(Icons.Default.AccountBalanceWallet, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                            Spacer(Modifier.width(10.dp))
+                                            Column {
+                                                Text("Wallet Balance", color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                                Text("TZS 1,450,000", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                                            }
+                                        }
+                                    }
                                 }
                             }
 
-                            // Wallet / Balance Card
-                            Surface(
-                                color = PrimaryColor,
-                                shape = RoundedCornerShape(16.dp),
-                                shadowElevation = 4.dp
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                            // Mobile Wallet Banner
+                            if (isMobile) {
+                                Spacer(Modifier.height(12.dp))
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    color = PrimaryColor,
+                                    shape = RoundedCornerShape(14.dp),
+                                    shadowElevation = 2.dp
                                 ) {
-                                    Icon(Icons.Default.AccountBalanceWallet, null, tint = Color.White, modifier = Modifier.size(18.dp))
-                                    Spacer(Modifier.width(10.dp))
-                                    Column {
-                                        Text("Wallet Balance", color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                        Text("TZS 1,450,000", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(Icons.Default.AccountBalanceWallet, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                                            Spacer(Modifier.width(10.dp))
+                                            Text("Wallet Balance", color = Color.White.copy(alpha = 0.85f), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                        }
+                                        Text("TZS 1,450,000", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Black)
                                     }
                                 }
                             }
@@ -252,7 +341,7 @@ fun OwnerDashboardScreen(
                             .weight(1f)
                             .fillMaxWidth()
                             .verticalScroll(scrollState)
-                            .padding(24.dp),
+                            .padding(if (isMobile) 16.dp else 24.dp),
                         verticalArrangement = Arrangement.spacedBy(20.dp)
                     ) {
                         when (selectedTab) {
@@ -309,6 +398,25 @@ fun OwnerDashboardScreen(
                             }
                         }
                     }
+                }
+            }
+        }
+
+        // Mobile Navigation Drawer Overlay
+        if (isMobile && mobileDrawerOpen) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f))
+                    .clickable { mobileDrawerOpen = false }
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .align(Alignment.CenterStart)
+                        .clickable(enabled = false) {}
+                ) {
+                    sidebarContent()
                 }
             }
         }
