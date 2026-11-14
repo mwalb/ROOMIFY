@@ -49,7 +49,7 @@ private val BackgroundSurface = Color(0xFFF8FAFC)
 private val BorderColor = Color(0xFFE2E8F0)
 private val BrandSuccess = Color(0xFF10B981)
 
-private data class CategoryItem(
+private data class FurnitureCategoryItem(
     val name: String,
     val emoji: String,
     val fullName: String
@@ -87,13 +87,13 @@ fun PostFurniture(
     val scrollState = rememberScrollState()
 
     val categories = listOf(
-        CategoryItem("Samani", "🛋️", "Samani (Furniture)"),
-        CategoryItem("Mapambo", "🖼️", "Mapambo (Home Decor)"),
-        CategoryItem("Maua & Mimea", "🌿", "Maua na Mimea (Flowers & Plants)"),
-        CategoryItem("Taa & Mwanga", "💡", "Taa na Mwanga (Lighting)"),
-        CategoryItem("Vifaa vya Ndani", "🔌", "Vifaa vya Nyumbani (Home Appliances)"),
-        CategoryItem("Huduma za Ndani", "🛠️", "Huduma za Ndani (Interior Services)"),
-        CategoryItem("Nyingine", "✨", "Nyingine (Other)")
+        FurnitureCategoryItem("Samani", "🛋️", "Samani (Furniture)"),
+        FurnitureCategoryItem("Mapambo", "🖼️", "Mapambo (Home Decor)"),
+        FurnitureCategoryItem("Maua & Mimea", "🌿", "Maua na Mimea (Flowers & Plants)"),
+        FurnitureCategoryItem("Taa & Mwanga", "💡", "Taa na Mwanga (Lighting)"),
+        FurnitureCategoryItem("Vifaa vya Ndani", "🔌", "Vifaa vya Nyumbani (Home Appliances)"),
+        FurnitureCategoryItem("Huduma za Ndani", "🛠️", "Huduma za Ndani (Interior Services)"),
+        FurnitureCategoryItem("Nyingine", "✨", "Nyingine (Other)")
     )
 
     val conditions = listOf(

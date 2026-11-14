@@ -67,12 +67,24 @@ fun DalaliDashboardScreen(
     var isSidebarVisible by remember { mutableStateOf(true) }
     val scrollState = rememberScrollState()
 
+    var dalaliStats by remember { mutableStateOf<org.com.model.DalaliStats?>(null) }
+    LaunchedEffect(user.id) {
+        try {
+            val res = org.com.network.RoomifyApi.getDalaliStats()
+            if (res.success && res.data != null) {
+                dalaliStats = res.data
+            }
+        } catch (e: Exception) {
+            println("Error fetching dalali stats: ${e.message}")
+        }
+    }
+
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(Brush.verticalGradient(listOf(PrimaryColor, PrimaryLight)))
     ) {
-        val isMobile = maxWidth < 768.dp
+        val isMobile = maxWidth < 900.dp
         var mobileDrawerOpen by remember { mutableStateOf(false) }
 
         val sidebarContent = @Composable {
@@ -271,20 +283,24 @@ fun DalaliDashboardScreen(
 
                                 // Desktop Wallet / Commission Card
                                 if (!isMobile) {
+                                    Spacer(Modifier.width(16.dp))
                                     Surface(
                                         color = PrimaryColor,
                                         shape = RoundedCornerShape(16.dp),
                                         shadowElevation = 2.dp
                                     ) {
                                         Row(
-                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                                            modifier = Modifier
+                                                .widthIn(min = 160.dp)
+                                                .padding(horizontal = 16.dp, vertical = 10.dp),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Icon(Icons.Default.Payments, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                            Icon(Icons.Default.Payments, null, tint = Color.White, modifier = Modifier.size(20.dp))
                                             Spacer(Modifier.width(10.dp))
                                             Column {
-                                                Text("Total Commission", color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                                Text("TZS 450,000", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                                                Text("Total Commission", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp, fontWeight = FontWeight.Bold, softWrap = false)
+                                                val totalComm = dalaliStats?.totalCommission?.toLong() ?: 0L
+                                                Text("TZS ${totalComm.toString().reversed().chunked(3).joinToString(",").reversed()}", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black, softWrap = false)
                                             }
                                         }
                                     }
@@ -310,7 +326,8 @@ fun DalaliDashboardScreen(
                                             Spacer(Modifier.width(10.dp))
                                             Text("Total Commission", color = Color.White.copy(alpha = 0.85f), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                                         }
-                                        Text("TZS 450,000", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Black)
+                                        val totalComm = dalaliStats?.totalCommission?.toLong() ?: 0L
+                                        Text("TZS ${totalComm.toString().reversed().chunked(3).joinToString(",").reversed()}", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Black)
                                     }
                                 }
                             }
@@ -332,7 +349,8 @@ fun DalaliDashboardScreen(
                             0 -> {
                                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                                     StatBox("Listings", "${properties.size}", Icons.Default.Business, Modifier.weight(1f))
-                                    StatBox("Commission", "TZS 450K", Icons.Default.Payments, Modifier.weight(1f))
+                                    val totalCommK = (dalaliStats?.totalCommission ?: 0.0) / 1000.0
+                                    StatBox("Commission", "TZS ${totalCommK.toLong()}K", Icons.Default.Payments, Modifier.weight(1f))
                                     StatBox("Pending", "${bookings.count { it.status == "PENDING" }}", Icons.Default.BookmarkBorder, Modifier.weight(1f))
                                 }
 

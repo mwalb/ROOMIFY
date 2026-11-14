@@ -639,6 +639,14 @@ object RoomifyApi {
         }
     }
 
+    suspend fun getDalaliStats(): ApiResponse<org.com.model.DalaliStats> {
+        return try {
+            ApiClient.get("dalali/stats")
+        } catch (e: Exception) {
+            ApiResponse.failure(e.message ?: "Failed to fetch dalali stats")
+        }
+    }
+
     suspend fun confirmCashPayment(paymentId: Long): ApiResponse<Payment> {
         return try {
             ApiClient.put("payments/$paymentId/confirm-cash", Unit)

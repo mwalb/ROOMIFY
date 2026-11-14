@@ -74,12 +74,26 @@ fun OwnerDashboardScreen(
     var isSidebarVisible by remember { mutableStateOf(true) }
     val scrollState = rememberScrollState()
 
+    var finances by remember { mutableStateOf<org.com.model.FinancesSummary?>(null) }
+    LaunchedEffect(user.id) {
+        if (user.id > 0) {
+            try {
+                val res = org.com.network.RoomifyApi.getOwnerFinances(user.id)
+                if (res.success && res.data != null) {
+                    finances = res.data
+                }
+            } catch (e: Exception) {
+                println("OwnerDashboard: Failed to load finances: ${e.message}")
+            }
+        }
+    }
+
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(Brush.verticalGradient(listOf(PrimaryColor, PrimaryLight)))
     ) {
-        val isMobile = maxWidth < 768.dp
+        val isMobile = maxWidth < 900.dp
         var mobileDrawerOpen by remember { mutableStateOf(false) }
 
         // Sidebar Content Composable
@@ -285,22 +299,26 @@ fun OwnerDashboardScreen(
                                     }
                                 }
 
-                                // Wallet Balance Card (Desktop top bar)
+                                // Wallet Balance Card (Desktop top bar - only if plenty of room)
                                 if (!isMobile) {
+                                    Spacer(Modifier.width(16.dp))
                                     Surface(
                                         color = PrimaryColor,
                                         shape = RoundedCornerShape(16.dp),
                                         shadowElevation = 2.dp
                                     ) {
                                         Row(
-                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                                            modifier = Modifier
+                                                .widthIn(min = 160.dp)
+                                                .padding(horizontal = 16.dp, vertical = 10.dp),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Icon(Icons.Default.AccountBalanceWallet, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                            Icon(Icons.Default.AccountBalanceWallet, null, tint = Color.White, modifier = Modifier.size(20.dp))
                                             Spacer(Modifier.width(10.dp))
                                             Column {
-                                                Text("Wallet Balance", color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                                Text("TZS 1,450,000", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                                                Text("Wallet Balance", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp, fontWeight = FontWeight.Bold, softWrap = false)
+                                                val revenue = finances?.totalRevenue?.toLong() ?: 0L
+                                                Text("TZS ${revenue.toString().reversed().chunked(3).joinToString(",").reversed()}", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black, softWrap = false)
                                             }
                                         }
                                     }
@@ -326,7 +344,8 @@ fun OwnerDashboardScreen(
                                             Spacer(Modifier.width(10.dp))
                                             Text("Wallet Balance", color = Color.White.copy(alpha = 0.85f), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                                         }
-                                        Text("TZS 1,450,000", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Black)
+                                        val revenue = finances?.totalRevenue?.toLong() ?: 0L
+                                        Text("TZS ${revenue.toString().reversed().chunked(3).joinToString(",").reversed()}", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Black)
                                     }
                                 }
                             }
@@ -450,21 +469,36 @@ private fun SidebarNavItem(title: String, icon: ImageVector, active: Boolean, on
 
 @Composable
 private fun StatCardCompact(title: String, value: String, icon: ImageVector, modifier: Modifier = Modifier) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1f,
+        animationSpec = spring(stiffness = Spring.StiffnessMedium)
+    )
+
     Surface(
-        modifier = modifier,
+        modifier = modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clickable(interactionSource = interactionSource, indication = null) {},
         color = Color.White,
         shape = RoundedCornerShape(20.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        shadowElevation = 2.dp
+        shadowElevation = 3.dp
     ) {
         Column(Modifier.padding(18.dp)) {
             Box(
                 modifier = Modifier
-                    .size(36.dp)
-                    .background(PrimaryColor.copy(alpha = 0.08f), CircleShape),
+                    .size(38.dp)
+                    .background(
+                        Brush.linearGradient(listOf(PrimaryColor.copy(alpha = 0.12f), PrimaryLight.copy(alpha = 0.04f))),
+                        CircleShape
+                    ),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, null, tint = PrimaryColor, modifier = Modifier.size(18.dp))
+                Icon(icon, null, tint = PrimaryColor, modifier = Modifier.size(20.dp))
             }
             Spacer(Modifier.height(12.dp))
             Text(value, fontSize = 22.sp, fontWeight = FontWeight.Black, color = PrimaryColor)
@@ -475,20 +509,39 @@ private fun StatCardCompact(title: String, value: String, icon: ImageVector, mod
 
 @Composable
 private fun ActionItemCompact(title: String, icon: ImageVector, color: Color, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.94f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium)
+    )
+
     Surface(
         modifier = modifier
-            .height(84.dp)
-            .clickable { onClick() },
-        shape = RoundedCornerShape(16.dp),
-        color = color.copy(alpha = 0.06f),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.12f))
+            .height(86.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
+        shape = RoundedCornerShape(18.dp),
+        color = color.copy(alpha = 0.08f),
+        border = BorderStroke(1.2.dp, color.copy(alpha = 0.2f)),
+        shadowElevation = 1.dp
     ) {
         Column(
             modifier = Modifier.fillMaxSize().padding(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Icon(icon, null, tint = color, modifier = Modifier.size(22.dp))
+            Box(
+                modifier = Modifier
+                    .size(34.dp)
+                    .background(color.copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, null, tint = color, modifier = Modifier.size(18.dp))
+            }
             Spacer(Modifier.height(6.dp))
             Text(title, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = color)
         }
@@ -664,45 +717,101 @@ private fun SectionHeaderOwner(title: String) {
 @Composable
 private fun RevenueChart() {
     val revenueData = listOf(1.2f, 2.4f, 1.8f, 3.6f, 4.2f, 3.1f)
+    val months = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun")
     val maxRevenue = revenueData.maxOrNull() ?: 1f
 
     Surface(
-        modifier = Modifier.fillMaxWidth().height(160.dp),
+        modifier = Modifier.fillMaxWidth().height(190.dp),
         color = Color.White,
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(22.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        shadowElevation = 2.dp
+        shadowElevation = 3.dp
     ) {
         Column(Modifier.padding(18.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.BarChart, null, tint = PrimaryColor, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Monthly Earnings (TZS Millions)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.DarkGray)
-            }
-            Spacer(Modifier.weight(1f))
             Row(
-                modifier = Modifier.fillMaxWidth().height(80.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .background(PrimaryColor.copy(alpha = 0.1f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.BarChart, null, tint = PrimaryColor, modifier = Modifier.size(16.dp))
+                    }
+                    Spacer(Modifier.width(10.dp))
+                    Text("Monthly Earnings", fontSize = 13.sp, fontWeight = FontWeight.Black, color = Color(0xFF0F172A))
+                }
+
+                Surface(
+                    color = Color(0xFFEEF2FF),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        "TZS (Millions)",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryColor,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
+
+            Spacer(Modifier.weight(1f))
+
+            Row(
+                modifier = Modifier.fillMaxWidth().height(105.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
                 verticalAlignment = Alignment.Bottom
             ) {
                 revenueData.forEachIndexed { index, value ->
                     var barHeight by remember { mutableStateOf(0f) }
                     val animatedHeight by animateFloatAsState(
                         targetValue = barHeight,
-                        animationSpec = tween(durationMillis = 1000, delayMillis = index * 100)
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioLowBouncy,
+                            stiffness = Spring.StiffnessLow
+                        )
                     )
 
-                    LaunchedEffect(Unit) { barHeight = value / maxRevenue }
+                    LaunchedEffect(Unit) {
+                        barHeight = value / maxRevenue
+                    }
 
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight(animatedHeight)
-                            .background(
-                                Brush.verticalGradient(listOf(PrimaryLight, PrimaryColor)),
-                                RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp)
-                            )
-                    )
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Bottom
+                    ) {
+                        Text(
+                            text = "${value}M",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = PrimaryColor.copy(alpha = 0.8f)
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height((80 * animatedHeight).dp)
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(PrimaryLight, PrimaryColor)
+                                    ),
+                                    RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)
+                                )
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = months.getOrElse(index) { "" },
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF64748B)
+                        )
+                    }
                 }
             }
         }

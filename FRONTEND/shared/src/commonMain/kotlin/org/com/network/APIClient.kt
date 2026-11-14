@@ -20,12 +20,12 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
-import org.com.model.ApiResponse
+import org.com.getPlatformBaseUrl
 
 object ApiClient {
 
-    val MEDIA_BASE_URL = getPlatformBaseUrl()
-    val BASE_URL = "$MEDIA_BASE_URL/api/"
+    val MEDIA_BASE_URL: String = getPlatformBaseUrl()
+    val BASE_URL: String = "$MEDIA_BASE_URL/api/"
     private var token: String? = null
 
     init {
@@ -41,7 +41,7 @@ object ApiClient {
         if (path.isNullOrBlank()) return ""
 
         // Clean path - Remove any hardcoded or stale hostnames
-        var cleanPath = path
+        val cleanPath = path
             .replace("http://192.168.1.9:8080", "")
             .replace("https://192.168.1.9:8080", "")
             .replace("http://localhost:8080", "")

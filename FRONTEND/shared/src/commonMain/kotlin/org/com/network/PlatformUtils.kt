@@ -1,3 +1,3 @@
 package org.com.network
 
-expect fun getPlatformBaseUrl(): String
+fun getPlatformBaseUrl(): String = org.com.getPlatformBaseUrl()

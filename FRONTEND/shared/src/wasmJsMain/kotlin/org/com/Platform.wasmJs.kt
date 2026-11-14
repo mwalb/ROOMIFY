@@ -13,3 +13,12 @@ actual fun getPlatform(): Platform = WasmPlatform()
 private external fun dateNow(): Double
 
 actual fun currentTimeMillis(): Long = dateNow().toLong()
+
+actual fun getPlatformBaseUrl(): String {
+    val hostname = kotlinx.browser.window.location.hostname
+    return if (hostname == "localhost" || hostname == "127.0.0.1") {
+        "http://localhost:8080"
+    } else {
+        "https://roomifytz-backend.fly.dev"
+    }
+}

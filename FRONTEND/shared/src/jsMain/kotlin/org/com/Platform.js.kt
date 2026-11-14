@@ -15,3 +15,5 @@ class JsPlatform: Platform {
 actual fun getPlatform(): Platform = JsPlatform()
 
 actual fun currentTimeMillis(): Long = Date.now().toLong()
+
+actual fun getPlatformBaseUrl(): String = "http://localhost:8080"

@@ -3,9 +3,9 @@ package org.com.ui
 import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -28,7 +28,14 @@ import io.kamel.image.asyncPainterResource
 import org.com.model.Furniture
 import org.com.model.Shop
 
-@OptIn(ExperimentalMaterial3Api::class)
+private val BrandNavy = Color(0xFF1A237E)
+private val BrandIndigo = Color(0xFF3949AB)
+private val BrandBlueLight = Color(0xFFEEF2FF)
+private val BrandAmber = Color(0xFFFF9800)
+private val BrandSlate = Color(0xFF1E293B)
+private val BackgroundSurface = Color(0xFFF8FAFC)
+private val BorderColor = Color(0xFFE2E8F0)
+
 @Composable
 fun ShopDetailScreen(
     shop: Shop,
@@ -39,106 +46,305 @@ fun ShopDetailScreen(
     val uriHandler = LocalUriHandler.current
     val scrollState = rememberScrollState()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(shop.name, fontWeight = FontWeight.Black) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
-            )
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(scrollState)
-        ) {
-            // Header Image
-            Box(Modifier.fillMaxWidth().height(250.dp)) {
-                if (shop.fullImageUrls.isNotEmpty()) {
-                    KamelImage(
-                        resource = { asyncPainterResource(shop.fullImageUrls.first()) },
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else {
-                    Box(Modifier.fillMaxSize().background(Color(0xFFF0F2F5)), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.Storefront, null, modifier = Modifier.size(64.dp), tint = Color.LightGray)
-                    }
-                }
+    BoxWithConstraints(modifier = Modifier.fillMaxSize().background(BackgroundSurface)) {
+        val isWideScreen = maxWidth >= 768.dp
+        val horizontalPadding = if (isWideScreen) 48.dp else 20.dp
 
-                if (shop.hasVideo) {
-                    Surface(
-                        modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp).clickable {
-                            if (shop.videoUrl != null) uriHandler.openUri(shop.getFullUrl(shop.videoUrl))
-                        },
-                        color = Color.Red,
-                        shape = RoundedCornerShape(8.dp)
+        Scaffold(
+            containerColor = BackgroundSurface,
+            topBar = {
+                // Branded Hero Top App Bar
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Brush.horizontalGradient(listOf(BrandNavy, BrandIndigo)))
+                        .statusBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.PlayArrow, null, tint = Color.White, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("WATCH DEMO", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                        IconButton(
+                            onClick = onBack,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(Color.White.copy(alpha = 0.18f), CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Rudi Nyuma",
+                                tint = Color.White
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(14.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "ROOMIFY STORE",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 1.2.sp,
+                                    color = BrandAmber
+                                )
+                                Spacer(Modifier.width(6.dp))
+                                Surface(
+                                    color = Color.White.copy(alpha = 0.2f),
+                                    shape = RoundedCornerShape(4.dp)
+                                ) {
+                                    Text(
+                                        text = "${shopFurniture.size} BIDHAA",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+
+                            Text(
+                                text = shop.name,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Black,
+                                color = Color.White,
+                                maxLines = 1
+                            )
                         }
                     }
                 }
             }
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .verticalScroll(scrollState),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Header Image Banner
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(if (isWideScreen) 340.dp else 240.dp)
+                ) {
+                    if (shop.fullImageUrls.isNotEmpty()) {
+                        KamelImage(
+                            resource = { asyncPainterResource(shop.fullImageUrls.first()) },
+                            contentDescription = shop.name,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize(),
+                            onLoading = {
+                                Box(Modifier.fillMaxSize().background(Color(0xFFF1F5F9)), contentAlignment = Alignment.Center) {
+                                    CircularProgressIndicator(color = BrandNavy, strokeWidth = 2.dp)
+                                }
+                            }
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Brush.linearGradient(listOf(BrandBlueLight, Color(0xFFF1F5F9)))),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Storefront, null, modifier = Modifier.size(64.dp), tint = BrandNavy.copy(alpha = 0.35f))
+                        }
+                    }
 
-            Column(Modifier.padding(24.dp)) {
-                Text(shop.name, fontSize = 28.sp, fontWeight = FontWeight.Black)
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
-                    Icon(Icons.Default.LocationOn, null, tint = Color(0xFF6200EE), modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text(shop.address ?: "Dar es Salaam", color = Color.Gray, fontSize = 14.sp)
+                    if (shop.hasVideo && !shop.videoUrl.isNullOrBlank()) {
+                        Surface(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(16.dp)
+                                .clickable { uriHandler.openUri(shop.getFullUrl(shop.videoUrl!!)) },
+                            color = Color(0xFFEF4444),
+                            shape = RoundedCornerShape(12.dp),
+                            shadowElevation = 4.dp
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.PlayArrow, null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("ANGALIA VIDEO", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black)
+                            }
+                        }
+                    }
                 }
 
-                Spacer(Modifier.height(24.dp))
-                Text("Kuhusu Duka Hili", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                Text(shop.description, color = Color.DarkGray, lineHeight = 24.sp)
-
-                Spacer(Modifier.height(24.dp))
-                Text("Mawasiliano", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedButton(
-                        onClick = { uriHandler.openUri("tel:${shop.contactPhone}") },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
+                // Shop Information Content
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .widthIn(max = 840.dp)
+                        .padding(horizontal = horizontalPadding, vertical = 22.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    // Title and Address Card
+                    Surface(
+                        color = Color.White,
+                        shape = RoundedCornerShape(20.dp),
+                        border = BorderStroke(1.dp, BorderColor),
+                        shadowElevation = 1.dp
                     ) {
-                        Icon(Icons.Default.Call, null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Piga Simu")
+                        Column(modifier = Modifier.padding(20.dp)) {
+                            Text(
+                                text = shop.name,
+                                fontSize = if (isWideScreen) 28.sp else 22.sp,
+                                fontWeight = FontWeight.Black,
+                                color = BrandSlate
+                            )
+
+                            Spacer(Modifier.height(8.dp))
+
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(30.dp)
+                                        .background(BrandBlueLight, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Default.LocationOn, null, tint = BrandNavy, modifier = Modifier.size(16.dp))
+                                }
+                                Spacer(Modifier.width(10.dp))
+                                Text(
+                                    text = shop.address ?: "Dar es Salaam, Tanzania",
+                                    color = Color(0xFF475569),
+                                    fontSize = 14.sp
+                                )
+                            }
+                        }
                     }
-                    Button(
-                        onClick = { uriHandler.openUri("https://www.google.com/maps/search/?api=1&query=${shop.latitude},${shop.longitude}") },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
+
+                    // Description Card
+                    if (shop.description.isNotBlank()) {
+                        Surface(
+                            color = Color.White,
+                            shape = RoundedCornerShape(18.dp),
+                            border = BorderStroke(1.dp, BorderColor),
+                            shadowElevation = 1.dp
+                        ) {
+                            Column(Modifier.padding(18.dp)) {
+                                Text(
+                                    text = "Kuhusu Duka Hili",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = BrandSlate
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    text = shop.description,
+                                    color = Color(0xFF475569),
+                                    lineHeight = 22.sp,
+                                    fontSize = 14.sp
+                                )
+                            }
+                        }
+                    }
+
+                    // Contact Actions Card
+                    Surface(
+                        color = Color.White,
+                        shape = RoundedCornerShape(18.dp),
+                        border = BorderStroke(1.dp, BorderColor),
+                        shadowElevation = 1.dp
                     ) {
-                        Icon(Icons.Default.Map, null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Ramani")
-                    }
-                }
+                        Column(
+                            modifier = Modifier.padding(18.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Text(
+                                text = "Mawasiliano na Eneo",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = BrandSlate
+                            )
 
-                Spacer(Modifier.height(32.dp))
-                Text("Bidhaa za Duka Hili", fontSize = 20.sp, fontWeight = FontWeight.Black)
-                Spacer(Modifier.height(16.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                if (!shop.contactPhone.isNullOrBlank()) {
+                                    OutlinedButton(
+                                        onClick = { uriHandler.openUri("tel:${shop.contactPhone}") },
+                                        modifier = Modifier.weight(1f).height(50.dp),
+                                        shape = RoundedCornerShape(14.dp),
+                                        border = BorderStroke(1.5.dp, BrandNavy),
+                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = BrandNavy)
+                                    ) {
+                                        Icon(Icons.Default.Call, null, modifier = Modifier.size(18.dp))
+                                        Spacer(Modifier.width(8.dp))
+                                        Text("Piga Simu", fontWeight = FontWeight.Bold)
+                                    }
+                                }
 
-                if (shopFurniture.isEmpty()) {
-                    Box(Modifier.fillMaxWidth().height(150.dp).background(Color(0xFFF8F9FA), RoundedCornerShape(16.dp)), contentAlignment = Alignment.Center) {
-                        Text("Bado hakuna bidhaa zilizopostiwa", color = Color.Gray)
+                                if (shop.latitude != 0.0 && shop.longitude != 0.0) {
+                                    Button(
+                                        onClick = {
+                                            uriHandler.openUri("https://www.google.com/maps/search/?api=1&query=${shop.latitude},${shop.longitude}")
+                                        },
+                                        modifier = Modifier.weight(1f).height(50.dp),
+                                        shape = RoundedCornerShape(14.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = BrandNavy)
+                                    ) {
+                                        Icon(Icons.Default.Map, null, modifier = Modifier.size(18.dp))
+                                        Spacer(Modifier.width(8.dp))
+                                        Text("Ramani", fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
                     }
-                } else {
-                    shopFurniture.forEach { item ->
-                        FurnitureCard(item, onClick = { onViewFurniture(item) })
-                        Spacer(Modifier.height(16.dp))
+
+                    // Products in Shop Section
+                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Bidhaa za Duka Hili",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Black,
+                                color = BrandSlate
+                            )
+                            Surface(
+                                color = BrandBlueLight,
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text(
+                                    text = "${shopFurniture.size} zipo",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = BrandNavy,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
+
+                        if (shopFurniture.isEmpty()) {
+                            Surface(
+                                color = Color.White,
+                                shape = RoundedCornerShape(16.dp),
+                                border = BorderStroke(1.dp, BorderColor),
+                                modifier = Modifier.fillMaxWidth().height(140.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Icon(Icons.Default.Inventory2, null, tint = Color.LightGray, modifier = Modifier.size(40.dp))
+                                        Spacer(Modifier.height(8.dp))
+                                        Text("Bado hakuna bidhaa zilizopostiwa chini ya duka hili", color = Color.Gray, fontSize = 13.sp)
+                                    }
+                                }
+                            }
+                        } else {
+                            shopFurniture.forEach { item ->
+                                FurnitureCard(furniture = item, onClick = { onViewFurniture(item) })
+                            }
+                        }
                     }
+
+                    Spacer(Modifier.height(60.dp))
                 }
             }
         }
