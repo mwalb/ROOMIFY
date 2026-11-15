@@ -7,7 +7,9 @@ import org.springframework.context.annotation.Bean;
 import com.ROOMIFY.Roomify.repository.RoomRepository;
 import org.springframework.boot.autoconfigure.r2dbc.R2dbcAutoConfiguration;
 import org.springframework.boot.autoconfigure.r2dbc.R2dbcTransactionManagerAutoConfiguration;
+import org.springframework.scheduling.annotation.EnableAsync;
 
+@EnableAsync
 @SpringBootApplication(exclude = {
 		R2dbcAutoConfiguration.class,
 		R2dbcTransactionManagerAutoConfiguration.class

@@ -41,6 +41,9 @@ public class BookingController {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private com.ROOMIFY.Roomify.service.NotificationService notificationService;
+
     @PostMapping
     public ResponseEntity<ApiResponse<BookingResponseDTO>> createBooking(@RequestBody BookingRequestDto bookingRequest) {
         try {
@@ -120,6 +123,12 @@ public class BookingController {
             booking.setSpecialRequests(bookingRequest.getSpecialRequests());
 
             Booking savedBooking = bookingRepository.save(booking);
+
+            try {
+                notificationService.notifyBookingCreated(savedBooking);
+            } catch (Exception notifEx) {
+                System.err.println("Warning: Failed to send booking creation notifications: " + notifEx.getMessage());
+            }
 
             BookingResponseDTO responseDTO = convertToDTO(savedBooking);
 
@@ -296,8 +305,19 @@ public class BookingController {
                         other.setStatus("REJECTED");
                         other.setUpdatedAt(LocalDateTime.now());
                         bookingRepository.save(other);
+                        try {
+                            notificationService.notifyBookingStatusUpdated(other, "REJECTED", "Property was booked by another tenant");
+                        } catch (Exception notifEx) {
+                            System.err.println("Warning: Failed to notify other tenant: " + notifEx.getMessage());
+                        }
                     }
                 }
+            }
+
+            try {
+                notificationService.notifyBookingStatusUpdated(savedBooking, "ACCEPTED", null);
+            } catch (Exception notifEx) {
+                System.err.println("Warning: Failed to send booking acceptance notification: " + notifEx.getMessage());
             }
 
             BookingResponseDTO responseDTO = convertToDTO(savedBooking);
@@ -347,6 +367,12 @@ public class BookingController {
             booking.setUpdatedAt(LocalDateTime.now());
             Booking savedBooking = bookingRepository.save(booking);
 
+            try {
+                notificationService.notifyBookingCancelled(savedBooking);
+            } catch (Exception notifEx) {
+                System.err.println("Warning: Failed to send booking cancellation notification: " + notifEx.getMessage());
+            }
+
             // If an ACCEPTED/CONFIRMED booking is cancelled, room becomes AVAILABLE again
             if ("ACCEPTED".equals(oldStatus) || "CONFIRMED".equals(oldStatus)) {
                 Room room = booking.getRoom();
@@ -355,6 +381,11 @@ public class BookingController {
                     room.setAvailable(true);
                     room.setUpdatedAt(LocalDateTime.now());
                     roomRepository.save(room);
+                    try {
+                        notificationService.notifyRoomAvailable(room);
+                    } catch (Exception availEx) {
+                        System.err.println("Warning: Failed to send availability notification: " + availEx.getMessage());
+                    }
                 }
             }
 

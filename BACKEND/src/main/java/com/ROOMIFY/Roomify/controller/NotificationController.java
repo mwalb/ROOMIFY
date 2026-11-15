@@ -43,6 +43,9 @@ public class NotificationController {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private com.ROOMIFY.Roomify.service.EmailService emailService;
+
     private User getAuthenticatedUser() {
         try {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -240,6 +243,35 @@ public class NotificationController {
             return ResponseEntity.ok(new ApiResponse<>(true, count, "Unread count retrieved"));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(new ApiResponse<>(false, 0L, e.getMessage()));
+        }
+    }
+
+    // TEST EMAIL ENDPOINT (BREVO SMTP / REST API) - Supports both GET and POST
+    @RequestMapping(value = "/test-email", method = {RequestMethod.GET, RequestMethod.POST})
+    public ResponseEntity<ApiResponse<String>> testEmail(@RequestBody(required = false) Map<String, String> body,
+                                                         @RequestParam(required = false) String email) {
+        try {
+            String targetEmail = email;
+            if (targetEmail == null && body != null) {
+                targetEmail = body.get("email");
+            }
+            if (targetEmail == null || targetEmail.isBlank()) {
+                return ResponseEntity.badRequest().body(new ApiResponse<>(false, null, "Recipient email is required"));
+            }
+
+            String html = emailService.buildWelcomeEmail("Valued Roomify User", "TENANT");
+            boolean sent = emailService.sendEmail(targetEmail, "Valued Roomify User", "ROOMIFY - Test Brevo Email Delivery", html);
+
+            if (sent) {
+                return ResponseEntity.ok(new ApiResponse<>(true, "Success", "Test email dispatched successfully to " + targetEmail));
+            } else {
+                String detail = emailService.getLastDeliveryStatus();
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(new ApiResponse<>(false, detail, "Failed to dispatch email. Brevo reported: " + detail));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>(false, null, "Error dispatching test email: " + e.getMessage()));
         }
     }
 }

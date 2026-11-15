@@ -122,7 +122,7 @@ fun TenantScreen(
 
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             TenantSidebarNavItem("Dashboard", Icons.Default.Dashboard, true) { 
-                                if (isMobile) mobileDrawerOpen = false 
+                                if (isMobile) mobileDrawerOpen = false
                             }
                             TenantSidebarNavItem("Explore Map", Icons.Default.Map, false) { 
                                 onExploreRooms() 
@@ -238,7 +238,7 @@ fun TenantScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     IconButton(
-                                        onClick = { 
+                                        onClick = {
                                             if (isMobile) mobileDrawerOpen = !mobileDrawerOpen
                                             else isSidebarVisible = !isSidebarVisible
                                         },

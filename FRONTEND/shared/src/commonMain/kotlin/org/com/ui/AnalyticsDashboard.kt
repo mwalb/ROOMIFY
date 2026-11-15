@@ -117,7 +117,7 @@ fun AnalyticsScreen(onBack: () -> Unit) {
                     titleContentColor = Color.White
                 ),
                 actions = {
-                    AnimatedIconButton(onClick = { 
+                    AnimatedIconButton(onClick = {
                         refreshTrigger++
                     }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = Color.White)

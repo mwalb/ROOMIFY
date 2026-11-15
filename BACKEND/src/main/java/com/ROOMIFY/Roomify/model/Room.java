@@ -263,6 +263,15 @@ public class Room {
 
 
     @Transient
+    public String getLocation() {
+        return this.address;
+    }
+
+    public void setLocation(String location) {
+        this.address = location;
+    }
+
+    @Transient
     public String getLocationSummary() {
         if (address != null && !address.isEmpty()) {
             String[] parts = address.split(",");

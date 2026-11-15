@@ -45,6 +45,9 @@ public class AdminManagementController {
     @Autowired
     private AuditLogRepository auditLogRepository;
 
+    @Autowired
+    private com.ROOMIFY.Roomify.service.NotificationService notificationService;
+
     @GetMapping("/stats")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getAdminStats() {
         Map<String, Object> stats = new HashMap<>();
@@ -106,6 +109,11 @@ public class AdminManagementController {
         user.setVerificationStatus(VerificationStatus.VERIFIED);
         user.setVerifiedAt(LocalDateTime.now());
         User saved = userRepository.save(user);
+        try {
+            notificationService.notifyUserAccountStatus(saved, "VERIFIED", null);
+        } catch (Exception notifEx) {
+            System.err.println("Warning: Failed to send user verification notification: " + notifEx.getMessage());
+        }
         auditService.log("VERIFY_USER", "User", id.toString(), "User verified: " + user.getEmail());
 
         return ResponseEntity.ok(new ApiResponse<>(true, saved, "User verified successfully"));
@@ -120,6 +128,11 @@ public class AdminManagementController {
         user.setVerificationStatus(VerificationStatus.REJECTED);
         user.setRejectionReason(reason);
         User saved = userRepository.save(user);
+        try {
+            notificationService.notifyUserAccountStatus(saved, "REJECTED", reason);
+        } catch (Exception notifEx) {
+            System.err.println("Warning: Failed to send user rejection notification: " + notifEx.getMessage());
+        }
         auditService.log("REJECT_USER", "User", id.toString(), "User rejected: " + user.getEmail() + ". Reason: " + reason);
 
         return ResponseEntity.ok(new ApiResponse<>(true, saved, "User rejected"));
@@ -132,6 +145,11 @@ public class AdminManagementController {
 
         user.setStatus("SUSPENDED");
         User saved = userRepository.save(user);
+        try {
+            notificationService.notifyUserAccountStatus(saved, "SUSPENDED", "Account suspended by administrator");
+        } catch (Exception notifEx) {
+            System.err.println("Warning: Failed to send user suspension notification: " + notifEx.getMessage());
+        }
         auditService.log("SUSPEND_USER", "User", id.toString(), "User suspended: " + user.getEmail());
 
         return ResponseEntity.ok(new ApiResponse<>(true, saved, "User suspended successfully"));
@@ -144,6 +162,11 @@ public class AdminManagementController {
 
         user.setStatus("ACTIVE");
         User saved = userRepository.save(user);
+        try {
+            notificationService.notifyUserAccountStatus(saved, "ACTIVE", "Account reinstated by administrator");
+        } catch (Exception notifEx) {
+            System.err.println("Warning: Failed to send user unsuspension notification: " + notifEx.getMessage());
+        }
         auditService.log("UNSUSPEND_USER", "User", id.toString(), "User unsuspended: " + user.getEmail());
 
         return ResponseEntity.ok(new ApiResponse<>(true, saved, "User unsuspended successfully"));

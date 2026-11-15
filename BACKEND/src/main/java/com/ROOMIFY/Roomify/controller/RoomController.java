@@ -47,6 +47,9 @@ public class RoomController {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private com.ROOMIFY.Roomify.service.NotificationService notificationService;
+
     @Value("${file.upload.dir:uploads}")
     private String uploadDir;
 
@@ -253,6 +256,14 @@ public class RoomController {
 
             Room updated = repo.save(room);
             notifier.notifyRoomUpdate(updated);
+
+            if ("AVAILABLE".equalsIgnoreCase(updated.getStatus()) && updated.isAvailable()) {
+                try {
+                    notificationService.notifyRoomAvailable(updated);
+                } catch (Exception notifEx) {
+                    System.err.println("Warning: Failed to notify room subscribers: " + notifEx.getMessage());
+                }
+            }
             return ResponseEntity.ok(updated);
         } catch (Exception e) {
             e.printStackTrace();
@@ -513,6 +524,11 @@ public class RoomController {
             room.approve();
             room.setVerifiedBy(user.getId());
             repo.save(room);
+            try {
+                notificationService.notifyPropertyStatusUpdated(room, "VERIFIED", null);
+            } catch (Exception notifEx) {
+                System.err.println("Warning: Failed to send property verification notification: " + notifEx.getMessage());
+            }
             auditService.log("VERIFY_PROPERTY", "Room", id.toString(), "Property verified by admin: " + user.getEmail());
             return ResponseEntity.ok(new ApiResponse<>(true, null, "Property verified successfully"));
         } catch (Exception e) {
@@ -542,6 +558,11 @@ public class RoomController {
             room.reject(reason);
             room.setVerifiedBy(user.getId());
             repo.save(room);
+            try {
+                notificationService.notifyPropertyStatusUpdated(room, "REJECTED", reason);
+            } catch (Exception notifEx) {
+                System.err.println("Warning: Failed to send property rejection notification: " + notifEx.getMessage());
+            }
             auditService.log("REJECT_PROPERTY", "Room", id.toString(), "Property rejected by admin: " + user.getEmail() + ". Reason: " + reason);
             return ResponseEntity.ok(new ApiResponse<>(true, null, "Property rejected"));
         } catch (Exception e) {
@@ -594,6 +615,11 @@ public class RoomController {
             room.setStatus("AVAILABLE");
             room.setAvailable(true);
             repo.save(room);
+            try {
+                notificationService.notifyRoomAvailable(room);
+            } catch (Exception notifEx) {
+                System.err.println("Warning: Failed to notify room subscribers: " + notifEx.getMessage());
+            }
             auditService.log("UNSUSPEND_PROPERTY", "Room", id.toString(), "Property unsuspended by admin: " + user.getEmail());
             return ResponseEntity.ok(new ApiResponse<>(true, null, "Property unsuspended successfully"));
         } catch (Exception e) {

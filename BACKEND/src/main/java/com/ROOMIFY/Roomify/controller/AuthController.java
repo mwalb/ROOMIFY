@@ -42,6 +42,9 @@ public class AuthController {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private com.ROOMIFY.Roomify.service.NotificationService notificationService;
+
     @Value("${google.client.id:}")
     private String googleClientId;
 
@@ -166,6 +169,11 @@ public class AuthController {
             user.setLastLoginAt(LocalDateTime.now());
 
             User savedUser = userService.save(user);
+            try {
+                notificationService.notifyUserRegistered(savedUser);
+            } catch (Exception notifEx) {
+                System.err.println("Warning: Failed to send welcome notification: " + notifEx.getMessage());
+            }
             String jwt = jwtUtil.generateToken(savedUser.getEmail(), savedUser.getRole().name());
             return ResponseEntity.ok(new AuthResponse(true, jwt, savedUser, "Google registration successful"));
         } catch (IOException | GeneralSecurityException e) {
@@ -321,6 +329,11 @@ public class AuthController {
             user.setLastLoginAt(LocalDateTime.now());
 
             User savedUser = userService.save(user);
+            try {
+                notificationService.notifyUserRegistered(savedUser);
+            } catch (Exception notifEx) {
+                System.err.println("Warning: Failed to send welcome notification: " + notifEx.getMessage());
+            }
 
             String token = jwtUtil.generateToken(savedUser.getEmail(), savedUser.getRole().name());
 
@@ -505,6 +518,11 @@ public class AuthController {
         }
         String resetCode = String.format("%06d", new Random().nextInt(900000) + 100000);
         System.out.println("=== PASSWORD RESET CODE FOR " + email + ": " + resetCode + " ===");
+        try {
+            notificationService.sendPasswordResetCode(userOpt.get(), resetCode);
+        } catch (Exception notifEx) {
+            System.err.println("Warning: Failed to send password reset email: " + notifEx.getMessage());
+        }
         return ResponseEntity.ok(new ApiResponse<>(true, resetCode, "Reset code generated and sent to " + email));
     }
 
