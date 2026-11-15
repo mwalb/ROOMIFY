@@ -53,17 +53,21 @@ val styleOptions = listOf(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AIRoomArrangerDialog(
-    room: Room,
+    room: Room? = null,
+    initialFurnitureName: String? = null,
     onDismiss: () -> Unit
 ) {
-    var currentStep by remember { mutableStateOf(1) }
-    var selectedImageUrl by remember { mutableStateOf(room.images.firstOrNull() ?: "") }
-    var selectedFurniture by remember { mutableStateOf(setOf<String>()) }
+    var currentStep by remember { mutableStateOf(if (room == null || room.images.isEmpty()) 2 else 1) }
+    var selectedImageUrl by remember { mutableStateOf(room?.images?.firstOrNull() ?: "") }
+    var selectedFurniture by remember { 
+        mutableStateOf(if (initialFurnitureName != null) setOf(initialFurnitureName) else setOf<String>()) 
+    }
     var selectedStyle by remember { mutableStateOf(styleOptions.first()) }
 
-    val initialDim = if(room.area > 0) (kotlin.math.sqrt(room.area) * 10).toInt() / 10.0 else 0.0
-    var roomWidth by remember { mutableStateOf(if(initialDim > 0) initialDim.toString() else "") }
-    var roomLength by remember { mutableStateOf(if(initialDim > 0) initialDim.toString() else "") }
+    val roomArea = room?.area ?: 0.0
+    val initialDim = if(roomArea > 0) (kotlin.math.sqrt(roomArea) * 10).toInt() / 10.0 else 0.0
+    var roomWidth by remember { mutableStateOf(if(initialDim > 0) initialDim.toString() else "4.0") }
+    var roomLength by remember { mutableStateOf(if(initialDim > 0) initialDim.toString() else "4.5") }
     var ceilingHeight by remember { mutableStateOf("2.8") }
     var instructions by remember { mutableStateOf("") }
 
@@ -127,7 +131,7 @@ fun AIRoomArrangerDialog(
                         verticalArrangement = Arrangement.spacedBy(24.dp)
                     ) {
                         when (currentStep) {
-                            1 -> StepSelectImage(room.images, selectedImageUrl) { selectedImageUrl = it }
+                            1 -> StepSelectImage(room?.images ?: emptyList(), selectedImageUrl) { selectedImageUrl = it }
                             2 -> StepSelectFurniture(selectedFurniture) {
                                 selectedFurniture = if (it in selectedFurniture) selectedFurniture - it else selectedFurniture + it
                             }

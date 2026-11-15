@@ -43,12 +43,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         logger.info("Request path: {}", request.getServletPath());
         logger.info("Authorization header: {}", authHeader != null ? "Present" : "Missing");
 
-        // Skip authentication for public endpoints
+        // Skip authentication check for known public prefixes
         String requestPath = request.getServletPath();
         if (requestPath.startsWith("/api/auth/") ||
                 requestPath.startsWith("/api/public/") ||
-                requestPath.startsWith("/api/furniture/")) {
-            logger.info("Skipping authentication for public endpoint: {}", requestPath);
+                requestPath.startsWith("/uploads/") ||
+                (request.getMethod().equalsIgnoreCase("GET") && (
+                        requestPath.startsWith("/api/rooms") ||
+                        requestPath.startsWith("/api/furniture") ||
+                        requestPath.startsWith("/api/shops") ||
+                        requestPath.startsWith("/api/reviews")
+                ))) {
             filterChain.doFilter(request, response);
             return;
         }

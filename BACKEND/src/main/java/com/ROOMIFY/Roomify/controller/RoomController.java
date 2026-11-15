@@ -130,6 +130,21 @@ public class RoomController {
                 room.calculateCommission();
             }
 
+            // Obey 3NF: Synchronize poster contact details from User entity
+            if (room.getPostedBy() != null) {
+                userRepository.findById(room.getPostedBy()).ifPresent(user -> {
+                    if (room.getOwnerName() == null || room.getOwnerName().isBlank()) {
+                        room.setOwnerName(user.getName());
+                    }
+                    if (room.getContactPhone() == null || room.getContactPhone().isBlank()) {
+                        room.setContactPhone(user.getPhone());
+                    }
+                    if (room.getContactEmail() == null || room.getContactEmail().isBlank()) {
+                        room.setContactEmail(user.getEmail());
+                    }
+                });
+            }
+
             // Validate required fields
             if (room.getPostedBy() == null) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("postedBy is required");
@@ -174,9 +189,32 @@ public class RoomController {
             room.setLongitude(roomDetails.getLongitude());
             room.setAddress(roomDetails.getAddress());
             room.setPropertyType(roomDetails.getPropertyType());
-            room.setContactPhone(roomDetails.getContactPhone());
-            room.setContactEmail(roomDetails.getContactEmail());
-            room.setOwnerName(roomDetails.getOwnerName());
+
+            // Obey 3NF: If poster is linked to User, update from User or sync back
+            if (room.getPostedBy() != null) {
+                userRepository.findById(room.getPostedBy()).ifPresent(user -> {
+                    if (roomDetails.getContactPhone() == null || roomDetails.getContactPhone().isBlank()) {
+                        room.setContactPhone(user.getPhone());
+                    } else {
+                        room.setContactPhone(roomDetails.getContactPhone());
+                    }
+                    if (roomDetails.getContactEmail() == null || roomDetails.getContactEmail().isBlank()) {
+                        room.setContactEmail(user.getEmail());
+                    } else {
+                        room.setContactEmail(roomDetails.getContactEmail());
+                    }
+                    if (roomDetails.getOwnerName() == null || roomDetails.getOwnerName().isBlank()) {
+                        room.setOwnerName(user.getName());
+                    } else {
+                        room.setOwnerName(roomDetails.getOwnerName());
+                    }
+                });
+            } else {
+                room.setContactPhone(roomDetails.getContactPhone());
+                room.setContactEmail(roomDetails.getContactEmail());
+                room.setOwnerName(roomDetails.getOwnerName());
+            }
+
             room.setAmenities(roomDetails.getAmenities());
             room.setRules(roomDetails.getRules());
             room.setRoomsCount(roomDetails.getRoomsCount());

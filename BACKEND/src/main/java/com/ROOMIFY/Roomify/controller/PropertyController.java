@@ -1,16 +1,21 @@
 package com.ROOMIFY.Roomify.controller;
 
 import com.ROOMIFY.Roomify.dto.ApiResponse;
+import com.ROOMIFY.Roomify.dto.PropertyResponseDTO;
 import com.ROOMIFY.Roomify.model.Property;
 import com.ROOMIFY.Roomify.model.Room;
+import com.ROOMIFY.Roomify.model.User;
 import com.ROOMIFY.Roomify.repository.PropertyRepository;
 import com.ROOMIFY.Roomify.repository.RoomRepository;
+import com.ROOMIFY.Roomify.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/properties")
@@ -23,37 +28,72 @@ public class PropertyController {
     @Autowired
     private RoomRepository roomRepository;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    private List<PropertyResponseDTO> toDTOList(List<Property> properties) {
+        if (properties.isEmpty()) return Collections.emptyList();
+
+        Set<Long> ownerIds = properties.stream()
+                .map(Property::getOwnerId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Map<Long, User> ownerMap = ownerIds.isEmpty() ? Collections.emptyMap() :
+                userRepository.findAllById(ownerIds).stream()
+                        .collect(Collectors.toMap(User::getId, Function.identity()));
+
+        return properties.stream()
+                .map(p -> PropertyResponseDTO.fromEntity(p, ownerMap.get(p.getOwnerId())))
+                .collect(Collectors.toList());
+    }
+
+    private PropertyResponseDTO toDTO(Property p) {
+        User owner = p.getOwnerId() != null ? userRepository.findById(p.getOwnerId()).orElse(null) : null;
+        return PropertyResponseDTO.fromEntity(p, owner);
+    }
+
     @GetMapping
-    public ResponseEntity<ApiResponse<List<Property>>> getAll() {
-        return ResponseEntity.ok(new ApiResponse<>(true, repository.findAll(), "Properties retrieved"));
+    public ResponseEntity<ApiResponse<List<PropertyResponseDTO>>> getAll() {
+        return ResponseEntity.ok(new ApiResponse<>(true, toDTOList(repository.findAll()), "Properties retrieved"));
     }
 
     @GetMapping("/{id}")
     @Transactional(readOnly = true)
-    public ResponseEntity<ApiResponse<Property>> getById(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<PropertyResponseDTO>> getById(@PathVariable Long id) {
         return repository.findById(id)
                 .map(p -> {
                     // Force load units if lazy
                     p.getUnits().size(); 
-                    return ResponseEntity.ok(new ApiResponse<>(true, p, "Property found"));
+                    return ResponseEntity.ok(new ApiResponse<>(true, toDTO(p), "Property found"));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<Property>> create(@RequestBody Property property) {
-        // Link units to property if they exist in request
+    public ResponseEntity<ApiResponse<PropertyResponseDTO>> create(@RequestBody Property property) {
+        // Obey 3NF: Link units to property if they exist in request
         if (property.getUnits() != null) {
             for (Room unit : property.getUnits()) {
                 unit.setProperty(property);
             }
         }
+
+        // Synchronize owner details from User entity
+        if (property.getOwnerId() != null) {
+            userRepository.findById(property.getOwnerId()).ifPresent(user -> {
+                property.setOwnerName(user.getName());
+                property.setContactPhone(user.getPhone());
+                property.setContactEmail(user.getEmail());
+            });
+        }
+
         Property saved = repository.save(property);
-        return ResponseEntity.ok(new ApiResponse<>(true, saved, "Property created"));
+        return ResponseEntity.ok(new ApiResponse<>(true, toDTO(saved), "Property created"));
     }
 
     @GetMapping("/owner/{ownerId}")
-    public ResponseEntity<ApiResponse<List<Property>>> getByOwner(@PathVariable Long ownerId) {
-        return ResponseEntity.ok(new ApiResponse<>(true, repository.findByOwnerId(ownerId), "Owner properties retrieved"));
+    public ResponseEntity<ApiResponse<List<PropertyResponseDTO>>> getByOwner(@PathVariable Long ownerId) {
+        return ResponseEntity.ok(new ApiResponse<>(true, toDTOList(repository.findByOwnerId(ownerId)), "Owner properties retrieved"));
     }
 }

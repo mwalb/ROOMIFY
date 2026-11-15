@@ -1,8 +1,13 @@
 package com.ROOMIFY.Roomify.controller;
 
 import com.ROOMIFY.Roomify.dto.ApiResponse;
+import com.ROOMIFY.Roomify.dto.FurnitureResponseDTO;
 import com.ROOMIFY.Roomify.model.Furniture;
+import com.ROOMIFY.Roomify.model.Shop;
+import com.ROOMIFY.Roomify.model.User;
 import com.ROOMIFY.Roomify.repository.FurnitureRepository;
+import com.ROOMIFY.Roomify.repository.ShopRepository;
+import com.ROOMIFY.Roomify.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -12,9 +17,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/furniture")
@@ -24,32 +29,100 @@ public class FurnitureController {
     @Autowired
     private FurnitureRepository repository;
 
+    @Autowired
+    private ShopRepository shopRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
     @Value("${file.upload.dir:uploads}")
     private String uploadDir;
 
+    private FurnitureResponseDTO toDTO(Furniture f) {
+        Shop shop = (f.getShopId() != null) ? shopRepository.findById(f.getShopId()).orElse(null) : null;
+        User user = (f.getPostedBy() != null) ? userRepository.findById(f.getPostedBy()).orElse(null) : null;
+        return FurnitureResponseDTO.fromEntity(f, shop, user);
+    }
+
+    private List<FurnitureResponseDTO> toDTOList(List<Furniture> list) {
+        if (list.isEmpty()) return Collections.emptyList();
+
+        Set<Long> shopIds = list.stream()
+                .map(Furniture::getShopId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Set<Long> userIds = list.stream()
+                .map(Furniture::getPostedBy)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Map<Long, Shop> shopMap = shopIds.isEmpty() ? Collections.emptyMap() :
+                shopRepository.findAllById(shopIds).stream()
+                        .collect(Collectors.toMap(Shop::getId, Function.identity()));
+
+        Map<Long, User> userMap = userIds.isEmpty() ? Collections.emptyMap() :
+                userRepository.findAllById(userIds).stream()
+                        .collect(Collectors.toMap(User::getId, Function.identity()));
+
+        return list.stream()
+                .map(f -> {
+                    Shop shop = f.getShopId() != null ? shopMap.get(f.getShopId()) : null;
+                    User user = f.getPostedBy() != null ? userMap.get(f.getPostedBy()) : null;
+                    return FurnitureResponseDTO.fromEntity(f, shop, user);
+                })
+                .collect(Collectors.toList());
+    }
+
     @GetMapping
-    public ResponseEntity<ApiResponse<List<Furniture>>> getAll() {
-        return ResponseEntity.ok(new ApiResponse<>(true, repository.findAll(), "Furniture retrieved"));
+    public ResponseEntity<ApiResponse<List<FurnitureResponseDTO>>> getAll() {
+        return ResponseEntity.ok(new ApiResponse<>(true, toDTOList(repository.findAll()), "Furniture retrieved"));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<Furniture>> getById(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<FurnitureResponseDTO>> getById(@PathVariable Long id) {
         return repository.findById(id)
-                .map(furniture -> ResponseEntity.ok(new ApiResponse<>(true, furniture, "Furniture found")))
+                .map(furniture -> ResponseEntity.ok(new ApiResponse<>(true, toDTO(furniture), "Furniture found")))
                 .orElse(ResponseEntity.status(404).body(new ApiResponse<>(false, null, "Furniture not found")));
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<Furniture>> create(@RequestBody Furniture furniture) {
+    public ResponseEntity<ApiResponse<FurnitureResponseDTO>> create(@RequestBody Furniture furniture) {
         if (furniture.getStatus() == null || furniture.getStatus().isBlank()) {
             furniture.setStatus("AVAILABLE");
         }
+
+        // In 3NF: If associated with a Shop, synchronize or clear redundant contact details
+        // while preserving data consistency
+        if (furniture.getShopId() != null) {
+            shopRepository.findById(furniture.getShopId()).ifPresent(shop -> {
+                furniture.setOwnerName(shop.getName());
+                furniture.setContactPhone(shop.getContactPhone());
+                furniture.setContactEmail(shop.getContactEmail());
+                furniture.setAddress(shop.getAddress());
+                furniture.setLatitude(shop.getLatitude());
+                furniture.setLongitude(shop.getLongitude());
+            });
+        } else if (furniture.getPostedBy() != null) {
+            userRepository.findById(furniture.getPostedBy()).ifPresent(user -> {
+                if (furniture.getOwnerName() == null || furniture.getOwnerName().isBlank()) {
+                    furniture.setOwnerName(user.getName());
+                }
+                if (furniture.getContactPhone() == null || furniture.getContactPhone().isBlank()) {
+                    furniture.setContactPhone(user.getPhone());
+                }
+                if (furniture.getContactEmail() == null || furniture.getContactEmail().isBlank()) {
+                    furniture.setContactEmail(user.getEmail());
+                }
+            });
+        }
+
         Furniture saved = repository.save(furniture);
-        return ResponseEntity.ok(new ApiResponse<>(true, saved, "Furniture created"));
+        return ResponseEntity.ok(new ApiResponse<>(true, toDTO(saved), "Furniture created"));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<Furniture>> update(@PathVariable Long id, @RequestBody Furniture updated) {
+    public ResponseEntity<ApiResponse<FurnitureResponseDTO>> update(@PathVariable Long id, @RequestBody Furniture updated) {
         return repository.findById(id)
                 .map(existing -> {
                     if (updated.getTitle() != null) existing.setTitle(updated.getTitle());
@@ -66,8 +139,20 @@ public class FurnitureController {
                     if (updated.getShopId() != null) existing.setShopId(updated.getShopId());
                     if (updated.getStatus() != null) existing.setStatus(updated.getStatus());
 
+                    // If shop changed, update references
+                    if (existing.getShopId() != null) {
+                        shopRepository.findById(existing.getShopId()).ifPresent(shop -> {
+                            existing.setOwnerName(shop.getName());
+                            existing.setContactPhone(shop.getContactPhone());
+                            existing.setContactEmail(shop.getContactEmail());
+                            existing.setAddress(shop.getAddress());
+                            existing.setLatitude(shop.getLatitude());
+                            existing.setLongitude(shop.getLongitude());
+                        });
+                    }
+
                     Furniture saved = repository.save(existing);
-                    return ResponseEntity.ok(new ApiResponse<>(true, saved, "Furniture updated"));
+                    return ResponseEntity.ok(new ApiResponse<>(true, toDTO(saved), "Furniture updated"));
                 })
                 .orElse(ResponseEntity.status(404).body(new ApiResponse<>(false, null, "Furniture not found")));
     }
@@ -82,13 +167,13 @@ public class FurnitureController {
     }
 
     @GetMapping("/shop/{shopId}")
-    public ResponseEntity<ApiResponse<List<Furniture>>> getByShop(@PathVariable Long shopId) {
-        return ResponseEntity.ok(new ApiResponse<>(true, repository.findByShopId(shopId), "Shop furniture retrieved"));
+    public ResponseEntity<ApiResponse<List<FurnitureResponseDTO>>> getByShop(@PathVariable Long shopId) {
+        return ResponseEntity.ok(new ApiResponse<>(true, toDTOList(repository.findByShopId(shopId)), "Shop furniture retrieved"));
     }
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<ApiResponse<List<Furniture>>> getByUser(@PathVariable Long userId) {
-        return ResponseEntity.ok(new ApiResponse<>(true, repository.findByPostedBy(userId), "User furniture retrieved"));
+    public ResponseEntity<ApiResponse<List<FurnitureResponseDTO>>> getByUser(@PathVariable Long userId) {
+        return ResponseEntity.ok(new ApiResponse<>(true, toDTOList(repository.findByPostedBy(userId)), "User furniture retrieved"));
     }
 
     @PostMapping("/{id}/images")

@@ -42,8 +42,8 @@ object ApiClient {
 
         // Clean path - Remove any hardcoded or stale hostnames
         val cleanPath = path
-            .replace("http://192.168.1.9:8080", "")
-            .replace("https://192.168.1.9:8080", "")
+            .replace("http://192.168.12.133:8080", "")
+            .replace("https://192.168.12.133:8080", "")
             .replace("http://localhost:8080", "")
             .replace("https://localhost:8080", "")
             .replace("http://127.0.0.1:8080", "")

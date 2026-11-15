@@ -37,6 +37,7 @@ import io.kamel.image.asyncPainterResource
 import org.com.model.Furniture
 import org.com.model.Shop
 import org.com.model.User
+import org.com.ui.components.AIRoomArrangerDialog
 
 private val BrandNavy = Color(0xFF1A237E)
 private val BrandIndigo = Color(0xFF3949AB)
@@ -75,6 +76,7 @@ fun FurnitureDashboard(
 
     var itemToEdit by remember { mutableStateOf<Furniture?>(null) }
     var itemToDelete by remember { mutableStateOf<Furniture?>(null) }
+    var showAIArrangerDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -122,19 +124,53 @@ fun FurnitureDashboard(
                             }
                         }
 
-                        // Post action button
-                        Button(
-                            onClick = { 
-                                if (selectedTab == 0) onNavigate("post_furniture")
-                                else onNavigate("post_shop")
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = BrandAmber),
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                        // Action Buttons: AI Room Visualizer & Post
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(Icons.Default.Add, null, tint = Color.White, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text(if (selectedTab == 0) "Posta" else "Sajili Duka", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            // Gemini AI Designer Button
+                            Surface(
+                                modifier = Modifier
+                                    .clickable { showAIArrangerDialog = true },
+                                shape = RoundedCornerShape(12.dp),
+                                color = Color.White.copy(alpha = 0.18f),
+                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.35f))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.AutoAwesome,
+                                        contentDescription = "AI Room Visualizer",
+                                        tint = BrandAmber,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        "AI Panga Chumba",
+                                        color = Color.White,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+
+                            // Post action button
+                            Button(
+                                onClick = { 
+                                    if (selectedTab == 0) onNavigate("post_furniture")
+                                    else onNavigate("post_shop")
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = BrandAmber),
+                                shape = RoundedCornerShape(12.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Icon(Icons.Default.Add, null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text(if (selectedTab == 0) "Posta" else "Sajili Duka", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }
@@ -503,6 +539,15 @@ fun FurnitureDashboard(
                     Text("Ghairi", fontWeight = FontWeight.Bold)
                 }
             }
+        )
+    }
+
+    // ============================================================
+    // GEMINI AI ROOM ARRANGER DIALOG
+    // ============================================================
+    if (showAIArrangerDialog) {
+        AIRoomArrangerDialog(
+            onDismiss = { showAIArrangerDialog = false }
         )
     }
 }

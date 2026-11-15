@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
 import org.com.model.Furniture
+import org.com.ui.components.AIRoomArrangerDialog
 
 private val BrandNavy = Color(0xFF1A237E)
 private val BrandIndigo = Color(0xFF3949AB)
@@ -47,6 +48,7 @@ fun FurnitureDetailScreen(
 ) {
     val uriHandler = LocalUriHandler.current
     val scrollState = rememberScrollState()
+    var showAIArranger by remember { mutableStateOf(false) }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize().background(BackgroundSurface)) {
         val isWideScreen = maxWidth >= 768.dp
@@ -290,6 +292,66 @@ fun FurnitureDetailScreen(
                         )
                     }
 
+                    // AI Room Arranger / Visualizer Banner (Powered by Gemini)
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showAIArranger = true },
+                        shape = RoundedCornerShape(18.dp),
+                        color = Color(0xFF6200EE).copy(alpha = 0.06f),
+                        border = BorderStroke(1.5.dp, Color(0xFF6200EE).copy(alpha = 0.25f)),
+                        shadowElevation = 2.dp
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(46.dp)
+                                    .background(
+                                        Brush.linearGradient(
+                                            listOf(Color(0xFF6200EE), Color(0xFF03DAC5))
+                                        ),
+                                        CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.AutoAwesome, null, tint = Color.White, modifier = Modifier.size(24.dp))
+                            }
+                            Spacer(Modifier.width(14.dp))
+                            Column(Modifier.weight(1f)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        "✨ Jaribu Chumbani Kwako (AI)",
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 15.sp,
+                                        color = Color(0xFF6200EE)
+                                    )
+                                    Spacer(Modifier.width(6.dp))
+                                    Surface(
+                                        color = Color(0xFF6200EE),
+                                        shape = RoundedCornerShape(4.dp)
+                                    ) {
+                                        Text(
+                                            "GEMINI",
+                                            color = Color.White,
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                                Text(
+                                    "Tazama jinsi '${furniture.title}' inavyokaa chumbani kabla ya kuinunua",
+                                    fontSize = 12.sp,
+                                    color = Color(0xFF475569)
+                                )
+                            }
+                            Icon(Icons.Default.ChevronRight, null, tint = Color(0xFF6200EE), modifier = Modifier.size(20.dp))
+                        }
+                    }
+
                     // Description Card
                     if (furniture.description.isNotBlank()) {
                         Surface(
@@ -442,5 +504,12 @@ fun FurnitureDetailScreen(
                 }
             }
         }
+    }
+
+    if (showAIArranger) {
+        AIRoomArrangerDialog(
+            initialFurnitureName = furniture.title,
+            onDismiss = { showAIArranger = false }
+        )
     }
 }

@@ -14,10 +14,10 @@ import java.util.*;
 @Service
 public class AIService {
 
-    @Value("${gemini.api.key:}")
+    @Value("${gemini.api.key:AIzaSyD7ltIeJn7lFlWw-Pqxv12ULSapm4XcTOM}")
     private String apiKey;
 
-    @Value("${gemini.model:gemini-3.1-flash-image-preview}")
+    @Value("${gemini.model:gemini-1.5-flash}")
     private String model;
 
     private final RestTemplate restTemplate = new RestTemplate();
