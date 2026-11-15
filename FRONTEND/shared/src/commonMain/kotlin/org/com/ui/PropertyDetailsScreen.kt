@@ -948,21 +948,20 @@ fun PropertyDetailsScreen(
                     }
                     
                     val roleUpper = currentUser?.role?.uppercase()?.trim() ?: ""
-                    val isOwnerOrDalali = roleUpper == "OWNER" || roleUpper == "DALALI" || currentUser?.id == room.postedBy || (room.dalaliId != null && room.dalaliId == currentUser?.id)
+                    val isManagedByMe = (room.dalaliId != null && room.dalaliId == currentUser?.id)
                     val isAdminOrSuperAdmin = roleUpper == "ADMIN" || roleUpper == "SUPER_ADMIN" || roleUpper == "SUPERADMIN"
+                    val canEditThisProperty = isMyProperty || isManagedByMe || isAdminOrSuperAdmin
 
-                    if (isOwnerOrDalali || isAdminOrSuperAdmin) {
-                        if (isMyProperty || isOwnerOrDalali) {
-                            Button(
-                                onClick = { onEditProperty(room) },
-                                modifier = Modifier.height(48.dp).widthIn(min = 120.dp),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryLight)
-                            ) {
-                                Text("EDIT PROPERTY", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                            }
+                    if (canEditThisProperty) {
+                        Button(
+                            onClick = { onEditProperty(room) },
+                            modifier = Modifier.height(48.dp).widthIn(min = 120.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryLight)
+                        ) {
+                            Text("EDIT PROPERTY", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         }
-                    } else { // TENANT or Guest
+                    } else { // TENANT, other users, or Guest
                         if (statusUpper == "RENTED") {
                             var isNotified by remember { mutableStateOf(false) }
                             val scope = rememberCoroutineScope()

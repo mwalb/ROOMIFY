@@ -177,10 +177,26 @@ public class RoomController {
     // Update room
     @PutMapping("/{id}")
     @Transactional
-    public ResponseEntity<Room> updateRoom(@PathVariable Long id, @RequestBody Room roomDetails) {
+    public ResponseEntity<?> updateRoom(@PathVariable Long id, @RequestBody Room roomDetails) {
         try {
             Room room = repo.findById(id).orElse(null);
             if (room == null) return ResponseEntity.notFound().build();
+
+            // Strict Ownership Verification
+            User currentUser = getAuthenticatedUser();
+            if (currentUser == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new ApiResponse<>(false, null, "Authentication required to edit properties."));
+            }
+
+            boolean isOwner = room.getPostedBy() != null && room.getPostedBy().equals(currentUser.getId());
+            boolean isDalali = room.getDalaliId() != null && room.getDalaliId().equals(currentUser.getId());
+            boolean isAdmin = isAdminRole(currentUser);
+
+            if (!isOwner && !isDalali && !isAdmin) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ApiResponse<>(false, null, "Access denied: You do not have permission to edit this property."));
+            }
 
             room.setTitle(roomDetails.getTitle());
             room.setDescription(roomDetails.getDescription());
@@ -240,7 +256,8 @@ public class RoomController {
             return ResponseEntity.ok(updated);
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>(false, null, "Error updating room: " + e.getMessage()));
         }
     }
 
@@ -251,6 +268,22 @@ public class RoomController {
         try {
             Room room = repo.findById(id).orElse(null);
             if (room == null) return ResponseEntity.notFound().build();
+
+            // Strict Ownership Verification
+            User currentUser = getAuthenticatedUser();
+            if (currentUser == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new ApiResponse<>(false, null, "Authentication required to delete properties."));
+            }
+
+            boolean isOwner = room.getPostedBy() != null && room.getPostedBy().equals(currentUser.getId());
+            boolean isDalali = room.getDalaliId() != null && room.getDalaliId().equals(currentUser.getId());
+            boolean isAdmin = isAdminRole(currentUser);
+
+            if (!isOwner && !isDalali && !isAdmin) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ApiResponse<>(false, null, "Access denied: You do not have permission to delete this property."));
+            }
 
             repo.deleteById(id);
             notifier.notifyRoomUpdate(room);
@@ -883,6 +916,17 @@ public class RoomController {
             Room room = repo.findById(roomId)
                     .orElseThrow(() -> new RuntimeException("Room not found with id: " + roomId));
 
+            // Verify Ownership for media upload
+            User currentUser = getAuthenticatedUser();
+            if (currentUser != null && !isAdminRole(currentUser)) {
+                boolean isOwner = room.getPostedBy() != null && room.getPostedBy().equals(currentUser.getId());
+                boolean isDalali = room.getDalaliId() != null && room.getDalaliId().equals(currentUser.getId());
+                if (!isOwner && !isDalali) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(new ApiResponse<>(false, null, "Access denied: You do not have permission to upload media to this property."));
+                }
+            }
+
             List<String> imageUrls = new ArrayList<>();
             Path uploadPath = Paths.get(uploadDir, "rooms", String.valueOf(roomId), "images");
             if (!Files.exists(uploadPath)) {
@@ -958,6 +1002,17 @@ public class RoomController {
             Room room = repo.findById(roomId)
                     .orElseThrow(() -> new RuntimeException("Room not found with id: " + roomId));
 
+            // Verify Ownership for video upload
+            User currentUser = getAuthenticatedUser();
+            if (currentUser != null && !isAdminRole(currentUser)) {
+                boolean isOwner = room.getPostedBy() != null && room.getPostedBy().equals(currentUser.getId());
+                boolean isDalali = room.getDalaliId() != null && room.getDalaliId().equals(currentUser.getId());
+                if (!isOwner && !isDalali) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(new ApiResponse<>(false, null, "Access denied: You do not have permission to upload video to this property."));
+                }
+            }
+
             if (file.getSize() > 50 * 1024 * 1024) {
                 return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
                         .body(new ApiResponse<>(false, null, "Video file too large. Max size is 50MB"));
@@ -1003,6 +1058,17 @@ public class RoomController {
         try {
             Room room = repo.findById(roomId)
                     .orElseThrow(() -> new RuntimeException("Room not found with id: " + roomId));
+
+            // Verify Ownership for contract upload
+            User currentUser = getAuthenticatedUser();
+            if (currentUser != null && !isAdminRole(currentUser)) {
+                boolean isOwner = room.getPostedBy() != null && room.getPostedBy().equals(currentUser.getId());
+                boolean isDalali = room.getDalaliId() != null && room.getDalaliId().equals(currentUser.getId());
+                if (!isOwner && !isDalali) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(new ApiResponse<>(false, null, "Access denied: You do not have permission to upload contract to this property."));
+                }
+            }
 
             if (file.getSize() > 10 * 1024 * 1024) {
                 return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
