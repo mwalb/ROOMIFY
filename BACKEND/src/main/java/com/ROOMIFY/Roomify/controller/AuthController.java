@@ -211,11 +211,26 @@ public class AuthController {
 
     private GoogleIdToken verifyGoogleIdToken(String idTokenString)
             throws IOException, GeneralSecurityException {
+        List<String> validAudiences = new ArrayList<>();
+        if (googleClientId != null && !googleClientId.isBlank()) {
+            for (String id : googleClientId.split(",")) {
+                if (!id.trim().isEmpty()) {
+                    validAudiences.add(id.trim());
+                }
+            }
+        }
+        if (!validAudiences.contains("662625007473-omvhko9nmerj4slfrsu7cibeeenl6lt7.apps.googleusercontent.com")) {
+            validAudiences.add("662625007473-omvhko9nmerj4slfrsu7cibeeenl6lt7.apps.googleusercontent.com");
+        }
+        if (!validAudiences.contains("1041914574744-evaa3p91lu43jr5crr42esqrivkha66m.apps.googleusercontent.com")) {
+            validAudiences.add("1041914574744-evaa3p91lu43jr5crr42esqrivkha66m.apps.googleusercontent.com");
+        }
+
         GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
                 GoogleNetHttpTransport.newTrustedTransport(),
                 JacksonFactory.getDefaultInstance()
         )
-                .setAudience(Collections.singletonList(googleClientId))
+                .setAudience(validAudiences)
                 .build();
         return verifier.verify(idTokenString);
     }
