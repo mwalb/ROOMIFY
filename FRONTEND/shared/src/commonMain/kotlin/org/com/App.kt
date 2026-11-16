@@ -259,7 +259,7 @@ fun App() {
         scope.launch {
             val response = RoomifyApi.getAllShops()
             if (response.success && response.data != null) {
-                shopList = response.data!!
+                shopList = response.data!!.distinctBy { it.id }
             }
         }
     }
@@ -806,9 +806,12 @@ fun App() {
 
                     currentRoute == "post_shop" -> {
                         val ctx = platformContext
+                        var isShopSubmitting by remember { mutableStateOf(false) }
                         org.com.ui.PostShop(
                             onBack = { currentRoute = "furniture_dashboard" },
                             onSubmit = { shop, images, video ->
+                                if (isShopSubmitting) return@PostShop
+                                isShopSubmitting = true
                                 scope.launch {
                                     try {
                                         val createResponse = RoomifyApi.createShop(shop.copy(ownerId = (authState as? AuthState.Authenticated)?.user?.id))
@@ -826,12 +829,14 @@ fun App() {
                                             
                                             val refreshResponse = RoomifyApi.getAllShops()
                                             if (refreshResponse.success && refreshResponse.data != null) {
-                                                shopList = refreshResponse.data!!
+                                                shopList = refreshResponse.data!!.distinctBy { it.id }
                                             }
                                             currentRoute = "furniture_dashboard"
                                         }
                                     } catch (e: Exception) {
                                         println("App: Shop posting failed: ${e.message}")
+                                    } finally {
+                                        isShopSubmitting = false
                                     }
                                 }
                             }

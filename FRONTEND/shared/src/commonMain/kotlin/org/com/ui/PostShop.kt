@@ -63,6 +63,7 @@ fun PostShop(
 
     var showMapModal by remember { mutableStateOf(false) }
     var selectedFullAddress by remember { mutableStateOf("") }
+    var isSubmitting by remember { mutableStateOf(false) }
 
     val scrollState = rememberScrollState()
 
@@ -190,19 +191,22 @@ fun PostShop(
 
                         Button(
                             onClick = {
-                                val shop = Shop(
-                                    name = name.trim(),
-                                    description = description.trim(),
-                                    address = address.trim(),
-                                    latitude = latitude.toDoubleOrNull() ?: 0.0,
-                                    longitude = longitude.toDoubleOrNull() ?: 0.0,
-                                    contactPhone = phone.trim(),
-                                    contactEmail = email.trim(),
-                                    websiteUrl = website.trim()
-                                )
-                                onSubmit(shop, selectedImages, selectedVideo)
+                                if (!isSubmitting) {
+                                    isSubmitting = true
+                                    val shop = Shop(
+                                        name = name.trim(),
+                                        description = description.trim(),
+                                        address = address.trim(),
+                                        latitude = latitude.toDoubleOrNull() ?: 0.0,
+                                        longitude = longitude.toDoubleOrNull() ?: 0.0,
+                                        contactPhone = phone.trim(),
+                                        contactEmail = email.trim(),
+                                        websiteUrl = website.trim()
+                                    )
+                                    onSubmit(shop, selectedImages, selectedVideo)
+                                }
                             },
-                            enabled = isFormValid,
+                            enabled = isFormValid && !isSubmitting,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .widthIn(max = 600.dp)
@@ -215,10 +219,22 @@ fun PostShop(
                             ),
                             elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Storefront, null, modifier = Modifier.size(20.dp))
-                                Spacer(Modifier.width(10.dp))
-                                Text("SAJILI DUKA SASA", fontWeight = FontWeight.Black, fontSize = 15.sp)
+                            if (isSubmitting) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        color = Color.White,
+                                        strokeWidth = 2.dp
+                                    )
+                                    Spacer(Modifier.width(12.dp))
+                                    Text("INASAJILI DUKA...", fontWeight = FontWeight.Black, fontSize = 15.sp)
+                                }
+                            } else {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Storefront, null, modifier = Modifier.size(20.dp))
+                                    Spacer(Modifier.width(10.dp))
+                                    Text("SAJILI DUKA SASA", fontWeight = FontWeight.Black, fontSize = 15.sp)
+                                }
                             }
                         }
                     }
@@ -452,17 +468,53 @@ fun PostShop(
                     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         Text("Mawasiliano ya Duka", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = BrandSlate)
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
+                        if (isWideScreen) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                OutlinedTextField(
+                                    value = phone,
+                                    onValueChange = { phone = it },
+                                    label = { Text("Namba ya Simu *") },
+                                    placeholder = { Text("0712345678") },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(14.dp),
+                                    leadingIcon = { Icon(Icons.Default.Phone, null, tint = BrandNavy) },
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = BrandNavy,
+                                        unfocusedBorderColor = BorderColor,
+                                        focusedContainerColor = Color.White,
+                                        unfocusedContainerColor = Color.White
+                                    )
+                                )
+
+                                OutlinedTextField(
+                                    value = email,
+                                    onValueChange = { email = it },
+                                    label = { Text("Barua Pepe") },
+                                    placeholder = { Text("Sio lazima") },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(14.dp),
+                                    leadingIcon = { Icon(Icons.Default.Email, null, tint = BrandNavy) },
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = BrandNavy,
+                                        unfocusedBorderColor = BorderColor,
+                                        focusedContainerColor = Color.White,
+                                        unfocusedContainerColor = Color.White
+                                    )
+                                )
+                            }
+                        } else {
                             OutlinedTextField(
                                 value = phone,
                                 onValueChange = { phone = it },
                                 label = { Text("Namba ya Simu *") },
                                 placeholder = { Text("0712345678") },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(14.dp),
                                 leadingIcon = { Icon(Icons.Default.Phone, null, tint = BrandNavy) },
                                 colors = OutlinedTextFieldDefaults.colors(
@@ -479,7 +531,7 @@ fun PostShop(
                                 label = { Text("Barua Pepe") },
                                 placeholder = { Text("Sio lazima") },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(14.dp),
                                 leadingIcon = { Icon(Icons.Default.Email, null, tint = BrandNavy) },
                                 colors = OutlinedTextFieldDefaults.colors(

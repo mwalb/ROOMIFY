@@ -13,7 +13,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -29,7 +31,14 @@ public class ShopController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<Shop>>> getAll() {
-        return ResponseEntity.ok(new ApiResponse<>(true, repository.findAll(), "Shops retrieved"));
+        List<Shop> all = repository.findAll();
+        Map<Long, Shop> unique = new LinkedHashMap<>();
+        for (Shop s : all) {
+            if (s.getId() != null) {
+                unique.putIfAbsent(s.getId(), s);
+            }
+        }
+        return ResponseEntity.ok(new ApiResponse<>(true, new ArrayList<>(unique.values()), "Shops retrieved"));
     }
 
     @GetMapping("/{id}")

@@ -83,6 +83,7 @@ fun PostFurniture(
     var sellerName by remember { mutableStateOf("") }
     var sellerPhone by remember { mutableStateOf("") }
     var sellerEmail by remember { mutableStateOf("") }
+    var isSubmitting by remember { mutableStateOf(false) }
 
     val scrollState = rememberScrollState()
 
@@ -243,24 +244,27 @@ fun PostFurniture(
 
                     Button(
                         onClick = {
-                            val furniture = Furniture(
-                                title = title.trim(),
-                                description = description.trim(),
-                                price = price.filter { it.isDigit() || it == '.' }.toDoubleOrNull() ?: 0.0,
-                                category = category,
-                                condition = condition,
-                                address = if (effectiveShop != null) effectiveShop.address else address,
-                                latitude = if (effectiveShop != null) effectiveShop.latitude else (latitude.toDoubleOrNull() ?: 0.0),
-                                longitude = if (effectiveShop != null) effectiveShop.longitude else (longitude.toDoubleOrNull() ?: 0.0),
-                                ownerName = if (effectiveShop != null) effectiveShop.name else sellerName.trim(),
-                                contactPhone = if (effectiveShop != null) effectiveShop.contactPhone else sellerPhone.trim(),
-                                contactEmail = if (effectiveShop != null) effectiveShop.contactEmail else sellerEmail.trim(),
-                                shopId = effectiveShop?.id,
-                                status = "AVAILABLE"
-                            )
-                            onSubmit(furniture, selectedImages, selectedVideo)
+                            if (!isSubmitting) {
+                                isSubmitting = true
+                                val furniture = Furniture(
+                                    title = title.trim(),
+                                    description = description.trim(),
+                                    price = price.filter { it.isDigit() || it == '.' }.toDoubleOrNull() ?: 0.0,
+                                    category = category,
+                                    condition = condition,
+                                    address = if (effectiveShop != null) effectiveShop.address else address,
+                                    latitude = if (effectiveShop != null) effectiveShop.latitude else (latitude.toDoubleOrNull() ?: 0.0),
+                                    longitude = if (effectiveShop != null) effectiveShop.longitude else (longitude.toDoubleOrNull() ?: 0.0),
+                                    ownerName = if (effectiveShop != null) effectiveShop.name else sellerName.trim(),
+                                    contactPhone = if (effectiveShop != null) effectiveShop.contactPhone else sellerPhone.trim(),
+                                    contactEmail = if (effectiveShop != null) effectiveShop.contactEmail else sellerEmail.trim(),
+                                    shopId = effectiveShop?.id,
+                                    status = "AVAILABLE"
+                                )
+                                onSubmit(furniture, selectedImages, selectedVideo)
+                            }
                         },
-                        enabled = isFormValid,
+                        enabled = isFormValid && !isSubmitting,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(54.dp),
@@ -272,19 +276,36 @@ fun PostFurniture(
                         ),
                         elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Publish,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(Modifier.width(10.dp))
-                            Text(
-                                text = "POSTA BIDHAA SASA",
-                                fontWeight = FontWeight.Black,
-                                fontSize = 15.sp,
-                                letterSpacing = 0.5.sp
-                            )
+                        if (isSubmitting) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = Color.White,
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(Modifier.width(12.dp))
+                                Text(
+                                    text = "INAPOSTA BIDHAA...",
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 15.sp,
+                                    letterSpacing = 0.5.sp
+                                )
+                            }
+                        } else {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Publish,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(Modifier.width(10.dp))
+                                Text(
+                                    text = "POSTA BIDHAA SASA",
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 15.sp,
+                                    letterSpacing = 0.5.sp
+                                )
+                            }
                         }
                     }
                 }
@@ -981,48 +1002,43 @@ fun PostFurniture(
                         )
                     )
 
-                    Row(
+                    OutlinedTextField(
+                        value = sellerPhone,
+                        onValueChange = { sellerPhone = it },
+                        label = { Text("Namba ya Simu *") },
+                        placeholder = { Text("0712345678") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        OutlinedTextField(
-                            value = sellerPhone,
-                            onValueChange = { sellerPhone = it },
-                            label = { Text("Namba ya Simu *") },
-                            placeholder = { Text("0712345678") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(14.dp),
-                            leadingIcon = {
-                                Icon(Icons.Default.Phone, null, tint = BrandNavy)
-                            },
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = BrandNavy,
-                                unfocusedBorderColor = BorderColor,
-                                focusedContainerColor = Color.White,
-                                unfocusedContainerColor = Color.White
-                            )
+                        shape = RoundedCornerShape(14.dp),
+                        leadingIcon = {
+                            Icon(Icons.Default.Phone, null, tint = BrandNavy)
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = BrandNavy,
+                            unfocusedBorderColor = BorderColor,
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White
                         )
+                    )
 
-                        OutlinedTextField(
-                            value = sellerEmail,
-                            onValueChange = { sellerEmail = it },
-                            label = { Text("Barua Pepe") },
-                            placeholder = { Text("Sio lazima") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(14.dp),
-                            leadingIcon = {
-                                Icon(Icons.Default.Email, null, tint = BrandNavy)
-                            },
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = BrandNavy,
-                                unfocusedBorderColor = BorderColor,
-                                focusedContainerColor = Color.White,
-                                unfocusedContainerColor = Color.White
-                            )
+                    OutlinedTextField(
+                        value = sellerEmail,
+                        onValueChange = { sellerEmail = it },
+                        label = { Text("Barua Pepe") },
+                        placeholder = { Text("Sio lazima") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        leadingIcon = {
+                            Icon(Icons.Default.Email, null, tint = BrandNavy)
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = BrandNavy,
+                            unfocusedBorderColor = BorderColor,
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White
                         )
-                    }
+                    )
 
                     // Location Section
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
