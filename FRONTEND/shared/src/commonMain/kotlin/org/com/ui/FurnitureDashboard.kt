@@ -78,7 +78,13 @@ fun FurnitureDashboard(
     var itemToDelete by remember { mutableStateOf<Furniture?>(null) }
     var showAIArrangerDialog by remember { mutableStateOf(false) }
 
-    val uniqueShops = remember(shops) { shops.distinctBy { it.id } }
+    val uniqueShops = remember(shops) { 
+        shops.distinctBy { 
+            val cleanName = it.name.trim().lowercase()
+            val cleanPhone = it.contactPhone?.trim()?.filter { c -> c.isDigit() } ?: ""
+            if (cleanName.isNotBlank()) cleanName + "_" + cleanPhone else ("id_" + it.id)
+        } 
+    }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val isCompact = maxWidth < 600.dp
@@ -136,19 +142,19 @@ fun FurnitureDashboard(
 
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    horizontalArrangement = Arrangement.Center,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Surface(
                                         modifier = Modifier
-                                            .weight(1f)
+                                            .fillMaxWidth()
                                             .clickable { showAIArrangerDialog = true },
                                         shape = RoundedCornerShape(12.dp),
                                         color = Color.White.copy(alpha = 0.18f),
                                         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.35f))
                                     ) {
                                         Row(
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.Center
                                         ) {
@@ -156,38 +162,17 @@ fun FurnitureDashboard(
                                                 Icons.Default.AutoAwesome,
                                                 contentDescription = "AI Room Visualizer",
                                                 tint = BrandAmber,
-                                                modifier = Modifier.size(15.dp)
+                                                modifier = Modifier.size(16.dp)
                                             )
-                                            Spacer(Modifier.width(6.dp))
+                                            Spacer(Modifier.width(8.dp))
                                             Text(
-                                                "AI Panga Chumba",
+                                                "✨ AI Panga Chumba (Piga Picha Upangiwe)",
                                                 color = Color.White,
-                                                fontSize = 11.sp,
+                                                fontSize = 12.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 maxLines = 1
                                             )
                                         }
-                                    }
-
-                                    Button(
-                                        onClick = { 
-                                            if (selectedTab == 0) onNavigate("post_furniture")
-                                            else onNavigate("post_shop")
-                                        },
-                                        colors = ButtonDefaults.buttonColors(containerColor = BrandAmber),
-                                        shape = RoundedCornerShape(12.dp),
-                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                                        modifier = Modifier.weight(1f).height(38.dp)
-                                    ) {
-                                        Icon(Icons.Default.Add, null, tint = Color.White, modifier = Modifier.size(16.dp))
-                                        Spacer(Modifier.width(4.dp))
-                                        Text(
-                                            if (selectedTab == 0) "Posta Bidhaa" else "Sajili Duka",
-                                            color = Color.White,
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            maxLines = 1
-                                        )
                                     }
                                 }
                             }
@@ -225,8 +210,7 @@ fun FurnitureDashboard(
                                 }
 
                                 Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Surface(
                                         modifier = Modifier
@@ -236,9 +220,9 @@ fun FurnitureDashboard(
                                         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.35f))
                                     ) {
                                         Row(
-                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
                                             verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                                         ) {
                                             Icon(
                                                 Icons.Default.AutoAwesome,
@@ -247,26 +231,12 @@ fun FurnitureDashboard(
                                                 modifier = Modifier.size(16.dp)
                                             )
                                             Text(
-                                                "AI Panga Chumba",
+                                                "✨ AI Panga Chumba",
                                                 color = Color.White,
-                                                fontSize = 11.sp,
+                                                fontSize = 12.sp,
                                                 fontWeight = FontWeight.Bold
                                             )
                                         }
-                                    }
-
-                                    Button(
-                                        onClick = { 
-                                            if (selectedTab == 0) onNavigate("post_furniture")
-                                            else onNavigate("post_shop")
-                                        },
-                                        colors = ButtonDefaults.buttonColors(containerColor = BrandAmber),
-                                        shape = RoundedCornerShape(12.dp),
-                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                                    ) {
-                                        Icon(Icons.Default.Add, null, tint = Color.White, modifier = Modifier.size(16.dp))
-                                        Spacer(Modifier.width(4.dp))
-                                        Text(if (selectedTab == 0) "Posta" else "Sajili Duka", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }

@@ -52,11 +52,12 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/api/furniture/**").permitAll()
+                        .requestMatchers("/api/shops/**").permitAll()
+                        .requestMatchers("/api/properties/**").permitAll()
                         .requestMatchers("/api/reviews/**").permitAll()
                         .requestMatchers("/api/payments/**").permitAll()
                         .requestMatchers("/api/favorites/**").permitAll()
                         .requestMatchers("/api/notifications/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/shops/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/error").permitAll()
 
@@ -143,17 +144,7 @@ public class SecurityConfig {
         CorsConfiguration configuration =
                 new CorsConfiguration();
 
-        configuration.setAllowedOrigins(Arrays.asList(
-                "https://roomify-roomifytz.vercel.app",
-                "http://localhost:8080",
-                "http://127.0.0.1:8080",
-                "http://192.168.3.25:8080",
-                "http://192.168.3.25:8081",
-                "http://10.0.2.2:8080",
-                "http://localhost:3000",
-                "http://localhost:8081",
-                "http://127.0.0.1:8081"
-        ));
+        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
 
         configuration.setAllowedMethods(Arrays.asList(
                 "GET",

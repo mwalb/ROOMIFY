@@ -207,7 +207,11 @@ object RoomifyApi {
 
     suspend fun uploadShopImages(shopId: Long, imageBytes: List<ByteArray>): ApiResponse<List<String>> {
         return try {
+            val token = ApiClient.getToken()
             val response = ApiClient.client.post("shops/$shopId/images") {
+                if (!token.isNullOrBlank()) {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                }
                 setBody(
                     MultiPartFormDataContent(
                         formData {
@@ -229,7 +233,11 @@ object RoomifyApi {
 
     suspend fun uploadShopVideo(shopId: Long, videoBytes: ByteArray): ApiResponse<String> {
         return try {
+            val token = ApiClient.getToken()
             val response = ApiClient.client.post("shops/$shopId/video") {
+                if (!token.isNullOrBlank()) {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                }
                 setBody(
                     MultiPartFormDataContent(
                         formData {

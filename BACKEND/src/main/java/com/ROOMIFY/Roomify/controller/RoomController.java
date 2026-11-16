@@ -25,7 +25,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.*;
+import com.ROOMIFY.Roomify.model.Property;
 import com.ROOMIFY.Roomify.model.VerificationStatus;
+import com.ROOMIFY.Roomify.repository.PropertyRepository;
 
 @RestController
 @RequestMapping("/api/rooms")
@@ -48,10 +50,21 @@ public class RoomController {
     private UserRepository userRepository;
 
     @Autowired
+    private PropertyRepository propertyRepository;
+
+    @Autowired
     private com.ROOMIFY.Roomify.service.NotificationService notificationService;
 
     @Value("${file.upload.dir:uploads}")
     private String uploadDir;
+
+    private Path getUploadBasePath() {
+        Path path = Paths.get(uploadDir).toAbsolutePath().normalize();
+        if (!Files.exists(path) && Files.exists(Paths.get("BACKEND", uploadDir))) {
+            return Paths.get("BACKEND", uploadDir).toAbsolutePath().normalize();
+        }
+        return path;
+    }
 
     private User getAuthenticatedUser() {
         try {
@@ -59,7 +72,8 @@ public class RoomController {
             if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
                 String email = auth.getName();
                 if (email != null && !email.isBlank()) {
-                    return userRepository.findByEmail(email).orElse(null);
+                    return userRepository.findByEmailIgnoreCase(email)
+                            .orElseGet(() -> userRepository.findByEmail(email).orElse(null));
                 }
             }
         } catch (Exception e) {
@@ -70,6 +84,34 @@ public class RoomController {
 
     private boolean isAdminRole(User user) {
         return user != null && (UserRole.ADMIN.equals(user.getRole()) || UserRole.SUPER_ADMIN.equals(user.getRole()));
+    }
+
+    private boolean canManageRoomMedia(Room room, User currentUser) {
+        if (currentUser == null) {
+            return false;
+        }
+        if (isAdminRole(currentUser)) {
+            return true;
+        }
+        if (room.getPostedBy() != null && room.getPostedBy().equals(currentUser.getId())) {
+            return true;
+        }
+        if (room.getDalaliId() != null && room.getDalaliId().equals(currentUser.getId())) {
+            return true;
+        }
+        if (room.getPropertyId() != null) {
+            Property prop = propertyRepository.findById(room.getPropertyId()).orElse(null);
+            if (prop != null && prop.getOwnerId() != null && prop.getOwnerId().equals(currentUser.getId())) {
+                return true;
+            }
+        }
+        // If room has no owner assigned yet (e.g. freshly created), claim it for the current user
+        if (room.getPostedBy() == null || room.getPostedBy() == 0L) {
+            room.setPostedBy(currentUser.getId());
+            repo.save(room);
+            return true;
+        }
+        return false;
     }
 
     // ==================== EXISTING ENDPOINTS ====================
@@ -149,8 +191,13 @@ public class RoomController {
             }
 
             // Validate required fields
-            if (room.getPostedBy() == null) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("postedBy is required");
+            if (room.getPostedBy() == null || room.getPostedBy() == 0L) {
+                User currentUser = getAuthenticatedUser();
+                if (currentUser != null) {
+                    room.setPostedBy(currentUser.getId());
+                } else {
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("postedBy is required");
+                }
             }
             if (room.getTitle() == null || room.getTitle().isEmpty()) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("title is required");
@@ -944,17 +991,13 @@ public class RoomController {
 
             // Verify Ownership for media upload
             User currentUser = getAuthenticatedUser();
-            if (currentUser != null && !isAdminRole(currentUser)) {
-                boolean isOwner = room.getPostedBy() != null && room.getPostedBy().equals(currentUser.getId());
-                boolean isDalali = room.getDalaliId() != null && room.getDalaliId().equals(currentUser.getId());
-                if (!isOwner && !isDalali) {
-                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                            .body(new ApiResponse<>(false, null, "Access denied: You do not have permission to upload media to this property."));
-                }
+            if (currentUser != null && !canManageRoomMedia(room, currentUser)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ApiResponse<>(false, null, "Access denied: You do not have permission to upload media to this property."));
             }
 
             List<String> imageUrls = new ArrayList<>();
-            Path uploadPath = Paths.get(uploadDir, "rooms", String.valueOf(roomId), "images");
+            Path uploadPath = getUploadBasePath().resolve("rooms").resolve(String.valueOf(roomId)).resolve("images");
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
             }
@@ -1030,13 +1073,9 @@ public class RoomController {
 
             // Verify Ownership for video upload
             User currentUser = getAuthenticatedUser();
-            if (currentUser != null && !isAdminRole(currentUser)) {
-                boolean isOwner = room.getPostedBy() != null && room.getPostedBy().equals(currentUser.getId());
-                boolean isDalali = room.getDalaliId() != null && room.getDalaliId().equals(currentUser.getId());
-                if (!isOwner && !isDalali) {
-                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                            .body(new ApiResponse<>(false, null, "Access denied: You do not have permission to upload video to this property."));
-                }
+            if (currentUser != null && !canManageRoomMedia(room, currentUser)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ApiResponse<>(false, null, "Access denied: You do not have permission to upload video to this property."));
             }
 
             if (file.getSize() > 50 * 1024 * 1024) {
@@ -1044,7 +1083,7 @@ public class RoomController {
                         .body(new ApiResponse<>(false, null, "Video file too large. Max size is 50MB"));
             }
 
-            Path uploadPath = Paths.get(uploadDir, "rooms", String.valueOf(roomId), "videos");
+            Path uploadPath = getUploadBasePath().resolve("rooms").resolve(String.valueOf(roomId)).resolve("videos");
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
             }
@@ -1087,13 +1126,9 @@ public class RoomController {
 
             // Verify Ownership for contract upload
             User currentUser = getAuthenticatedUser();
-            if (currentUser != null && !isAdminRole(currentUser)) {
-                boolean isOwner = room.getPostedBy() != null && room.getPostedBy().equals(currentUser.getId());
-                boolean isDalali = room.getDalaliId() != null && room.getDalaliId().equals(currentUser.getId());
-                if (!isOwner && !isDalali) {
-                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                            .body(new ApiResponse<>(false, null, "Access denied: You do not have permission to upload contract to this property."));
-                }
+            if (currentUser != null && !canManageRoomMedia(room, currentUser)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ApiResponse<>(false, null, "Access denied: You do not have permission to upload contract to this property."));
             }
 
             if (file.getSize() > 10 * 1024 * 1024) {
@@ -1101,7 +1136,7 @@ public class RoomController {
                         .body(new ApiResponse<>(false, null, "Contract file too large. Max size is 10MB"));
             }
 
-            Path uploadPath = Paths.get(uploadDir, "rooms", String.valueOf(roomId), "contracts");
+            Path uploadPath = getUploadBasePath().resolve("rooms").resolve(String.valueOf(roomId)).resolve("contracts");
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
             }

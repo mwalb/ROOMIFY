@@ -176,6 +176,14 @@ public class FurnitureController {
         return ResponseEntity.ok(new ApiResponse<>(true, toDTOList(repository.findByPostedBy(userId)), "User furniture retrieved"));
     }
 
+    private Path getUploadBasePath() {
+        Path path = Paths.get(uploadDir).toAbsolutePath().normalize();
+        if (!Files.exists(path) && Files.exists(Paths.get("BACKEND", uploadDir))) {
+            return Paths.get("BACKEND", uploadDir).toAbsolutePath().normalize();
+        }
+        return path;
+    }
+
     @PostMapping("/{id}/images")
     public ResponseEntity<ApiResponse<List<String>>> uploadImages(
             @PathVariable Long id,
@@ -185,7 +193,7 @@ public class FurnitureController {
                     .orElseThrow(() -> new RuntimeException("Furniture not found"));
 
             List<String> imageUrls = new ArrayList<>();
-            Path uploadPath = Paths.get(uploadDir, "furniture", String.valueOf(id));
+            Path uploadPath = getUploadBasePath().resolve("furniture").resolve(String.valueOf(id));
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
             }
@@ -214,7 +222,7 @@ public class FurnitureController {
             Furniture furniture = repository.findById(id)
                     .orElseThrow(() -> new RuntimeException("Furniture not found"));
 
-            Path uploadPath = Paths.get(uploadDir, "furniture", String.valueOf(id));
+            Path uploadPath = getUploadBasePath().resolve("furniture").resolve(String.valueOf(id));
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
             }

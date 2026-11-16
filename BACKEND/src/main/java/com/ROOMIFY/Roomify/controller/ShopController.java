@@ -32,10 +32,13 @@ public class ShopController {
     @GetMapping
     public ResponseEntity<ApiResponse<List<Shop>>> getAll() {
         List<Shop> all = repository.findAll();
-        Map<Long, Shop> unique = new LinkedHashMap<>();
+        Map<String, Shop> unique = new LinkedHashMap<>();
         for (Shop s : all) {
             if (s.getId() != null) {
-                unique.putIfAbsent(s.getId(), s);
+                String normName = s.getName() != null ? s.getName().trim().toLowerCase() : "";
+                String normPhone = s.getContactPhone() != null ? s.getContactPhone().trim().replaceAll("[^0-9]", "") : "";
+                String key = normName.isEmpty() ? ("id_" + s.getId()) : (normName + "_" + normPhone);
+                unique.putIfAbsent(key, s);
             }
         }
         return ResponseEntity.ok(new ApiResponse<>(true, new ArrayList<>(unique.values()), "Shops retrieved"));
@@ -50,8 +53,54 @@ public class ShopController {
 
     @PostMapping
     public ResponseEntity<ApiResponse<Shop>> create(@RequestBody Shop shop) {
+        if (shop.getName() != null && !shop.getName().trim().isEmpty()) {
+            String incomingName = shop.getName().trim().toLowerCase();
+            String incomingPhone = shop.getContactPhone() != null ? shop.getContactPhone().trim().replaceAll("[^0-9]", "") : "";
+
+            List<Shop> allShops = repository.findAll();
+            for (Shop existing : allShops) {
+                String existingName = existing.getName() != null ? existing.getName().trim().toLowerCase() : "";
+                String existingPhone = existing.getContactPhone() != null ? existing.getContactPhone().trim().replaceAll("[^0-9]", "") : "";
+
+                boolean nameMatches = incomingName.equals(existingName);
+                boolean phoneMatches = !incomingPhone.isEmpty() && incomingPhone.equals(existingPhone);
+                boolean ownerMatches = shop.getOwnerId() != null && shop.getOwnerId().equals(existing.getOwnerId());
+
+                if (nameMatches && (phoneMatches || ownerMatches || incomingPhone.isEmpty())) {
+                    // Update existing shop to prevent duplicate entries
+                    existing.setName(shop.getName());
+                    if (shop.getDescription() != null) existing.setDescription(shop.getDescription());
+                    if (shop.getAddress() != null) existing.setAddress(shop.getAddress());
+                    if (shop.getContactPhone() != null) existing.setContactPhone(shop.getContactPhone());
+                    if (shop.getContactEmail() != null) existing.setContactEmail(shop.getContactEmail());
+                    if (shop.getWebsiteUrl() != null) existing.setWebsiteUrl(shop.getWebsiteUrl());
+                    if (shop.getLatitude() != 0.0) existing.setLatitude(shop.getLatitude());
+                    if (shop.getLongitude() != 0.0) existing.setLongitude(shop.getLongitude());
+                    if (shop.getLogoUrl() != null) existing.setLogoUrl(shop.getLogoUrl());
+                    if (shop.getVideoUrl() != null) existing.setVideoUrl(shop.getVideoUrl());
+                    if (shop.getImages() != null && !shop.getImages().isEmpty()) {
+                        for (String img : shop.getImages()) {
+                            if (!existing.getImages().contains(img)) {
+                                existing.getImages().add(img);
+                            }
+                        }
+                    }
+                    existing.setUpdatedAt(java.time.LocalDateTime.now());
+                    Shop updated = repository.save(existing);
+                    return ResponseEntity.ok(new ApiResponse<>(true, updated, "Shop updated"));
+                }
+            }
+        }
         Shop saved = repository.save(shop);
         return ResponseEntity.ok(new ApiResponse<>(true, saved, "Shop created"));
+    }
+
+    private Path getUploadBasePath() {
+        Path path = Paths.get(uploadDir).toAbsolutePath().normalize();
+        if (!Files.exists(path) && Files.exists(Paths.get("BACKEND", uploadDir))) {
+            return Paths.get("BACKEND", uploadDir).toAbsolutePath().normalize();
+        }
+        return path;
     }
 
     @PostMapping("/{id}/images")
@@ -63,7 +112,7 @@ public class ShopController {
                     .orElseThrow(() -> new RuntimeException("Shop not found"));
 
             List<String> imageUrls = new ArrayList<>();
-            Path uploadPath = Paths.get(uploadDir, "shops", String.valueOf(id));
+            Path uploadPath = getUploadBasePath().resolve("shops").resolve(String.valueOf(id));
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
             }
@@ -92,7 +141,7 @@ public class ShopController {
             Shop shop = repository.findById(id)
                     .orElseThrow(() -> new RuntimeException("Shop not found"));
 
-            Path uploadPath = Paths.get(uploadDir, "shops", String.valueOf(id), "videos");
+            Path uploadPath = getUploadBasePath().resolve("shops").resolve(String.valueOf(id)).resolve("videos");
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
             }

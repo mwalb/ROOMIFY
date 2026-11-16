@@ -76,6 +76,9 @@ public class PropertyController {
         if (property.getUnits() != null) {
             for (Room unit : property.getUnits()) {
                 unit.setProperty(property);
+                if (unit.getPostedBy() == null || unit.getPostedBy() == 0L) {
+                    unit.setPostedBy(property.getOwnerId());
+                }
             }
         }
 
