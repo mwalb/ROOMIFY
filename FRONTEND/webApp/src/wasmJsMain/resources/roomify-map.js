@@ -630,9 +630,11 @@
             }
 
             .roomify-sidebar-body {
-                flex: 1;
+                flex: 1 1 auto;
+                min-height: 0;
                 padding: 30px;
                 overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
             }
 
             .roomify-sidebar-section {
@@ -861,8 +863,10 @@
             }
 
             .roomify-sidebar-footer {
-                padding: 25px 30px;
-                border-top: 1px solid #F5F5F5;
+                flex-shrink: 0;
+                padding: 20px 24px;
+                border-top: 1px solid #F1F5F9;
+                background: #ffffff;
             }
 
             .roomify-footer-item {
@@ -900,8 +904,11 @@
                     width: 320px !important;
                     max-width: 85vw !important;
                     height: 100vh !important;
+                    height: 100dvh !important;
                     z-index: 99999 !important;
                     display: none;
+                    flex-direction: column !important;
+                    overflow: hidden !important;
                     transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
                     box-shadow: 4px 0 24px rgba(0,0,0,0.25) !important;
                     pointer-events: none;
@@ -913,6 +920,34 @@
                     display: flex !important;
                     left: 0 !important;
                     pointer-events: auto !important;
+                }
+                .roomify-sidebar-header {
+                    padding: 24px 20px 20px 20px !important;
+                    border-radius: 0 0 24px 0 !important;
+                    flex-shrink: 0 !important;
+                }
+                .roomify-sidebar-brand {
+                    font-size: 24px !important;
+                }
+                .roomify-sidebar-tagline {
+                    font-size: 13px !important;
+                }
+                .roomify-sidebar-body {
+                    flex: 1 1 auto !important;
+                    min-height: 0 !important;
+                    padding: 16px !important;
+                    overflow-y: auto !important;
+                    -webkit-overflow-scrolling: touch !important;
+                }
+                .roomify-sidebar-footer {
+                    flex-shrink: 0 !important;
+                    padding: 16px 20px !important;
+                    background: #ffffff !important;
+                    border-top: 1px solid #E5E7EB !important;
+                    box-shadow: 0 -2px 10px rgba(0,0,0,0.05) !important;
+                }
+                .roomify-footer-item {
+                    font-size: 16px !important;
                 }
                 #google-map-container, #google-map-container.map-mode {
                     left: 0 !important;
@@ -1236,7 +1271,20 @@
                     border-radius: 10px;
                 }
                 .roomify-sidebar {
-                    width: 280px;
+                    width: 300px;
+                    max-width: 86vw;
+                }
+                .roomify-sidebar-header {
+                    padding: 20px 16px 16px 16px !important;
+                }
+                .roomify-sidebar-body {
+                    padding: 12px 14px !important;
+                }
+                .roomify-sidebar-footer {
+                    padding: 14px 16px !important;
+                }
+                .roomify-footer-item {
+                    font-size: 15px !important;
                 }
                 .roomify-popup {
                     min-width: 180px;
