@@ -1488,6 +1488,8 @@ fun PropertyCardRow(
 
 @Composable
 fun PropertyDetailModal(room: Room, onDismiss: () -> Unit) {
+    val uriHandler = LocalUriHandler.current
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(room.title ?: "Property Details", fontWeight = FontWeight.Bold) },
@@ -1502,6 +1504,22 @@ fun PropertyDetailModal(room: Room, onDismiss: () -> Unit) {
                 Text("• Bedrooms: ${room.roomsCount} | Bathrooms: ${room.bathroomsCount}", fontSize = 13.sp)
                 Text("• Verification Status: ${room.verificationStatus}", fontSize = 13.sp)
                 Text("• Listing Status: ${room.status}", fontSize = 13.sp)
+                if (room.hasVideo && !room.videoUrl.isNullOrBlank()) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .clickable {
+                                uriHandler.openUri(room.getFullUrl(room.videoUrl!!))
+                            }
+                            .padding(vertical = 4.dp)
+                    ) {
+                        Icon(Icons.Rounded.PlayCircle, null, tint = SuccessGreen, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("• Video Walkthrough: Attached (Click to watch)", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = SuccessGreen)
+                    }
+                } else {
+                    Text("• Video Walkthrough: Not Attached", fontSize = 13.sp, color = WarningAmber)
+                }
                 if (room.description != null) {
                     Text("• Description: ${room.description}", fontSize = 13.sp)
                 }

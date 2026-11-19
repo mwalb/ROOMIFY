@@ -418,18 +418,21 @@ fun PostRoom(
                         Spacer(Modifier.width(16.dp))
                     }
 
+                    val hasPhotos = state.images.isNotEmpty() || state.existingImages.isNotEmpty()
+                    val hasVideo = state.video != null || !state.existingVideo.isNullOrBlank()
+
                     val canGoNext = when (state.postMode) {
                         PostMode.SINGLE -> when (currentStep) {
                             1 -> state.title.isNotBlank() && state.price.isNotBlank()
                             2 -> state.latitude.isNotBlank() && state.longitude.isNotBlank() && state.selectedAddress != "No location selected"
                             3 -> state.rooms.isNotBlank()
-                            else -> true
+                            else -> hasPhotos && hasVideo
                         }
                         PostMode.BUILDING -> when (currentStep) {
                             1 -> state.title.isNotBlank()
                             2 -> state.latitude.isNotBlank() && state.longitude.isNotBlank() && state.selectedAddress != "No location selected"
                             3 -> true
-                            else -> true
+                            else -> hasPhotos && hasVideo
                         }
                     }
 
@@ -1243,62 +1246,58 @@ private fun StepMediaAndContact(
     onContactEmailChange: (String) -> Unit,
     onRulesChange: (String) -> Unit
 ) {
+    val photoCount = state.images.size + state.existingImages.size
+    val hasVideo = state.video != null || !state.existingVideo.isNullOrBlank()
+    val hasContract = state.contract != null || !state.existingContract.isNullOrBlank()
+
     Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
         SectionTitle("Step 4/4: Media, Rules & Contact")
 
+        // Photos Slot Card (Min 1)
+        MediaUploadSlotCard(
+            title = "Property Photos * (Min 1)",
+            subtitle = "Upload clear photos of room, bathroom & entrance",
+            itemsCount = photoCount,
+            isUploading = false,
+            icon = Icons.Default.AddPhotoAlternate,
+            thumbnailUrls = state.existingImages,
+            onPickMedia = onAddImages
+        )
+
+        // Video Walkthrough Slot Card (Mandatory)
         Column {
-            Text("Photos (Building / Main Defaults)", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.Gray, modifier = Modifier.padding(bottom = 6.dp))
-            Surface(
-                modifier = Modifier.fillMaxWidth().height(96.dp).clickable { onAddImages() },
-                color = Color(0xFFF8F9FA),
-                shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-            ) {
-                if (state.images.isEmpty() && state.existingImages.isEmpty()) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                        Icon(Icons.Default.AddPhotoAlternate, null, tint = PrimaryColor, modifier = Modifier.size(28.dp))
-                        Spacer(Modifier.height(4.dp))
-                        Text("Add Photos", color = Color.Gray, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    }
-                } else {
-                    LazyRow(Modifier.padding(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(state.existingImages) { url ->
-                            Box(Modifier.size(68.dp).clip(RoundedCornerShape(8.dp))) {
-                                val fullUrl = ApiClient.resolveUrl(url)
-                                KamelImage(
-                                    resource = { asyncPainterResource(fullUrl) },
-                                    contentDescription = null,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                            }
-                        }
-                        items(state.images) { _ ->
-                            Box(Modifier.size(68.dp).background(Color(0xFFF0F2F5), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.Image, null, tint = Color.LightGray, modifier = Modifier.size(22.dp))
-                            }
-                        }
-                    }
-                }
+            MediaUploadSlotCard(
+                title = "Video Walkthrough * (Required)",
+                subtitle = "Short walkthrough of the room, bathroom & entrance",
+                itemsCount = if (hasVideo) 1 else 0,
+                isUploading = false,
+                icon = Icons.Rounded.Videocam,
+                onPickMedia = onAddVideo,
+                onReplaceMedia = onAddVideo
+            )
+
+            if (!hasVideo) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = "A property video walkthrough is required before publishing",
+                    color = Color(0xFFDC2626),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(start = 4.dp)
+                )
             }
         }
 
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            MediaUploadBox(
-                title = "Video Tour",
-                isSelected = state.video != null || !state.existingVideo.isNullOrBlank(),
-                icon = Icons.Default.PlayCircle,
-                modifier = Modifier.weight(1f),
-                onClick = onAddVideo
-            )
-            MediaUploadBox(
-                title = "Contract / Rules Doc",
-                isSelected = state.contract != null || !state.existingContract.isNullOrBlank(),
-                icon = Icons.Default.Description,
-                modifier = Modifier.weight(1f),
-                onClick = onAddContract
-            )
-        }
+        // Contract Slot Card (Optional)
+        MediaUploadSlotCard(
+            title = "Contract / Rules Doc (Optional)",
+            subtitle = "Lease agreement or building rules document",
+            itemsCount = if (hasContract) 1 else 0,
+            isUploading = false,
+            icon = Icons.Default.Description,
+            onPickMedia = onAddContract,
+            onReplaceMedia = onAddContract
+        )
 
         if (isExpanded) {
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -1315,17 +1314,175 @@ private fun StepMediaAndContact(
 }
 
 @Composable
-private fun MediaUploadBox(title: String, isSelected: Boolean, icon: ImageVector, modifier: Modifier = Modifier, onClick: () -> Unit) {
+private fun MediaUploadSlotCard(
+    title: String,
+    subtitle: String,
+    itemsCount: Int,
+    isUploading: Boolean = false,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+    thumbnailUrls: List<String> = emptyList(),
+    onPickMedia: () -> Unit,
+    onReplaceMedia: (() -> Unit)? = null,
+    onRemoveMedia: (() -> Unit)? = null
+) {
+    val isAttached = itemsCount > 0 && !isUploading
+    val cardBg = when {
+        isUploading -> Color(0xFFEFF6FF)
+        isAttached -> Color(0xFFF0FDF4)
+        else -> Color(0xFFF8FAFC)
+    }
+    val cardBorder = when {
+        isUploading -> Color(0xFF2563EB)
+        isAttached -> Color(0xFF16A34A)
+        else -> Color(0xFFCBD5E1)
+    }
+    val borderWidth = if (isAttached) 1.5.dp else 1.dp
+
     Surface(
-        modifier = modifier.height(60.dp).clickable { onClick() },
-        color = if (isSelected) PrimaryColor.copy(alpha = 0.06f) else Color(0xFFF8F9FA),
-        shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, if (isSelected) PrimaryColor else MaterialTheme.colorScheme.outlineVariant)
+        modifier = modifier
+            .fillMaxWidth()
+            .pointerHoverIcon(PointerIcon.Hand)
+            .clickable {
+                if (isAttached && onReplaceMedia != null) onReplaceMedia()
+                else onPickMedia()
+            },
+        shape = RoundedCornerShape(14.dp),
+        color = cardBg,
+        border = BorderStroke(borderWidth, cardBorder)
     ) {
-        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-            Icon(imageVector = if (isSelected) Icons.Default.CheckCircle else icon, null, tint = if (isSelected) Color(0xFF4CAF50) else Color.Gray, modifier = Modifier.size(20.dp))
-            Spacer(Modifier.width(8.dp))
-            Text(text = if (isSelected) "Attached" else title, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (isSelected) Color(0xFF2E7D32) else Color.Gray)
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f, fill = false)) {
+                    if (isAttached) {
+                        Icon(
+                            imageVector = Icons.Rounded.CheckCircle,
+                            contentDescription = "Uploaded",
+                            tint = Color(0xFF16A34A),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    } else {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = Color(0xFF475569),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                    Spacer(Modifier.width(10.dp))
+
+                    Column {
+                        Text(
+                            text = title,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0F172A)
+                        )
+                        if (subtitle.isNotBlank()) {
+                            Text(
+                                text = subtitle,
+                                fontSize = 11.sp,
+                                color = Color(0xFF64748B)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(Modifier.width(8.dp))
+
+                if (isUploading) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = Color(0xFF2563EB)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text("Uploading...", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2563EB))
+                    }
+                } else if (isAttached) {
+                    Surface(
+                        color = Color(0xFFDCFCE7),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = "Uploaded",
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF15803D),
+                            softWrap = false
+                        )
+                    }
+                }
+            }
+
+            if (isAttached && thumbnailUrls.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "$itemsCount photo(s) attached",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF16A34A)
+                    )
+                    TextButton(onClick = onPickMedia) {
+                        Text("+ Add more", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryColor)
+                    }
+                }
+
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(thumbnailUrls) { url ->
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(0xFFE2E8F0))
+                        ) {
+                            val resolvedUrl = ApiClient.resolveUrl(url)
+                            KamelImage(
+                                resource = { asyncPainterResource(resolvedUrl) },
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                    }
+                }
+            } else if (isAttached && thumbnailUrls.isEmpty()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Video attached",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF16A34A)
+                    )
+                    Row {
+                        if (onReplaceMedia != null) {
+                            TextButton(onClick = onReplaceMedia, modifier = Modifier.heightIn(min = 40.dp)) {
+                                Text("Replace", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryColor)
+                            }
+                        }
+                        if (onRemoveMedia != null) {
+                            TextButton(onClick = onRemoveMedia, modifier = Modifier.heightIn(min = 40.dp)) {
+                                Text("Remove", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFDC2626))
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

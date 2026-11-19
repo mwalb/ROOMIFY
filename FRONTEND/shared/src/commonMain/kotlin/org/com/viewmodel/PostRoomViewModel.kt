@@ -376,12 +376,18 @@ class PostRoomViewModel(
                     if (result.success && result.data != null) {
                         val savedProperty = result.data!!
                         
-                        // Upload Unit Images if any
+                        // Upload Unit Images & Inherited Building Video
                         savedProperty.units.forEachIndexed { index, savedUnit ->
                             val unitImages = state.unitImages[index]
                             if (!unitImages.isNullOrEmpty() && savedUnit.id != null) {
                                 val imageBytes = unitImages.map { it.readByteArray(context) }
                                 roomApi.uploadImages(savedUnit.id!!, imageBytes)
+                            }
+                            // Attach building walkthrough video as default for all generated rooms
+                            state.video?.let { videoFile ->
+                                if (savedUnit.id != null) {
+                                    roomApi.uploadVideo(savedUnit.id!!, videoFile.readByteArray(context))
+                                }
                             }
                         }
 

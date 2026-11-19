@@ -120,7 +120,7 @@ import kotlin.math.roundToInt
  */
 
 private const val ROOMIFY_BLUE = 0xFF1976D2
-private const val ROOMIFY_GREEN = 0xFF2E7D32
+private const val ROOMIFY_GREEN = 0xFF16A34A
 private val RoomifyGradientStart = Color(0xFF1A237E)
 private val RoomifyGradientEnd = Color(0xFF3949AB)
 private val RoomifyWhite = Color(0xFFFFFFFF)
@@ -129,17 +129,17 @@ private val RoomifyWhite90 = Color(0xE6FFFFFF)
 private val RoomifyWhite80 = Color(0xCCFFFFFF)
 private val RoomifyWhite70 = Color(0xB3FFFFFF)
 private val RoomifyWhite55 = Color(0x8CFFFFFF)
-private val RoomifyGreen = Color(0xFF2E7D32)
-private val RoomifyYellow = Color(0xFFF9A825)
-private val RoomifyRed = Color(0xFFC62828)
-private val RoomifyViewedGray = Color(0xFF9E9E9E)
+private val RoomifyGreen = Color(0xFF16A34A)
+private val RoomifyYellow = Color(0xFFD97706)
+private val RoomifyRed = Color(0xFFD97706)
+private val RoomifyViewedGray = Color(0xFF16A34A)
 private val RoomifySavedPink = Color(0xFFE91E63)
 
-private const val ROOMIFY_VIEWED_GRAY = 0xFF9E9E9E
+private const val ROOMIFY_VIEWED_GRAY = 0xFF16A34A
 private const val ROOMIFY_SAVED_PINK = 0xFFE91E63
-private const val ROOMIFY_YELLOW = 0xFFF9A825
-private const val ROOMIFY_RED = 0xFFC62828
-private const val ROOMIFY_ORANGE = 0xFFFF9800
+private const val ROOMIFY_YELLOW = 0xFFD97706
+private const val ROOMIFY_RED = 0xFFD97706
+private const val ROOMIFY_ORANGE = 0xFFD97706
 
 /*
  * ============================================================
@@ -161,18 +161,12 @@ private fun statusColor(
         return ROOMIFY_SAVED_PINK.toInt()
     }
 
-    val baseColor = when (status?.uppercase() ?: "AVAILABLE") {
+    return when (status?.uppercase() ?: "AVAILABLE") {
         "AVAILABLE" -> ROOMIFY_GREEN.toInt()
         "PENDING" -> ROOMIFY_YELLOW.toInt()
-        "RENTED" -> ROOMIFY_RED.toInt()
-        else -> ROOMIFY_BLUE.toInt()
+        "RENTED" -> ROOMIFY_YELLOW.toInt()
+        else -> ROOMIFY_GREEN.toInt()
     }
-    
-    if (isViewed) {
-        return ROOMIFY_VIEWED_GRAY.toInt()
-    }
-    
-    return baseColor
 }
 
 /*

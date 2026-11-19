@@ -116,11 +116,7 @@ fun AuthScreen(
                 },
 
                 onGuestLogin = {
-
-                    scope.launch {
-
-                        authManager.guestLogin()
-                    }
+                    onBack()
                 },
 
                 onForgotPassword = {

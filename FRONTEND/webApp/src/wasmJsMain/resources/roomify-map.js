@@ -104,18 +104,18 @@
     var ROOMIFY_BLUE_START = "#1A237E";
     var ROOMIFY_BLUE_END = "#3949AB";
     var ROOMIFY_BLUE = "#3949AB";
-    var ROOMIFY_SELECTED_ORANGE = "#FF9800";
+    var ROOMIFY_SELECTED_ORANGE = "#D97706";
     var ROOMIFY_WHITE = "#FFFFFF";
     var ROOMIFY_WHITE_90 = "rgba(255,255,255,0.90)";
     var ROOMIFY_WHITE_80 = "rgba(255,255,255,0.80)";
     var ROOMIFY_WHITE_70 = "rgba(255,255,255,0.70)";
     var ROOMIFY_WHITE_55 = "rgba(255,255,255,0.55)";
     var ROOMIFY_WHITE_25 = "rgba(255,255,255,0.25)";
-    var ROOMIFY_GREEN = "#2E7D32";
-    var ROOMIFY_YELLOW = "#F9A825";
+    var ROOMIFY_GREEN = "#16A34A";
+    var ROOMIFY_YELLOW = "#D97706";
     var ROOMIFY_RED = "#C62828";
-    var ROOMIFY_ORANGE = "#FF9800";
-    var ROOMIFY_VIEWED_GRAY = "#9E9E9E";
+    var ROOMIFY_ORANGE = "#D97706";
+    var ROOMIFY_VIEWED_GRAY = "#16A34A";
     var ROOMIFY_SAVED_PINK = "#E91E63";
 
 
@@ -3330,16 +3330,16 @@
         switch (normalized) {
 
             case "AVAILABLE":
-                return "#2E7D32";
+                return "#16A34A";
 
             case "PENDING":
-                return "#F9A825";
+                return "#D97706";
 
             case "RENTED":
-                return "#C62828";
+                return "#D97706";
 
             default:
-                return "#1976D2";
+                return "#16A34A";
         }
     }
 
@@ -3411,7 +3411,6 @@
         var text = formatCompactPrice(price);
 
         var color = selected ? ROOMIFY_SELECTED_ORANGE : (isSaved ? ROOMIFY_SAVED_PINK : statusColor(status));
-        if (isViewed && !selected && !isSaved) color = ROOMIFY_VIEWED_GRAY;
 
         var alpha = selected ? 1.0 : statusAlpha(status);
 
@@ -3464,9 +3463,8 @@
         var roomsText = availableRooms + " / " + totalRooms + " rooms";
         var text = priceText + " • " + roomsText;
 
-        var color = selected ? ROOMIFY_SELECTED_ORANGE : (isSaved ? ROOMIFY_SAVED_PINK : "#1A237E");
-        if (availableRooms === 0) color = "#C62828";
-        if (isViewed && !selected && !isSaved) color = ROOMIFY_VIEWED_GRAY;
+        var color = selected ? ROOMIFY_SELECTED_ORANGE : (isSaved ? ROOMIFY_SAVED_PINK : "#16A34A");
+        if (availableRooms === 0) color = "#D97706";
 
         var scale = selected ? 1.35 : 1.0;
         var width = Math.max(170, (text.length * 7.5) + 44) * scale;
@@ -3507,7 +3505,6 @@
         else if (hovered) size = 14;
 
         var color = selected ? ROOMIFY_SELECTED_ORANGE : (isSaved ? ROOMIFY_SAVED_PINK : statusColor(status));
-        if (isViewed && !selected && !isSaved) color = ROOMIFY_VIEWED_GRAY;
 
         var svg =
             '<svg xmlns="http://www.w3.org/2000/svg" width="' + (size + 6) + '" height="' + (size + 6) + '" viewBox="0 0 ' + (size + 6) + ' ' + (size + 6) + '">' +

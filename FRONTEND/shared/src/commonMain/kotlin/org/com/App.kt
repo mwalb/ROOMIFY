@@ -1254,8 +1254,8 @@ fun App() {
                                     currentRoute = "map"
                                 },
                                 onGuestLogin = {
-                                    println("App: 🎭 Guest login")
-                                    scope.launch { authManager.guestLogin() }
+                                    println("App: 🎭 Guest login -> Navigate to main map as guest")
+                                    currentRoute = "map"
                                 },
                                 onForgotPassword = {
                                     println("App: 🔑 Forgot password")
@@ -1302,8 +1302,8 @@ fun App() {
                                         currentRoute = "map"
                                     },
                                     onGuestLogin = {
-                                        println("App: 🎭 Guest login")
-                                        scope.launch { authManager.guestLogin() }
+                                        println("App: 🎭 Guest login -> Navigate to main map as guest")
+                                        currentRoute = "map"
                                     },
                                     onForgotPassword = {
                                         println("App: 🔑 Forgot password")

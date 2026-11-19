@@ -279,12 +279,33 @@ fun PropertyDetailsScreen(
                                 .verticalScroll(scrollState),
                             verticalArrangement = Arrangement.spacedBy(20.dp)
                         ) {
-                            // Photo Carousel
-                            PropertyPhotoCarousel(
+                            // Photo & Video Hero Media Gallery
+                            PropertyHeroMediaGallery(
                                 imageUrls = imageUrls,
+                                videoUrl = room.videoUrl,
+                                hasVideo = room.hasVideo,
                                 height = 360.dp,
                                 cornerRadius = 18.dp,
-                                onImageClick = { index -> selectedImageIndex = index }
+                                onBack = onBack,
+                                isSaved = isSaved,
+                                onSaveToggle = {
+                                    if (currentUser == null) {
+                                        onLoginRequired()
+                                    } else {
+                                        scope.launch {
+                                            try {
+                                                val res = RoomifyApi.toggleFavorite(currentUser.id, room.id ?: 0L)
+                                                if (res.success && res.data != null) {
+                                                    isSaved = res.data!!
+                                                }
+                                            } catch (e: Exception) {
+                                                println("Favorite error: ${e.message}")
+                                            }
+                                        }
+                                    }
+                                },
+                                onImageClick = { index -> selectedImageIndex = index },
+                                isExpanded = true
                             )
 
                             // Title & Verification Badges
@@ -543,72 +564,34 @@ fun PropertyDetailsScreen(
                             .verticalScroll(scrollState)
                             .padding(bottom = 76.dp)
                     ) {
-                        // Full-Bleed Photo Header
-                        Box(modifier = Modifier.fillMaxWidth()) {
-                            PropertyPhotoCarousel(
-                                imageUrls = imageUrls,
-                                height = if (isMedium) 300.dp else 240.dp,
-                                cornerRadius = 0.dp,
-                                onImageClick = { index -> selectedImageIndex = index }
-                            )
-
-                            // Top Controls Overlay
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(14.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Surface(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .pointerHoverIcon(PointerIcon.Hand)
-                                        .clickable { onBack() },
-                                    shape = CircleShape,
-                                    color = Color.Black.copy(alpha = 0.45f)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color.White, modifier = Modifier.size(20.dp))
-                                    }
-                                }
-
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Surface(
-                                        modifier = Modifier
-                                            .size(40.dp)
-                                            .pointerHoverIcon(PointerIcon.Hand)
-                                            .clickable {
-                                                if (currentUser == null) {
-                                                    onLoginRequired()
-                                                } else {
-                                                    scope.launch {
-                                                        try {
-                                                            val res = RoomifyApi.toggleFavorite(currentUser.id, room.id ?: 0L)
-                                                            if (res.success && res.data != null) {
-                                                                isSaved = res.data!!
-                                                            }
-                                                        } catch (e: Exception) {
-                                                            println("Favorite error: ${e.message}")
-                                                        }
-                                                    }
-                                                }
-                                            },
-                                        shape = CircleShape,
-                                        color = Color.Black.copy(alpha = 0.45f)
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Icon(
-                                                imageVector = if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                                contentDescription = "Save",
-                                                tint = if (isSaved) Color(0xFFEC4899) else Color.White,
-                                                modifier = Modifier.size(20.dp)
-                                            )
+                        // Full-Bleed Media Header
+                        PropertyHeroMediaGallery(
+                            imageUrls = imageUrls,
+                            videoUrl = room.videoUrl,
+                            hasVideo = room.hasVideo,
+                            height = if (isMedium) 300.dp else 240.dp,
+                            cornerRadius = 0.dp,
+                            onBack = onBack,
+                            isSaved = isSaved,
+                            onSaveToggle = {
+                                if (currentUser == null) {
+                                    onLoginRequired()
+                                } else {
+                                    scope.launch {
+                                        try {
+                                            val res = RoomifyApi.toggleFavorite(currentUser.id, room.id ?: 0L)
+                                            if (res.success && res.data != null) {
+                                                isSaved = res.data!!
+                                            }
+                                        } catch (e: Exception) {
+                                            println("Favorite error: ${e.message}")
                                         }
                                     }
                                 }
-                            }
-                        }
+                            },
+                            onImageClick = { index -> selectedImageIndex = index },
+                            isExpanded = false
+                        )
 
                         // Content Padding
                         Column(
@@ -823,11 +806,195 @@ fun PropertyDetailsScreen(
 }
 
 @Composable
+private fun PropertyHeroMediaGallery(
+    imageUrls: List<String>,
+    videoUrl: String?,
+    hasVideo: Boolean,
+    height: Dp,
+    cornerRadius: Dp,
+    onBack: () -> Unit,
+    isSaved: Boolean,
+    onSaveToggle: () -> Unit,
+    onImageClick: (Int) -> Unit,
+    isExpanded: Boolean = false
+) {
+    var activeTab by remember { mutableStateOf("PHOTOS") }
+    val uriHandler = LocalUriHandler.current
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(height)
+            .clip(RoundedCornerShape(cornerRadius))
+            .background(Color(0xFF0F172A))
+    ) {
+        if (activeTab == "PHOTOS" || !hasVideo || videoUrl.isNullOrBlank()) {
+            PropertyPhotoCarousel(
+                imageUrls = imageUrls,
+                height = height,
+                cornerRadius = cornerRadius,
+                onImageClick = onImageClick,
+                isExpanded = isExpanded
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFF0F172A)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Surface(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .pointerHoverIcon(PointerIcon.Hand)
+                            .clickable {
+                                uriHandler.openUri(ApiClient.resolveUrl(videoUrl))
+                            },
+                        shape = CircleShape,
+                        color = Color.White.copy(alpha = 0.25f),
+                        border = BorderStroke(2.dp, Color.White)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(Icons.Rounded.PlayArrow, "Play Video Walkthrough", tint = Color.White, modifier = Modifier.size(36.dp))
+                        }
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    Text(
+                        text = "Video Walkthrough",
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "Tap to play property video tour",
+                        color = Color.White.copy(alpha = 0.75f),
+                        fontSize = 12.sp
+                    )
+                }
+            }
+        }
+
+        // Segmented Switcher Pill ("Photos (N)" | "Video Tour")
+        if (hasVideo && !videoUrl.isNullOrBlank()) {
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 12.dp),
+                color = Color.Black.copy(alpha = 0.75f),
+                shape = RoundedCornerShape(20.dp),
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.2f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Surface(
+                        modifier = Modifier
+                            .pointerHoverIcon(PointerIcon.Hand)
+                            .clickable { activeTab = "PHOTOS" },
+                        color = if (activeTab == "PHOTOS") PrimaryColor else Color.Transparent,
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Rounded.PhotoLibrary, null, tint = Color.White, modifier = Modifier.size(14.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = "Photos (${imageUrls.size})",
+                                color = Color.White,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    Surface(
+                        modifier = Modifier
+                            .pointerHoverIcon(PointerIcon.Hand)
+                            .clickable { activeTab = "VIDEO" },
+                        color = if (activeTab == "VIDEO") Color(0xFFE11D48) else Color.Transparent,
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Rounded.Videocam, null, tint = Color.White, modifier = Modifier.size(14.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = "Video Tour",
+                                color = Color.White,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Top Navigation Overlays (Back & Save) for Compact Mode
+        if (!isExpanded) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopCenter)
+                    .padding(14.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .pointerHoverIcon(PointerIcon.Hand)
+                        .clickable { onBack() },
+                    shape = CircleShape,
+                    color = Color.Black.copy(alpha = 0.5f)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color.White, modifier = Modifier.size(20.dp))
+                    }
+                }
+
+                Surface(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .pointerHoverIcon(PointerIcon.Hand)
+                        .clickable { onSaveToggle() },
+                    shape = CircleShape,
+                    color = Color.Black.copy(alpha = 0.5f)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = "Save",
+                            tint = if (isSaved) Color(0xFFEC4899) else Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun PropertyPhotoCarousel(
     imageUrls: List<String>,
     height: Dp,
     cornerRadius: Dp,
-    onImageClick: (Int) -> Unit
+    onImageClick: (Int) -> Unit,
+    isExpanded: Boolean = false
 ) {
     Box(
         modifier = Modifier
@@ -838,6 +1005,7 @@ private fun PropertyPhotoCarousel(
     ) {
         if (imageUrls.isNotEmpty()) {
             val lazyListState = rememberLazyListState()
+            val scope = rememberCoroutineScope()
             val currentIndex = remember { derivedStateOf { lazyListState.firstVisibleItemIndex } }
 
             LazyRow(
@@ -872,21 +1040,80 @@ private fun PropertyPhotoCarousel(
                 }
             }
 
-            // Photo Count Chip (Bottom-Right)
-            Surface(
+            // Wide Screen Arrows
+            if (isExpanded && imageUrls.size > 1) {
+                if (currentIndex.value > 0) {
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.CenterStart)
+                            .padding(start = 12.dp)
+                            .size(36.dp)
+                            .pointerHoverIcon(PointerIcon.Hand)
+                            .clickable {
+                                scope.launch { lazyListState.animateScrollToItem(currentIndex.value - 1) }
+                            },
+                        shape = CircleShape,
+                        color = Color.Black.copy(alpha = 0.5f)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Previous", tint = Color.White, modifier = Modifier.size(18.dp))
+                        }
+                    }
+                }
+
+                if (currentIndex.value < imageUrls.lastIndex) {
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .padding(end = 12.dp)
+                            .size(36.dp)
+                            .pointerHoverIcon(PointerIcon.Hand)
+                            .clickable {
+                                scope.launch { lazyListState.animateScrollToItem(currentIndex.value + 1) }
+                            },
+                        shape = CircleShape,
+                        color = Color.Black.copy(alpha = 0.5f)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowForward, "Next", tint = Color.White, modifier = Modifier.size(18.dp))
+                        }
+                    }
+                }
+            }
+
+            // Photo Count Chip (Bottom-Right) & Dots
+            Row(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(12.dp),
-                color = Color.Black.copy(alpha = 0.65f),
-                shape = RoundedCornerShape(20.dp)
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    text = "${currentIndex.value + 1} / ${imageUrls.size}",
-                    color = Color.White,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                )
+                if (imageUrls.size in 2..8) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        repeat(imageUrls.size) { idx ->
+                            Box(
+                                modifier = Modifier
+                                    .size(if (idx == currentIndex.value) 8.dp else 6.dp)
+                                    .clip(CircleShape)
+                                    .background(if (idx == currentIndex.value) Color.White else Color.White.copy(alpha = 0.5f))
+                            )
+                        }
+                    }
+                }
+
+                Surface(
+                    color = Color.Black.copy(alpha = 0.65f),
+                    shape = RoundedCornerShape(20.dp)
+                ) {
+                    Text(
+                        text = "${currentIndex.value + 1} / ${imageUrls.size}",
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                    )
+                }
             }
         } else {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
