@@ -29,6 +29,9 @@ data class User(
     @SerialName("phone")
     val phone: String? = null,
 
+    @SerialName("bio")
+    val bio: String? = null,
+
     @SerialName("licenseNumber")
     val licenseNumber: String? = null,
 

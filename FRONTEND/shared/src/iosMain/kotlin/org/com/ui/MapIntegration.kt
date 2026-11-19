@@ -48,7 +48,8 @@ actual fun PlatformLocationMap(
     latitude: String?,
     longitude: String?,
     modifier: Modifier,
-    onLocationSelected: (Double, Double) -> Unit,
+    initialSearch: String?,
+    onLocationSelected: (AddressResult) -> Unit,
     onLocationConfirmed: (AddressResult) -> Unit,
     onDismiss: () -> Unit
 ) {
