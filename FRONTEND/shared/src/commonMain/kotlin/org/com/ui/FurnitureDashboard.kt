@@ -5,9 +5,15 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -17,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,6 +33,8 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -39,12 +48,13 @@ import org.com.model.Shop
 import org.com.model.User
 import org.com.ui.components.AIRoomArrangerDialog
 
-private val BrandNavy = Color(0xFF1A237E)
-private val BrandIndigo = Color(0xFF3949AB)
-private val BrandAmber = Color(0xFFFF9800)
+private val BrandNavy = Color(0xFF142170)
+private val BrandIndigo = Color(0xFF283593)
+private val BrandAmber = Color(0xFFFFB300)
 private val BackgroundSurface = Color(0xFFF8FAFC)
+private val BorderColor = Color(0xFFE2E8F0)
 
-private data class CategoryItem(val name: String, val emoji: String)
+private data class CategoryVectorItem(val name: String, val icon: ImageVector)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,14 +72,14 @@ fun FurnitureDashboard(
 ) {
     var selectedTab by remember { mutableStateOf(0) }
     val categories = listOf(
-        CategoryItem("Zote", "✨"),
-        CategoryItem("Samani", "🛋️"),
-        CategoryItem("Mapambo", "🖼️"),
-        CategoryItem("Maua na Mimea", "🌿"),
-        CategoryItem("Taa na Mwanga", "💡"),
-        CategoryItem("Vifaa vya Nyumbani", "🍳"),
-        CategoryItem("Huduma", "🛠️"),
-        CategoryItem("Nyingine", "📦")
+        CategoryVectorItem("Zote", Icons.Rounded.AutoAwesome),
+        CategoryVectorItem("Samani", Icons.Rounded.Chair),
+        CategoryVectorItem("Mapambo", Icons.Rounded.CropOriginal),
+        CategoryVectorItem("Maua na Mimea", Icons.Rounded.LocalFlorist),
+        CategoryVectorItem("Taa na Mwanga", Icons.Rounded.Lightbulb),
+        CategoryVectorItem("Vifaa vya Nyumbani", Icons.Rounded.Countertops),
+        CategoryVectorItem("Huduma", Icons.Rounded.Handyman),
+        CategoryVectorItem("Nyingine", Icons.Rounded.Category)
     )
     var selectedCategory by remember { mutableStateOf("Zote") }
     var searchQuery by remember { mutableStateOf("") }
@@ -78,16 +88,18 @@ fun FurnitureDashboard(
     var itemToDelete by remember { mutableStateOf<Furniture?>(null) }
     var showAIArrangerDialog by remember { mutableStateOf(false) }
 
-    val uniqueShops = remember(shops) { 
-        shops.distinctBy { 
+    val uniqueShops = remember(shops) {
+        shops.distinctBy {
             val cleanName = it.name.trim().lowercase()
             val cleanPhone = it.contactPhone?.trim()?.filter { c -> c.isDigit() } ?: ""
             if (cleanName.isNotBlank()) cleanName + "_" + cleanPhone else ("id_" + it.id)
-        } 
+        }
     }
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize().background(BackgroundSurface)) {
         val isCompact = maxWidth < 600.dp
+        val isMedium = maxWidth >= 600.dp && maxWidth < 840.dp
+        val isExpanded = maxWidth >= 840.dp
 
         Scaffold(
             topBar = {
@@ -96,410 +108,478 @@ fun FurnitureDashboard(
                         .fillMaxWidth()
                         .background(Color.White)
                 ) {
-                    // Vibrant Branded Hero App Bar
+                    // Vibrant #142170 Navy Hero App Bar
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(Brush.horizontalGradient(listOf(BrandNavy, BrandIndigo)))
                             .statusBarsPadding()
-                            .padding(horizontal = 16.dp, vertical = if (isCompact) 10.dp else 14.dp)
+                            .padding(horizontal = if (isCompact) 12.dp else 24.dp, vertical = if (isCompact) 10.dp else 14.dp)
                     ) {
-                        if (isCompact) {
-                            // Responsive 2-tier header for phone devices
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .widthIn(max = 1200.dp)
+                                .align(Alignment.Center),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            // Left: Back button + ROOMIFY MARKET + Title
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f, fill = false)
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically
+                                IconButton(
+                                    onClick = onBack,
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .background(Color.White.copy(alpha = 0.18f), CircleShape)
+                                        .pointerHoverIcon(PointerIcon.Hand)
                                 ) {
-                                    IconButton(
-                                        onClick = onBack,
-                                        modifier = Modifier
-                                            .size(36.dp)
-                                            .background(Color.White.copy(alpha = 0.15f), CircleShape)
-                                    ) {
-                                        Icon(
-                                            Icons.AutoMirrored.Filled.ArrowBack,
-                                            contentDescription = "Rudi",
-                                            tint = Color.White,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
-                                    Spacer(Modifier.width(10.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text("ROOMIFY", color = BrandAmber, fontWeight = FontWeight.Black, fontSize = 10.sp, letterSpacing = 1.sp)
-                                            Spacer(Modifier.width(6.dp))
-                                            Surface(color = Color.White.copy(alpha = 0.2f), shape = RoundedCornerShape(4.dp)) {
-                                                Text("MARKET", color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
-                                            }
-                                        }
-                                        Text("Samani, Maua & Mapambo", fontWeight = FontWeight.Black, fontSize = 15.sp, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                    }
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "Rudi",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(18.dp)
+                                    )
                                 }
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.Center,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Surface(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable { showAIArrangerDialog = true },
-                                        shape = RoundedCornerShape(12.dp),
-                                        color = Color.White.copy(alpha = 0.18f),
-                                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.35f))
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.Center
+                                Spacer(Modifier.width(12.dp))
+                                Column {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Surface(
+                                            color = BrandAmber,
+                                            shape = RoundedCornerShape(4.dp)
                                         ) {
-                                            Icon(
-                                                Icons.Default.AutoAwesome,
-                                                contentDescription = "AI Room Visualizer",
-                                                tint = BrandAmber,
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                            Spacer(Modifier.width(8.dp))
                                             Text(
-                                                "✨ AI Panga Chumba (Piga Picha Upangiwe)",
-                                                color = Color.White,
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                maxLines = 1
+                                                "ROOMIFY MARKET",
+                                                color = BrandNavy,
+                                                fontWeight = FontWeight.Black,
+                                                fontSize = 9.sp,
+                                                letterSpacing = 0.8.sp,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                             )
                                         }
                                     }
+                                    Spacer(Modifier.height(2.dp))
+                                    Text(
+                                        "Samani, Maua & Mapambo",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = if (isCompact) 16.sp else 18.sp,
+                                        color = Color.White,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
                                 }
                             }
-                        } else {
+
+                            Spacer(Modifier.width(12.dp))
+
+                            // Right: Actions (AI Panga Chumba + Desktop Post Button)
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    IconButton(
-                                        onClick = onBack,
-                                        modifier = Modifier
-                                            .size(38.dp)
-                                            .background(Color.White.copy(alpha = 0.15f), CircleShape)
+                                Surface(
+                                    modifier = Modifier
+                                        .clickable { showAIArrangerDialog = true }
+                                        .pointerHoverIcon(PointerIcon.Hand),
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = Color.White.copy(alpha = 0.18f),
+                                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.35f))
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
                                         Icon(
-                                            Icons.AutoMirrored.Filled.ArrowBack,
-                                            contentDescription = "Rudi",
-                                            tint = Color.White,
-                                            modifier = Modifier.size(18.dp)
+                                            Icons.Rounded.AutoAwesome,
+                                            contentDescription = "AI Room Visualizer",
+                                            tint = BrandAmber,
+                                            modifier = Modifier.size(16.dp)
                                         )
-                                    }
-                                    Spacer(Modifier.width(12.dp))
-                                    Column {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text("ROOMIFY", color = BrandAmber, fontWeight = FontWeight.Black, fontSize = 11.sp, letterSpacing = 1.sp)
-                                            Spacer(Modifier.width(6.dp))
-                                            Surface(color = Color.White.copy(alpha = 0.2f), shape = RoundedCornerShape(4.dp)) {
-                                                Text("MARKET", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
-                                            }
-                                        }
-                                        Text("Samani, Maua & Mapambo", fontWeight = FontWeight.Black, fontSize = 17.sp, color = Color.White)
+                                        Text(
+                                            if (isCompact) "AI Panga Chumba" else "AI Panga Chumba",
+                                            color = Color.White,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            softWrap = false,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
                                     }
                                 }
 
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Surface(
-                                        modifier = Modifier
-                                            .clickable { showAIArrangerDialog = true },
+                                if (isExpanded) {
+                                    Button(
+                                        onClick = {
+                                            if (selectedTab == 0) onNavigate("post_furniture")
+                                            else onNavigate("post_shop")
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = BrandAmber, contentColor = BrandNavy),
                                         shape = RoundedCornerShape(12.dp),
-                                        color = Color.White.copy(alpha = 0.18f),
-                                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.35f))
+                                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+                                        modifier = Modifier.pointerHoverIcon(PointerIcon.Hand)
                                     ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                        ) {
-                                            Icon(
-                                                Icons.Default.AutoAwesome,
-                                                contentDescription = "AI Room Visualizer",
-                                                tint = BrandAmber,
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                            Text(
-                                                "✨ AI Panga Chumba",
-                                                color = Color.White,
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
+                                        Icon(Icons.Rounded.AddCircle, null, modifier = Modifier.size(16.dp), tint = BrandNavy)
+                                        Spacer(Modifier.width(6.dp))
+                                        Text(
+                                            if (selectedTab == 0) "+ Posta Bidhaa" else "+ Sajili Duka",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp
+                                        )
                                     }
                                 }
                             }
                         }
                     }
 
-                    // Modern Search Input
+                    // Centered Search & Filter Content Bar
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = if (isCompact) 8.dp else 10.dp)
+                            .padding(horizontal = if (isExpanded) 24.dp else 16.dp, vertical = 10.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        OutlinedTextField(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
-                            placeholder = { 
-                                Text(
-                                    if (isCompact) "Tafuta sofa, vitanda, meza, mapambo..." else "Tafuta sofa, meza, vitanda, maua, vioo...", 
-                                    fontSize = if (isCompact) 12.sp else 13.sp, 
-                                    color = Color(0xFF94A3B8),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                ) 
-                            },
-                            leadingIcon = { 
-                                Box(
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .widthIn(max = 1200.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            // Search Bar
+                            OutlinedTextField(
+                                value = searchQuery,
+                                onValueChange = { searchQuery = it },
+                                placeholder = {
+                                    Text(
+                                        "Tafuta sofa, meza, vitanda, maua, vioo...",
+                                        fontSize = 13.sp,
+                                        color = Color(0xFF94A3B8),
+                                        softWrap = false,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                },
+                                leadingIcon = {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(32.dp)
+                                            .background(BrandNavy.copy(alpha = 0.08f), CircleShape),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(Icons.Rounded.Search, null, tint = BrandNavy, modifier = Modifier.size(18.dp))
+                                    }
+                                },
+                                trailingIcon = {
+                                    if (searchQuery.isNotEmpty()) {
+                                        IconButton(onClick = { searchQuery = "" }) {
+                                            Icon(Icons.Rounded.Close, null, tint = Color.Gray, modifier = Modifier.size(18.dp))
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = Color(0xFFF8FAFC),
+                                    unfocusedContainerColor = Color(0xFFF8FAFC),
+                                    focusedBorderColor = BrandNavy,
+                                    unfocusedBorderColor = BorderColor
+                                ),
+                                singleLine = true
+                            )
+
+                            // Segmented Tab Switcher (44.dp height)
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = Color(0xFFF1F5F9),
+                                shape = RoundedCornerShape(14.dp)
+                            ) {
+                                Row(
                                     modifier = Modifier
-                                        .size(32.dp)
-                                        .background(BrandNavy.copy(alpha = 0.08f), CircleShape),
-                                    contentAlignment = Alignment.Center
+                                        .fillMaxWidth()
+                                        .padding(4.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
-                                    Icon(Icons.Default.Search, null, tint = BrandNavy, modifier = Modifier.size(18.dp))
-                                }
-                            },
-                            trailingIcon = {
-                                if (searchQuery.isNotEmpty()) {
-                                    IconButton(onClick = { searchQuery = "" }) {
-                                        Icon(Icons.Default.Close, null, tint = Color.Gray, modifier = Modifier.size(18.dp))
+                                    val tab0Hover = remember { MutableInteractionSource() }
+                                    val isTab0Hovered by tab0Hover.collectIsHoveredAsState()
+
+                                    val tab1Hover = remember { MutableInteractionSource() }
+                                    val isTab1Hovered by tab1Hover.collectIsHoveredAsState()
+
+                                    Surface(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(44.dp)
+                                            .clickable { selectedTab = 0 }
+                                            .hoverable(tab0Hover)
+                                            .pointerHoverIcon(PointerIcon.Hand),
+                                        color = if (selectedTab == 0) BrandNavy else if (isTab0Hovered) Color(0xFFE2E8F0) else Color.Transparent,
+                                        shape = RoundedCornerShape(10.dp),
+                                        shadowElevation = if (selectedTab == 0) 2.dp else 0.dp
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxSize(),
+                                            horizontalArrangement = Arrangement.Center,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                Icons.Rounded.Weekend,
+                                                contentDescription = null,
+                                                tint = if (selectedTab == 0) Color.White else Color(0xFF475569),
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Spacer(Modifier.width(8.dp))
+                                            Text(
+                                                "Bidhaa (${furnitures.size})",
+                                                color = if (selectedTab == 0) Color.White else Color(0xFF475569),
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 13.sp,
+                                                softWrap = false,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                    }
+
+                                    Surface(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(44.dp)
+                                            .clickable { selectedTab = 1 }
+                                            .hoverable(tab1Hover)
+                                            .pointerHoverIcon(PointerIcon.Hand),
+                                        color = if (selectedTab == 1) BrandNavy else if (isTab1Hovered) Color(0xFFE2E8F0) else Color.Transparent,
+                                        shape = RoundedCornerShape(10.dp),
+                                        shadowElevation = if (selectedTab == 1) 2.dp else 0.dp
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxSize(),
+                                            horizontalArrangement = Arrangement.Center,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                Icons.Rounded.Storefront,
+                                                contentDescription = null,
+                                                tint = if (selectedTab == 1) Color.White else Color(0xFF475569),
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Spacer(Modifier.width(8.dp))
+                                            Text(
+                                                "Maduka & Mafundi (${uniqueShops.size})",
+                                                color = if (selectedTab == 1) Color.White else Color(0xFF475569),
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 13.sp,
+                                                softWrap = false,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
                                     }
                                 }
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = Color(0xFFF8FAFC),
-                                unfocusedContainerColor = Color(0xFFF8FAFC),
-                                focusedBorderColor = BrandNavy,
-                                unfocusedBorderColor = Color(0xFFE2E8F0)
-                            ),
-                            singleLine = true
-                        )
-                    }
-
-                    // Animated Pill-style Tab Switcher
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 4.dp)
-                            .background(Color(0xFFF1F5F9), RoundedCornerShape(14.dp))
-                            .padding(4.dp)
-                    ) {
-                        val tabModifier = Modifier.weight(1f)
-                        
-                        Surface(
-                            modifier = tabModifier.clickable { selectedTab = 0 },
-                            color = if (selectedTab == 0) BrandNavy else Color.Transparent,
-                            shape = RoundedCornerShape(12.dp),
-                            shadowElevation = if (selectedTab == 0) 3.dp else 0.dp
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(vertical = if (isCompact) 8.dp else 10.dp),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    "🛋️ Bidhaa (${furnitures.size})",
-                                    color = if (selectedTab == 0) Color.White else Color(0xFF475569),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = if (isCompact) 12.sp else 13.sp,
-                                    maxLines = 1
-                                )
-                            }
-                        }
-
-                        Surface(
-                            modifier = tabModifier.clickable { selectedTab = 1 },
-                            color = if (selectedTab == 1) BrandNavy else Color.Transparent,
-                            shape = RoundedCornerShape(12.dp),
-                            shadowElevation = if (selectedTab == 1) 3.dp else 0.dp
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(vertical = if (isCompact) 8.dp else 10.dp),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    if (isCompact) "🏬 Maduka (${uniqueShops.size})" else "🏬 Maduka & Mafundi (${uniqueShops.size})",
-                                    color = if (selectedTab == 1) Color.White else Color(0xFF475569),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = if (isCompact) 12.sp else 13.sp,
-                                    maxLines = 1
-                                )
                             }
                         }
                     }
-                    
-                    Spacer(Modifier.height(4.dp))
                 }
             },
             floatingActionButton = {
-                ExtendedFloatingActionButton(
-                    onClick = { 
-                        if (selectedTab == 0) onNavigate("post_furniture")
-                        else onNavigate("post_shop")
-                    },
-                    icon = { Icon(Icons.Default.AddCircle, null) },
-                    text = { 
-                        Text(
-                            if (selectedTab == 0) (if (isCompact) "Posta Bidhaa" else "Posta Bidhaa Yako") 
-                            else (if (isCompact) "Sajili Duka" else "Sajili Duka Lako"), 
-                            fontWeight = FontWeight.Bold
-                        ) 
-                    },
-                    containerColor = BrandNavy,
-                    contentColor = Color.White,
-                    shape = RoundedCornerShape(20.dp),
-                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp)
-                )
+                // Show floating CTA on Mobile/Medium, hide on Desktop where header button is active
+                if (!isExpanded) {
+                    ExtendedFloatingActionButton(
+                        onClick = {
+                            if (selectedTab == 0) onNavigate("post_furniture")
+                            else onNavigate("post_shop")
+                        },
+                        icon = { Icon(Icons.Rounded.AddCircle, null, tint = Color.White) },
+                        text = {
+                            Text(
+                                if (selectedTab == 0) (if (isCompact) "Posta Bidhaa" else "Posta Bidhaa Yako")
+                                else (if (isCompact) "Sajili Duka" else "Sajili Duka Lako"),
+                                fontWeight = FontWeight.Bold,
+                                softWrap = false
+                            )
+                        },
+                        containerColor = BrandNavy,
+                        contentColor = Color.White,
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp)
+                    )
+                }
             }
         ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .background(BackgroundSurface)
-        ) {
-            if (selectedTab == 0) {
-                // Interactive Category Filter Bar with Emojis
-                LazyRow(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .widthIn(max = 1200.dp)
                 ) {
-                    items(categories) { item ->
-                        val isSelected = selectedCategory == item.name
-                        Surface(
+                    if (selectedTab == 0) {
+                        // Category Filter Chips (LazyRow, height = 40.dp)
+                        LazyRow(
                             modifier = Modifier
-                                .clickable { selectedCategory = item.name },
-                            shape = RoundedCornerShape(16.dp),
-                            color = if (isSelected) BrandNavy else Color.White,
-                            border = BorderStroke(1.dp, if (isSelected) BrandNavy else Color(0xFFE2E8F0)),
-                            shadowElevation = if (isSelected) 3.dp else 1.dp
+                                .fillMaxWidth()
+                                .padding(horizontal = if (isExpanded) 24.dp else 16.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Text(item.emoji, fontSize = 14.sp)
-                                Text(
-                                    item.name,
-                                    fontSize = 12.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
-                                    color = if (isSelected) Color.White else Color(0xFF334155)
-                                )
+                            items(categories) { item ->
+                                val isSelected = selectedCategory == item.name
+                                val interactionSource = remember { MutableInteractionSource() }
+                                val isHovered by interactionSource.collectIsHoveredAsState()
+
+                                Surface(
+                                    modifier = Modifier
+                                        .height(38.dp)
+                                        .clickable { selectedCategory = item.name }
+                                        .hoverable(interactionSource)
+                                        .pointerHoverIcon(PointerIcon.Hand),
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = if (isSelected) BrandNavy else if (isHovered) Color(0xFFF1F5F9) else Color.White,
+                                    border = BorderStroke(1.dp, if (isSelected) BrandNavy else BorderColor),
+                                    shadowElevation = if (isSelected) 2.dp else 0.dp
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 14.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(
+                                            item.icon,
+                                            contentDescription = null,
+                                            tint = if (isSelected) BrandAmber else BrandNavy,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Text(
+                                            item.name,
+                                            fontSize = 12.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                            color = if (isSelected) Color.White else Color(0xFF334155),
+                                            softWrap = false,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
                             }
                         }
-                    }
-                }
 
-                // Filter logic
-                val filtered = furnitures.filter { item ->
-                    val matchesCategory = selectedCategory == "Zote" ||
-                            item.category.contains(selectedCategory, ignoreCase = true) ||
-                            (selectedCategory == "Samani" && listOf("Bed", "Sofa", "Table", "Chair", "Furniture").any { item.category.contains(it, ignoreCase = true) }) ||
-                            (selectedCategory == "Mapambo" && listOf("Decor", "Picha", "Vioo").any { item.category.contains(it, ignoreCase = true) }) ||
-                            (selectedCategory == "Maua na Mimea" && listOf("Maua", "Mimea", "Flower", "Plant").any { item.category.contains(it, ignoreCase = true) })
+                        // Filter Logic
+                        val filtered = furnitures.filter { item ->
+                            val matchesCategory = selectedCategory == "Zote" ||
+                                    item.category.contains(selectedCategory, ignoreCase = true) ||
+                                    (selectedCategory == "Samani" && listOf("Bed", "Sofa", "Table", "Chair", "Furniture").any { item.category.contains(it, ignoreCase = true) }) ||
+                                    (selectedCategory == "Mapambo" && listOf("Decor", "Picha", "Vioo").any { item.category.contains(it, ignoreCase = true) }) ||
+                                    (selectedCategory == "Maua na Mimea" && listOf("Maua", "Mimea", "Flower", "Plant").any { item.category.contains(it, ignoreCase = true) }) ||
+                                    (selectedCategory == "Taa na Mwanga" && listOf("Taa", "Mwanga", "Light").any { item.category.contains(it, ignoreCase = true) }) ||
+                                    (selectedCategory == "Vifaa vya Nyumbani" && listOf("Vifaa", "Jikoni", "Kitchen", "Appliance").any { item.category.contains(it, ignoreCase = true) })
 
-                    val matchesSearch = searchQuery.isBlank() ||
-                            item.title.contains(searchQuery, ignoreCase = true) ||
-                            item.description.contains(searchQuery, ignoreCase = true) ||
-                            item.category.contains(searchQuery, ignoreCase = true) ||
-                            (item.address?.contains(searchQuery, ignoreCase = true) ?: false)
+                            val matchesSearch = searchQuery.isBlank() ||
+                                    item.title.contains(searchQuery, ignoreCase = true) ||
+                                    item.description.contains(searchQuery, ignoreCase = true) ||
+                                    item.category.contains(searchQuery, ignoreCase = true) ||
+                                    (item.address?.contains(searchQuery, ignoreCase = true) ?: false)
 
-                    matchesCategory && matchesSearch
-                }
-
-                AnimatedContent(
-                    targetState = filtered.isEmpty(),
-                    transitionSpec = { fadeIn() togetherWith fadeOut() }
-                ) { isEmpty ->
-                    if (isEmpty) {
-                        EmptyStatePlaceholder(
-                            title = if (searchQuery.isNotBlank()) "Hakuna matokeo ya utafutaji" else "Hakuna bidhaa zilizopatikana",
-                            description = if (searchQuery.isNotBlank()) 
-                                "Jaribu kubadilisha maneno ya utafutaji au chagua kategoria ya 'Zote'" 
-                            else 
-                                "Kuwa wa kwanza kuposti samani, mapambo, au vifaa vya nyumbani na ufikie maelfu ya wateja!",
-                            actionText = "Posta Bidhaa Sasa",
-                            onAction = { onNavigate("post_furniture") }
-                        )
-                    } else {
-                        LazyColumn(
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            items(filtered) { item ->
-                                FurnitureCard(
-                                    furniture = item,
-                                    currentUser = currentUser,
-                                    onClick = { onViewDetail(item) },
-                                    onEdit = { itemToEdit = item },
-                                    onDelete = { itemToDelete = item },
-                                    onToggleStatus = { onToggleStatus?.invoke(item) }
-                                )
-                            }
-                            item { Spacer(Modifier.height(88.dp)) }
+                            matchesCategory && matchesSearch
                         }
-                    }
-                }
-            } else {
-                // Shops List (deduplicated)
-                val filteredShops = uniqueShops.filter { shop ->
-                    searchQuery.isBlank() ||
-                            shop.name.contains(searchQuery, ignoreCase = true) ||
-                            (shop.description?.contains(searchQuery, ignoreCase = true) ?: false) ||
-                            (shop.address?.contains(searchQuery, ignoreCase = true) ?: false)
-                }
 
-                AnimatedContent(
-                    targetState = filteredShops.isEmpty(),
-                    transitionSpec = { fadeIn() togetherWith fadeOut() }
-                ) { isEmpty ->
-                    if (isEmpty) {
-                        EmptyStatePlaceholder(
-                            title = "Hakuna maduka yaliyosajiliwa bado",
-                            description = "Je, unamiliki gereji, karakana ya samani au duka la vifaa vya ndani? Sajili duka lako bure hapa!",
-                            actionText = "Sajili Duka Lako Sasa",
-                            onAction = { onNavigate("post_shop") }
-                        )
-                    } else {
-                        LazyColumn(
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            items(filteredShops) { shop ->
-                                ShopCard(shop, onClick = { onViewShop(shop) })
+                        AnimatedContent(
+                            targetState = filtered.isEmpty(),
+                            transitionSpec = { fadeIn() togetherWith fadeOut() }
+                        ) { isEmpty ->
+                            if (isEmpty) {
+                                EmptyStatePlaceholder(
+                                    title = if (searchQuery.isNotBlank()) "Hakuna matokeo ya utafutaji" else "Hakuna bidhaa zilizopatikana",
+                                    description = if (searchQuery.isNotBlank())
+                                        "Jaribu kubadilisha maneno ya utafutaji au chagua kategoria ya 'Zote'"
+                                    else
+                                        "Kuwa wa kwanza kuposti samani, mapambo, au vifaa vya nyumbani ili uwafikie wapangaji na wateja wengi!",
+                                    actionText = "+ Posta Bidhaa Sasa",
+                                    onAction = { onNavigate("post_furniture") },
+                                    isExpanded = isExpanded
+                                )
+                            } else {
+                                val gridColumns = when {
+                                    isExpanded -> 3
+                                    isMedium -> 2
+                                    else -> 1
+                                }
+                                val spacing = if (isCompact) 12.dp else 16.dp
+
+                                LazyVerticalGrid(
+                                    columns = GridCells.Fixed(gridColumns),
+                                    contentPadding = PaddingValues(
+                                        horizontal = if (isExpanded) 24.dp else 16.dp,
+                                        vertical = 12.dp
+                                    ),
+                                    horizontalArrangement = Arrangement.spacedBy(spacing),
+                                    verticalArrangement = Arrangement.spacedBy(spacing),
+                                    modifier = Modifier.fillMaxSize()
+                                ) {
+                                    items(filtered, key = { it.id ?: it.title }) { item ->
+                                        FurnitureCard(
+                                            furniture = item,
+                                            currentUser = currentUser,
+                                            onClick = { onViewDetail(item) },
+                                            onEdit = { itemToEdit = item },
+                                            onDelete = { itemToDelete = item },
+                                            onToggleStatus = { onToggleStatus?.invoke(item) }
+                                        )
+                                    }
+                                }
                             }
-                            item { Spacer(Modifier.height(96.dp)) }
+                        }
+                    } else {
+                        // Shops & Mafundi List
+                        val filteredShops = uniqueShops.filter { shop ->
+                            searchQuery.isBlank() ||
+                                    shop.name.contains(searchQuery, ignoreCase = true) ||
+                                    (shop.description?.contains(searchQuery, ignoreCase = true) ?: false) ||
+                                    (shop.address?.contains(searchQuery, ignoreCase = true) ?: false)
+                        }
+
+                        AnimatedContent(
+                            targetState = filteredShops.isEmpty(),
+                            transitionSpec = { fadeIn() togetherWith fadeOut() }
+                        ) { isEmpty ->
+                            if (isEmpty) {
+                                EmptyStatePlaceholder(
+                                    title = "Hakuna maduka yaliyosajiliwa bado",
+                                    description = "Je, unamiliki gereji, karakana ya samani au duka la vifaa vya ndani? Sajili duka lako bure hapa!",
+                                    actionText = "+ Sajili Duka Lako Sasa",
+                                    onAction = { onNavigate("post_shop") },
+                                    isExpanded = isExpanded
+                                )
+                            } else {
+                                val shopColumns = if (isCompact) 1 else 2
+                                val spacing = if (isCompact) 12.dp else 16.dp
+
+                                LazyVerticalGrid(
+                                    columns = GridCells.Fixed(shopColumns),
+                                    contentPadding = PaddingValues(
+                                        horizontal = if (isExpanded) 24.dp else 16.dp,
+                                        vertical = 12.dp
+                                    ),
+                                    horizontalArrangement = Arrangement.spacedBy(spacing),
+                                    verticalArrangement = Arrangement.spacedBy(spacing),
+                                    modifier = Modifier.fillMaxSize()
+                                ) {
+                                    items(filteredShops, key = { it.id ?: it.name }) { shop ->
+                                        ShopCard(shop, onClick = { onViewShop(shop) })
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
         }
     }
-    }
 
-    // ============================================================
     // DELETE CONFIRMATION DIALOG
-    // ============================================================
     itemToDelete?.let { item ->
         AlertDialog(
             onDismissRequest = { itemToDelete = null },
-            icon = { Icon(Icons.Default.DeleteForever, null, tint = Color(0xFFDC2626), modifier = Modifier.size(36.dp)) },
+            icon = { Icon(Icons.Rounded.DeleteForever, null, tint = Color(0xFFDC2626), modifier = Modifier.size(36.dp)) },
             title = { Text("Futa Bidhaa", fontWeight = FontWeight.Bold) },
             text = { Text("Je, una uhakika unataka kufuta '${item.title}' kabisa kutoka sokoni?") },
             confirmButton = {
@@ -522,9 +602,7 @@ fun FurnitureDashboard(
         )
     }
 
-    // ============================================================
     // EDIT FURNITURE DIALOG
-    // ============================================================
     itemToEdit?.let { item ->
         var editTitle by remember { mutableStateOf(item.title) }
         var editPrice by remember { mutableStateOf(item.price.toLong().toString()) }
@@ -588,12 +666,12 @@ fun FurnitureDashboard(
                             FilterChip(
                                 selected = editStatus == "AVAILABLE",
                                 onClick = { editStatus = "AVAILABLE" },
-                                label = { Text("INAPATIKANA") }
+                                label = { Text("INAPATIKANA", softWrap = false) }
                             )
                             FilterChip(
                                 selected = editStatus == "SOLD",
                                 onClick = { editStatus = "SOLD" },
-                                label = { Text("IMEUZWA") }
+                                label = { Text("IMEUZWA", softWrap = false) }
                             )
                         }
                     }
@@ -627,9 +705,7 @@ fun FurnitureDashboard(
         )
     }
 
-    // ============================================================
-    // GEMINI AI ROOM ARRANGER DIALOG
-    // ============================================================
+    // AI ROOM ARRANGER DIALOG
     if (showAIArrangerDialog) {
         AIRoomArrangerDialog(
             onDismiss = { showAIArrangerDialog = false }
@@ -642,61 +718,49 @@ private fun EmptyStatePlaceholder(
     title: String,
     description: String,
     actionText: String,
-    onAction: () -> Unit
+    onAction: () -> Unit,
+    isExpanded: Boolean = false
 ) {
-    val infiniteTransition = rememberInfiniteTransition()
-    val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.05f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        )
-    )
-
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(20.dp)
-            .heightIn(min = 360.dp),
+            .padding(vertical = 24.dp, horizontal = 16.dp),
         contentAlignment = Alignment.Center
     ) {
         Surface(
-            modifier = Modifier.fillMaxWidth().scale(pulseScale),
-            shape = RoundedCornerShape(24.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .widthIn(max = 560.dp),
+            shape = RoundedCornerShape(18.dp),
             color = Color.White,
-            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-            shadowElevation = 6.dp
+            border = BorderStroke(1.dp, BorderColor),
+            shadowElevation = 2.dp
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.padding(28.dp)
             ) {
+                // 56.dp circular icon container (#EEF2FF, #142170 icon)
                 Box(
                     modifier = Modifier
-                        .size(80.dp)
-                        .background(
-                            Brush.radialGradient(
-                                listOf(BrandAmber.copy(alpha = 0.25f), BrandNavy.copy(alpha = 0.08f))
-                            ),
-                            CircleShape
-                        ),
+                        .size(56.dp)
+                        .background(Color(0xFFEEF2FF), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        Icons.Default.Weekend,
+                        Icons.Rounded.Weekend,
                         contentDescription = null,
-                        modifier = Modifier.size(42.dp),
+                        modifier = Modifier.size(28.dp),
                         tint = BrandNavy
                     )
                 }
 
-                Spacer(Modifier.height(18.dp))
+                Spacer(Modifier.height(16.dp))
 
                 Text(
                     text = title,
-                    fontWeight = FontWeight.Black,
-                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
                     color = Color(0xFF0F172A),
                     textAlign = TextAlign.Center
                 )
@@ -711,17 +775,24 @@ private fun EmptyStatePlaceholder(
                     lineHeight = 18.sp
                 )
 
-                Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(20.dp))
 
                 Button(
                     onClick = onAction,
                     colors = ButtonDefaults.buttonColors(containerColor = BrandNavy),
-                    shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier.height(48.dp)
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier
+                        .height(44.dp)
+                        .pointerHoverIcon(PointerIcon.Hand)
                 ) {
-                    Icon(Icons.Default.AddCircle, null, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Rounded.AddCircle, null, modifier = Modifier.size(18.dp), tint = Color.White)
                     Spacer(Modifier.width(8.dp))
-                    Text(actionText, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Text(
+                        actionText,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                        softWrap = false
+                    )
                 }
             }
         }
@@ -730,64 +801,103 @@ private fun EmptyStatePlaceholder(
 
 @Composable
 fun ShopCard(shop: Shop, onClick: () -> Unit) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isHovered by interactionSource.collectIsHoveredAsState()
+
     Card(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .hoverable(interactionSource)
+            .pointerHoverIcon(PointerIcon.Hand),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isHovered) Color(0xFFF8FAFC) else Color.White
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isHovered) 4.dp else 1.dp),
+        border = BorderStroke(1.dp, if (isHovered) BrandNavy.copy(alpha = 0.3f) else BorderColor)
     ) {
-        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(72.dp).clip(RoundedCornerShape(14.dp)).background(Color(0xFFF0F2F5)), contentAlignment = Alignment.Center) {
+        Row(
+            modifier = Modifier.padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Leading Avatar / Shop Image (48.dp, RoundedCornerShape(12.dp))
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFFEEF2FF)),
+                contentAlignment = Alignment.Center
+            ) {
                 if (shop.firstImageUrl != null) {
                     KamelImage(
                         resource = { asyncPainterResource(shop.firstImageUrl!!) },
-                        contentDescription = null,
+                        contentDescription = shop.name,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
                     )
                 } else {
-                    Icon(Icons.Default.Storefront, null, tint = Color.LightGray, modifier = Modifier.size(30.dp))
+                    Icon(Icons.Rounded.Storefront, null, tint = BrandNavy, modifier = Modifier.size(24.dp))
                 }
             }
-            
+
             Spacer(Modifier.width(14.dp))
-            
-            Column(Modifier.weight(1f)) {
+
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     shop.name,
-                    fontSize = 16.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF0F172A),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(3.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.LocationOn, null, tint = Color.Gray, modifier = Modifier.size(13.dp))
-                    Spacer(Modifier.width(3.dp))
+                    Icon(Icons.Rounded.LocationOn, null, tint = Color(0xFF64748B), modifier = Modifier.size(13.dp))
+                    Spacer(Modifier.width(4.dp))
                     Text(
-                        shop.address ?: "Mtaa haujatajwa",
-                        color = Color.Gray,
+                        shop.address ?: "Dar es Salaam",
+                        color = Color(0xFF64748B),
                         fontSize = 12.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                Spacer(Modifier.height(6.dp))
-                if (shop.hasVideo) {
-                    Surface(color = Color(0xFFFFEBEE), shape = CircleShape) {
-                        Row(Modifier.padding(horizontal = 8.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.PlayCircle, null, tint = Color.Red, modifier = Modifier.size(10.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("VIDEO DEMO", fontSize = 8.sp, fontWeight = FontWeight.Black, color = Color.Red)
+                Spacer(Modifier.height(4.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Surface(
+                        color = Color(0xFFF1F5F9),
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(
+                            "Eneo Lililohifadhiwa",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF475569),
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                    if (shop.hasVideo) {
+                        Surface(color = Color(0xFFFFEBEE), shape = RoundedCornerShape(4.dp)) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Rounded.PlayCircle, null, tint = Color.Red, modifier = Modifier.size(10.dp))
+                                Spacer(Modifier.width(3.dp))
+                                Text("VIDEO", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.Red)
+                            }
                         }
                     }
                 }
             }
-            
+
             Spacer(Modifier.width(8.dp))
-            Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = Color.LightGray, modifier = Modifier.size(18.dp))
+            Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = BrandNavy, modifier = Modifier.size(18.dp))
         }
     }
 }
@@ -803,32 +913,43 @@ fun FurnitureCard(
 ) {
     val isOwner = currentUser != null && (
             (furniture.postedBy != null && furniture.postedBy == currentUser.id) ||
-            currentUser.role.equals("ADMIN", ignoreCase = true)
-    )
+                    currentUser.role.equals("ADMIN", ignoreCase = true)
+            )
+
+    val interactionSource = remember { MutableInteractionSource() }
+    val isHovered by interactionSource.collectIsHoveredAsState()
 
     Card(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .hoverable(interactionSource)
+            .pointerHoverIcon(PointerIcon.Hand),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isHovered) Color(0xFFF8FAFC) else Color.White
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isHovered) 4.dp else 2.dp),
+        border = BorderStroke(1.dp, if (isHovered) BrandNavy.copy(alpha = 0.3f) else BorderColor)
     ) {
         Column {
             Box {
                 KamelImage(
                     resource = { asyncPainterResource(furniture.firstImageUrl ?: "") },
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxWidth().height(210.dp),
+                    contentDescription = furniture.title,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp),
                     contentScale = ContentScale.Crop,
-                    onLoading = { 
+                    onLoading = {
                         Box(Modifier.fillMaxSize().background(Color(0xFFF0F2F5)), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp, color = Color(0xFF1A237E))
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp, color = BrandNavy)
                         }
                     },
                     onFailure = {
                         Box(Modifier.fillMaxSize().background(Color(0xFFF0F2F5)), contentAlignment = Alignment.Center) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp)) {
-                                Icon(Icons.Default.BrokenImage, null, tint = Color.LightGray, modifier = Modifier.size(32.dp))
+                                Icon(Icons.Rounded.BrokenImage, null, tint = Color.LightGray, modifier = Modifier.size(32.dp))
                                 Text("Picha haipatikani", fontSize = 11.sp, color = Color.Gray, textAlign = TextAlign.Center)
                             }
                         }
@@ -837,31 +958,39 @@ fun FurnitureCard(
 
                 if (furniture.category.isNotBlank()) {
                     Surface(
-                        modifier = Modifier.align(Alignment.TopStart).padding(12.dp),
-                        color = Color(0xFF1A237E).copy(alpha = 0.85f),
-                        shape = RoundedCornerShape(8.dp)
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(10.dp),
+                        color = BrandNavy.copy(alpha = 0.9f),
+                        shape = RoundedCornerShape(6.dp)
                     ) {
                         Text(
                             furniture.category.uppercase(),
                             color = Color.White,
-                            fontSize = 10.sp,
+                            fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
                         )
                     }
                 }
 
                 Surface(
-                    modifier = Modifier.align(Alignment.TopEnd).padding(12.dp),
-                    color = Color.Black.copy(alpha = 0.65f),
-                    shape = RoundedCornerShape(8.dp)
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(10.dp),
+                    color = Color.Black.copy(alpha = 0.7f),
+                    shape = RoundedCornerShape(6.dp)
                 ) {
                     Text(
                         furniture.condition.ifBlank { "MPYA" },
                         color = Color.White,
-                        fontSize = 10.sp,
+                        fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
                     )
                 }
             }
@@ -874,7 +1003,7 @@ fun FurnitureCard(
                 ) {
                     Text(
                         furniture.title,
-                        fontSize = 16.sp,
+                        fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF0F172A),
                         modifier = Modifier.weight(1f),
@@ -884,17 +1013,17 @@ fun FurnitureCard(
                     Spacer(Modifier.width(8.dp))
                     Text(
                         furniture.formattedPrice,
-                        color = Color(0xFF1A237E),
+                        color = BrandNavy,
                         fontWeight = FontWeight.Black,
-                        fontSize = 15.sp,
+                        fontSize = 14.sp,
                         maxLines = 1
                     )
                 }
 
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(4.dp))
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.LocationOn, null, tint = Color.Gray, modifier = Modifier.size(13.dp))
+                    Icon(Icons.Rounded.LocationOn, null, tint = Color.Gray, modifier = Modifier.size(13.dp))
                     Spacer(Modifier.width(4.dp))
                     Text(
                         furniture.address ?: "Eneo halijatajwa",
@@ -908,8 +1037,8 @@ fun FurnitureCard(
                 Spacer(Modifier.height(10.dp))
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(28.dp).background(Color(0xFFF0F2F5), CircleShape), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.Person, null, modifier = Modifier.size(14.dp), tint = Color.Gray)
+                    Box(Modifier.size(26.dp).background(Color(0xFFEEF2FF), CircleShape), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Rounded.Person, null, modifier = Modifier.size(14.dp), tint = BrandNavy)
                     }
                     Spacer(Modifier.width(6.dp))
                     Text(
@@ -922,36 +1051,41 @@ fun FurnitureCard(
                         overflow = TextOverflow.Ellipsis
                     )
                     Spacer(Modifier.weight(1f))
-                    Surface(color = Color(0xFFE8F5E9), shape = CircleShape) {
+                    Surface(color = Color(0xFFEEF2FF), shape = CircleShape) {
                         Text(
                             "Angalia",
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
-                            color = Color(0xFF2E7D32),
+                            color = BrandNavy,
                             fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            softWrap = false
                         )
                     }
                 }
             }
 
-            // MANAGEMENT BAR (FOR OWNER / ADMIN)
+            // MANAGEMENT BAR FOR OWNER/ADMIN
             if (isOwner) {
                 HorizontalDivider(color = Color(0xFFF1F5F9))
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Surface(
-                        color = if (furniture.status == "SOLD") Color(0xFFFFEBEE) else Color(0xFFE8F5E9),
+                        color = if (furniture.status == "SOLD") Color(0xFFFFEBEE) else Color(0xFFDCFCE7),
                         shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.clickable { onToggleStatus?.invoke() }
+                        modifier = Modifier
+                            .clickable { onToggleStatus?.invoke() }
+                            .pointerHoverIcon(PointerIcon.Hand)
                     ) {
                         Row(Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                if (furniture.status == "SOLD") Icons.Default.Cancel else Icons.Default.CheckCircle,
+                                if (furniture.status == "SOLD") Icons.Rounded.Cancel else Icons.Rounded.CheckCircle,
                                 null,
-                                tint = if (furniture.status == "SOLD") Color.Red else Color(0xFF2E7D32),
+                                tint = if (furniture.status == "SOLD") Color.Red else Color(0xFF15803D),
                                 modifier = Modifier.size(12.dp)
                             )
                             Spacer(Modifier.width(4.dp))
@@ -959,21 +1093,22 @@ fun FurnitureCard(
                                 if (furniture.status == "SOLD") "IMEUZWA" else "INAPATIKANA",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (furniture.status == "SOLD") Color.Red else Color(0xFF2E7D32)
+                                color = if (furniture.status == "SOLD") Color.Red else Color(0xFF15803D),
+                                softWrap = false
                             )
                         }
                     }
 
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         TextButton(onClick = { onEdit?.invoke() }) {
-                            Icon(Icons.Default.Edit, null, modifier = Modifier.size(14.dp), tint = Color(0xFF1A237E))
+                            Icon(Icons.Rounded.Edit, null, modifier = Modifier.size(14.dp), tint = BrandNavy)
                             Spacer(Modifier.width(4.dp))
-                            Text("Hariri", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1A237E))
+                            Text("Hariri", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = BrandNavy, softWrap = false)
                         }
                         TextButton(onClick = { onDelete?.invoke() }) {
-                            Icon(Icons.Default.Delete, null, modifier = Modifier.size(14.dp), tint = Color(0xFFD32F2F))
+                            Icon(Icons.Rounded.Delete, null, modifier = Modifier.size(14.dp), tint = Color(0xFFD32F2F))
                             Spacer(Modifier.width(4.dp))
-                            Text("Futa", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD32F2F))
+                            Text("Futa", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD32F2F), softWrap = false)
                         }
                     }
                 }

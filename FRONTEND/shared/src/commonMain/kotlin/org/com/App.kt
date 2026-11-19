@@ -495,7 +495,7 @@ fun App() {
                 currentRoute = "analytics"
             }
             "furniture", "furniture_choice" -> {
-                currentRoute = "furniture_choice"
+                currentRoute = "furniture_dashboard"
             }
             "furniture_dashboard" -> {
                 currentRoute = "furniture_dashboard"
@@ -697,7 +697,7 @@ fun App() {
                             furnitures = furnitureList,
                             shops = shopList,
                             currentUser = authUser,
-                            onBack = { currentRoute = "furniture_choice" },
+                            onBack = { currentRoute = "map" },
                             onViewDetail = {
                                 pendingFurniture = it
                                 currentRoute = "furniture_detail"
