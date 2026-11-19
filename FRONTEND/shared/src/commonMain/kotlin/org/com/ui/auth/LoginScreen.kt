@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Handshake
 import androidx.compose.material.icons.filled.Home
@@ -1532,6 +1533,125 @@ private fun LoginFormCard(
                     color =
                         LoginColors.TextSecondary
                 )
+            }
+        }
+    }
+}
+
+@Composable
+fun AuthModalDialog(
+    onDismiss: () -> Unit,
+    onLogin: (String, String) -> Unit,
+    onRegisterClick: () -> Unit,
+    onGoogleLogin: () -> Unit = {}
+) {
+    androidx.compose.ui.window.Dialog(
+        onDismissRequest = onDismiss,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        androidx.compose.material3.Surface(
+            modifier = Modifier
+                .widthIn(max = 460.dp)
+                .fillMaxWidth(0.92f),
+            shape = RoundedCornerShape(20.dp),
+            color = Color.White,
+            shadowElevation = 12.dp
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(24.dp)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Sign In to Roomify",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF0F172A)
+                    )
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = Color(0xFF64748B),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                var email by remember { mutableStateOf("") }
+                var password by remember { mutableStateOf("") }
+                var showPassword by remember { mutableStateOf(false) }
+
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Email or Phone") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Password") },
+                    singleLine = true,
+                    visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { showPassword = !showPassword }) {
+                            Icon(
+                                imageVector = if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                contentDescription = null,
+                                tint = Color(0xFF64748B)
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                )
+
+                Spacer(Modifier.height(20.dp))
+
+                Button(
+                    onClick = { onLogin(email.trim(), password) },
+                    enabled = email.isNotBlank() && password.isNotBlank(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF142170))
+                ) {
+                    Text("Sign In", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                }
+
+                Spacer(Modifier.height(14.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = onRegisterClick) {
+                        Text("Create Account", color = Color(0xFF142170), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
+
+                    TextButton(onClick = onGoogleLogin) {
+                        Text("Continue with Google", color = Color(0xFF475569), fontSize = 12.sp)
+                    }
+                }
             }
         }
     }

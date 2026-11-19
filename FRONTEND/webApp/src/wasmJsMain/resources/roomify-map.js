@@ -1001,15 +1001,15 @@
             }
 
             .roomify-popup {
-                font-family: Arial, sans-serif;
+                font-family: system-ui, -apple-system, sans-serif;
                 padding: 16px;
-                min-width: 240px;
-                max-width: 280px;
-                background: linear-gradient(135deg, #1A237E, #3949AB);
-                border-radius: 26px;
-                box-shadow: 0 8px 30px rgba(0,0,0,0.35);
-                border: 1px solid rgba(255,255,255,0.16);
-                color: #ffffff;
+                width: 320px;
+                max-width: 360px;
+                background: #FFFFFF;
+                border-radius: 18px;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.20);
+                border: 1px solid #E2E8F0;
+                color: #0F172A;
             }
 
             .roomify-popup-header {
@@ -1022,8 +1022,8 @@
                 width: 36px;
                 height: 36px;
                 border-radius: 15px;
-                background: rgba(255,255,255,0.15);
-                border: 1px solid rgba(255,255,255,0.16);
+                background: #F1F5F9;
+                border: 1px solid #E2E8F0;
                 display: flex;
                 align-items: center;
                 justify-content: center;
@@ -1035,8 +1035,9 @@
             .roomify-popup-property-type {
                 font-size: 11px;
                 font-weight: 600;
-                color: rgba(255,255,255,0.80);
+                color: #64748B;
                 letter-spacing: 0.6px;
+                text-transform: uppercase;
             }
 
             .roomify-popup-image-container {
@@ -3527,6 +3528,18 @@
      * ============================================================
      */
 
+    function formatLocationDisplayJs(str) {
+        if (!str) return "Location available";
+        var isCoords = /^-?\d+(\.\d+)?,[\s]*-?\d+(\.\d+)?$/.test(str.trim());
+        if (isCoords) {
+            var parts = str.split(",").map(function(p) { return parseFloat(p.trim()); });
+            if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+                return (Math.round(parts[0] * 10000) / 10000) + ", " + (Math.round(parts[1] * 10000) / 10000);
+            }
+        }
+        return str;
+    }
+
     function buildPopupContent(room) {
 
         var title =
@@ -3578,15 +3591,25 @@
                 room.propertyType || ""
             );
 
-        var locationDisplay =
-            address || "Location available";
+        var locationDisplay = address ? formatLocationDisplayJs(address) : "Location available";
+
+        var photos = [];
+        if (Array.isArray(room.images) && room.images.length > 0) {
+            photos = room.images;
+        } else if (Array.isArray(room.fullImageUrls) && room.fullImageUrls.length > 0) {
+            photos = room.fullImageUrls;
+        } else if (room.image) {
+            photos = [room.image];
+        }
 
         var imageHtml = "";
-        if (room.image) {
-            var resolvedImg = resolveMediaUrl(room.image);
+        if (photos.length > 0) {
+            var resolvedImg = resolveMediaUrl(photos[0]);
+            var photoBadge = photos.length > 1 ? '<div style="position:absolute; top:8px; right:8px; background:rgba(15,23,42,0.75); color:white; padding:3px 8px; border-radius:12px; font-size:10px; font-weight:bold; z-index:2;">1 / ' + photos.length + '</div>' : '';
             imageHtml =
-                '<div class="roomify-popup-image-container">' +
-                '<img src="' + escapeHtml(resolvedImg) + '" class="roomify-popup-image" onerror="this.style.display=\'none\'" />' +
+                '<div class="roomify-popup-image-container" style="position:relative; height:150px; border-radius:12px; overflow:hidden; margin:8px 0;">' +
+                photoBadge +
+                '<img src="' + escapeHtml(resolvedImg) + '" class="roomify-popup-image" style="width:100%; height:150px; object-fit:cover; border-radius:12px;" onerror="this.parentElement.style.display=\'none\'" />' +
                 '</div>';
         }
 

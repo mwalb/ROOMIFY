@@ -7,6 +7,10 @@ import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.location.Location
+import androidx.compose.ui.layout.ContentScale
+import io.kamel.image.KamelImage
+import io.kamel.image.asyncPainterResource
+import kotlin.math.roundToInt
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -1062,37 +1066,24 @@ private fun RoomPropertyPopup(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(start = 14.dp, end = 14.dp, bottom = 20.dp),
+            .padding(horizontal = 16.dp, vertical = 20.dp),
         contentAlignment = Alignment.BottomCenter
     ) {
         Card(
             modifier = Modifier
-                .fillMaxWidth()
-                .shadow(elevation = 18.dp, shape = RoundedCornerShape(26.dp)),
-            shape = RoundedCornerShape(26.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                .widthIn(max = 360.dp)
+                .fillMaxWidth(0.92f),
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(26.dp))
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                RoomifyGradientStart.copy(alpha = 0.97f),
-                                RoomifyGradientEnd.copy(alpha = 0.95f)
-                            )
-                        )
-                    )
-                    .border(
-                        width = 1.dp,
-                        color = RoomifyWhite.copy(alpha = 0.16f),
-                        shape = RoundedCornerShape(26.dp)
-                    )
                     .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(11.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                // Header Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -1100,7 +1091,7 @@ private fun RoomPropertyPopup(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = room.propertyType?.takeIf { it.isNotBlank() } ?: "Property",
-                            color = RoomifyWhite80,
+                            color = Color(0xFF64748B),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
                             letterSpacing = 0.6.sp
@@ -1108,61 +1099,89 @@ private fun RoomPropertyPopup(
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = room.title?.takeIf { it.isNotBlank() } ?: "Room",
-                            color = RoomifyWhite,
-                            fontSize = 18.sp,
+                            color = Color(0xFF0F172A),
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
                     }
 
-                    Surface(
+                    IconButton(
+                        onClick = onClose,
                         modifier = Modifier
-                            .size(38.dp)
-                            .clip(CircleShape)
-                            .clickable(onClick = onClose),
-                        color = RoomifyWhite.copy(alpha = 0.13f),
-                        shape = CircleShape
+                            .size(32.dp)
+                            .background(Color(0xFFF1F5F9), CircleShape)
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Close",
-                                tint = RoomifyWhite,
-                                modifier = Modifier.size(20.dp)
-                            )
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = Color(0xFF64748B),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+
+                // Image Preview with 1/N badge
+                val imageUrls = room.fullImageUrls
+                if (imageUrls.isNotEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(150.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFFF1F5F9))
+                    ) {
+                        KamelImage(
+                            resource = { asyncPainterResource(imageUrls.first()) },
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+
+                        if (imageUrls.size > 1) {
+                            Surface(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(8.dp),
+                                color = Color.Black.copy(alpha = 0.75f),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text(
+                                    text = "1 / ${imageUrls.size}",
+                                    color = Color.White,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                )
+                            }
                         }
                     }
                 }
 
-                val location = room.locationSummary.takeIf { it.isNotBlank() } ?: room.address?.takeIf { it.isNotBlank() }
+                val location = formatLocationDisplay(room.address, room.latitude, room.longitude)
 
-                location?.let {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(13.dp))
-                            .background(RoomifyWhite.copy(alpha = 0.09f))
-                            .padding(horizontal = 11.dp, vertical = 9.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.LocationOn,
-                            contentDescription = "Location",
-                            tint = RoomifyWhite90,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(7.dp))
-                        Text(
-                            text = it,
-                            color = RoomifyWhite90,
-                            fontSize = 12.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = "Location",
+                        tint = Color(0xFF64748B),
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = location,
+                        color = Color(0xFF64748B),
+                        fontSize = 12.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
 
+                // Rent & Status Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -1171,7 +1190,7 @@ private fun RoomPropertyPopup(
                     Column {
                         Text(
                             text = "MONTHLY RENT",
-                            color = RoomifyWhite55,
+                            color = Color(0xFF64748B),
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.sp
@@ -1179,8 +1198,8 @@ private fun RoomPropertyPopup(
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = formatFullPrice(room.price),
-                            color = RoomifyWhite,
-                            fontSize = 19.sp,
+                            color = Color(0xFF142170),
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.ExtraBold
                         )
                     }
@@ -1194,22 +1213,43 @@ private fun RoomPropertyPopup(
                     onClick = onViewProperty,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(15.dp),
+                        .height(42.dp),
+                    shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = RoomifyWhite95,
-                        contentColor = RoomifyGradientStart
+                        containerColor = Color(0xFF142170),
+                        contentColor = Color.White
                     )
                 ) {
                     Text(
                         text = "View Property Details",
-                        fontSize = 14.sp,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
         }
     }
+}
+
+private fun formatLocationDisplay(rawLocation: String?, lat: Double? = null, lng: Double? = null): String {
+    if (rawLocation.isNullOrBlank()) {
+        if (lat != null && lng != null && lat != 0.0 && lng != 0.0) {
+            val shortLat = (lat * 10000.0).roundToInt() / 10000.0
+            val shortLng = (lng * 10000.0).roundToInt() / 10000.0
+            return "$shortLat, $shortLng"
+        }
+        return "Location available"
+    }
+    val isCoords = rawLocation.matches(Regex("^-?\\d+(\\.\\d+)?,\\s*-?\\d+(\\.\\d+)?$"))
+    if (isCoords) {
+        val parts = rawLocation.split(",").map { it.trim().toDoubleOrNull() }
+        if (parts.size == 2 && parts[0] != null && parts[1] != null) {
+            val shortLat = (parts[0]!! * 10000.0).roundToInt() / 10000.0
+            val shortLng = (parts[1]!! * 10000.0).roundToInt() / 10000.0
+            return "$shortLat, $shortLng"
+        }
+    }
+    return rawLocation
 }
 
 /*
