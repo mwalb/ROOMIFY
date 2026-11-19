@@ -1156,11 +1156,7 @@ private fun getSampleLogs(): List<SystemLog> = listOf(
     SystemLog(id = 3, timestamp = "2026-09-28 11:55:12", level = "WARN", action = "LOGIN_FAILED", userEmail = "unverified_owner@gmail.com", userRole = "OWNER", details = "Blocked unverified login attempt for Owner")
 )
 
-private fun getSampleAllProperties(): List<Room> = listOf(
-    Room(id = 1, title = "Makumbusho Single Room", address = "Makumbusho, Dar es Salaam", price = 180000.0, status = "AVAILABLE"),
-    Room(id = 2, title = "Sinza Modern Apartment", address = "Sinza, Dar es Salaam", price = 500000.0, status = "AVAILABLE"),
-    Room(id = 3, title = "Mbezi Beach Villa Room", address = "Mbezi Beach, Dar es Salaam", price = 800000.0, status = "SUSPENDED")
-)
+private fun getSampleAllProperties(): List<Room> = emptyList()
 
 private fun getSampleAdmins(): List<User> = listOf(
     User(id = 1, name = "Main Super Admin", email = "super_admin@roomify.tz", role = "SUPER_ADMIN", verificationStatus = "VERIFIED", status = "ACTIVE"),
