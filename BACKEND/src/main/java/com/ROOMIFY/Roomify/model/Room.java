@@ -155,12 +155,12 @@ public class Room {
     @JoinColumn(name = "dalali_id", insertable = false, updatable = false)
     private User dalali;
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "room_amenities", joinColumns = @JoinColumn(name = "room_id"))
     @Column(name = "amenity")
     private List<String> amenities = new ArrayList<>();
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "room_rules", joinColumns = @JoinColumn(name = "room_id"))
     @Column(name = "rule")
     private List<String> rules = new ArrayList<>();

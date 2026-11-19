@@ -139,6 +139,7 @@ class MapViewModel(
      */
 
     private var fetchJob: Job? = null
+    private var currentRequestId = 0L
 
     fun loadRooms(force: Boolean = false) {
         if (force) {
@@ -149,40 +150,50 @@ class MapViewModel(
             return
         }
 
-        println("MapViewModel: loadRooms(force=$force) STARTED")
+        val requestId = ++currentRequestId
+        println("MapViewModel: loadRooms(requestId=$requestId, force=$force) STARTED")
 
         fetchJob = scope.launch {
             isLoading = true
             error = null
 
             try {
-                println("MapViewModel: requesting /rooms")
+                println("MapViewModel: requesting /rooms [req #$requestId]")
 
                 val result = roomApi.getAllRooms()
 
-                rooms = result
+                if (requestId == currentRequestId) {
+                    rooms = result
+                    println("MapViewModel: received ${result.size} rooms [req #$requestId]")
 
-                println("MapViewModel: received ${result.size} rooms")
-
-                if (result.isEmpty()) {
-                    error = "No rooms are currently available."
+                    if (result.isEmpty()) {
+                        error = "No rooms are currently available."
+                    }
+                } else {
+                    println("MapViewModel: ignoring response for stale req #$requestId (current: $currentRequestId)")
                 }
 
             } catch (e: Exception) {
                 if (e is CancellationException) {
-                    println("MapViewModel: loadRooms() CANCELLED")
+                    println("MapViewModel: loadRooms() CANCELLED [req #$requestId]")
                     throw e
                 }
 
-                println("MapViewModel: FAILED")
-                println("MapViewModel: ${e.message}")
-
-                error = e.message ?: "Failed to load rooms"
+                if (requestId == currentRequestId) {
+                    println("MapViewModel: FAILED [req #$requestId]: ${e.message}")
+                    error = e.message ?: "Failed to load rooms"
+                }
 
             } finally {
-                isLoading = false
-                println("MapViewModel: loadRooms() FINISHED")
+                if (requestId == currentRequestId) {
+                    isLoading = false
+                    println("MapViewModel: loadRooms() FINISHED [req #$requestId]")
+                } else {
+                    println("MapViewModel: finished stale req #$requestId without resetting isLoading")
+                }
             }
+        }
+    }
         }
     }
 
