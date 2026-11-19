@@ -1080,13 +1080,13 @@ private fun ResponsiveDialogContainer(
                 .fillMaxWidth(0.92f),
             shape = RoundedCornerShape(20.dp),
             color = Color.White,
-            surfaceTintColor = Color.Transparent,
             shadowElevation = 12.dp
         ) {
             Column(
-                modifier = Modifier.padding(24.dp),
-                content = content
-            )
+                modifier = Modifier.padding(24.dp)
+            ) {
+                content()
+            }
         }
     }
 }

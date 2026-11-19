@@ -259,7 +259,7 @@ fun TenantScreen(
                                         )
                                         Spacer(Modifier.width(6.dp))
                                         Icon(
-                                            imageVector = Icons.Rounded.WavingHand,
+                                            imageVector = Icons.Default.WavingHand,
                                             contentDescription = null,
                                             tint = Color(0xFFF59E0B),
                                             modifier = Modifier.size(if (isMobile) 18.dp else 22.dp)
