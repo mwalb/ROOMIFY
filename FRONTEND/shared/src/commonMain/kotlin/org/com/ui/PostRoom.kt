@@ -1470,3 +1470,12 @@ private fun StatusOverlay(success: Boolean, msg: String, btnText: String, onDism
 private fun FlowRow(mainAxisSpacing: androidx.compose.ui.unit.Dp, crossAxisSpacing: androidx.compose.ui.unit.Dp, content: @Composable () -> Unit) {
     androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(mainAxisSpacing), verticalArrangement = Arrangement.spacedBy(crossAxisSpacing)) { content() }
 }
+
+@Composable
+private fun SectionTitle(text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(5.dp, 20.dp).background(PrimaryColor, RoundedCornerShape(2.dp)))
+        Spacer(Modifier.width(10.dp))
+        Text(text, fontSize = 18.sp, fontWeight = FontWeight.Black, color = PrimaryColor)
+    }
+}
