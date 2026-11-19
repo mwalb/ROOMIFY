@@ -24,7 +24,6 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin-management")
-@CrossOrigin(origins = "*")
 public class AdminManagementController {
 
     @Autowired

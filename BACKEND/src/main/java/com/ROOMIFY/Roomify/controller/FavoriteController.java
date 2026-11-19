@@ -15,7 +15,6 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/favorites")
-@CrossOrigin(origins = "*")
 public class FavoriteController {
 
     @Autowired

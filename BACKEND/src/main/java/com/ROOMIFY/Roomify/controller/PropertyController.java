@@ -19,7 +19,6 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/properties")
-@CrossOrigin(origins = "*")
 public class PropertyController {
 
     @Autowired

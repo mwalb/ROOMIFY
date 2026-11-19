@@ -20,7 +20,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/shops")
-@CrossOrigin(origins = "*")
 public class ShopController {
 
     @Autowired

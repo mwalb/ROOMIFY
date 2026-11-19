@@ -242,8 +242,22 @@ fun App() {
     // ============================================================
 
     LaunchedEffect(authState) {
-        println("Roomify: Auth state changed -> re-loading rooms for current role")
-        viewModel.loadRooms()
+        when (authState) {
+            is AuthState.Authenticated -> {
+                println("Roomify: Auth state changed to Authenticated -> force loading rooms for current user")
+                viewModel.loadRooms(force = true)
+            }
+            is AuthState.LoggedOut -> {
+                println("Roomify: Auth state changed to LoggedOut -> force loading rooms for guest")
+                viewModel.loadRooms(force = true)
+            }
+            is AuthState.Loading -> {
+                println("Roomify: Auth state is Loading -> skipping room load during authentication in progress")
+            }
+            is AuthState.Error -> {
+                println("Roomify: Auth state is Error -> keeping current room state")
+            }
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -362,7 +376,7 @@ fun App() {
     LaunchedEffect(authState) {
         if (authState is AuthState.Authenticated) {
             val authenticatedState = authState as AuthState.Authenticated
-            viewModel.loadRooms()
+            viewModel.loadRooms(force = true)
             println("App: ✅✅✅ User authenticated successfully - ${authenticatedState.user.name}")
             println("App: ✅✅✅ currentRoute before navigation: $currentRoute")
             println("App: ✅✅✅ pendingRoom: ${pendingRoom?.id}")

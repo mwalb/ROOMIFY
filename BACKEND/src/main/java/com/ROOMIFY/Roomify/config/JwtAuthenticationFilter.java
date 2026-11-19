@@ -43,23 +43,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         logger.info("Request path: {}", request.getServletPath());
         logger.info("Authorization header: {}", authHeader != null ? "Present" : "Missing");
 
-        // Skip authentication check for known public prefixes
         String requestPath = request.getServletPath();
-        if (requestPath.startsWith("/api/auth/") ||
-                requestPath.startsWith("/api/public/") ||
-                requestPath.startsWith("/uploads/") ||
-                (request.getMethod().equalsIgnoreCase("GET") && (
-                        requestPath.startsWith("/api/rooms") ||
-                        requestPath.startsWith("/api/furniture") ||
-                        requestPath.startsWith("/api/shops") ||
-                        requestPath.startsWith("/api/reviews")
-                ))) {
-            filterChain.doFilter(request, response);
-            return;
-        }
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            logger.warn("No valid Authorization header found for: {}", requestPath);
             filterChain.doFilter(request, response);
             return;
         }

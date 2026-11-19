@@ -23,7 +23,6 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/furniture")
-@CrossOrigin(origins = "*")
 public class FurnitureController {
 
     @Autowired

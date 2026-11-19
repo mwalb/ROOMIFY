@@ -31,7 +31,6 @@ import com.ROOMIFY.Roomify.repository.PropertyRepository;
 
 @RestController
 @RequestMapping("/api/rooms")
-@CrossOrigin(origins = "*")
 public class RoomController {
 
     @Autowired

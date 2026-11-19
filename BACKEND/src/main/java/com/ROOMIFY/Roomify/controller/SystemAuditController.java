@@ -20,7 +20,6 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/system/audit")
-@CrossOrigin(origins = "*")
 public class SystemAuditController {
 
     @Autowired

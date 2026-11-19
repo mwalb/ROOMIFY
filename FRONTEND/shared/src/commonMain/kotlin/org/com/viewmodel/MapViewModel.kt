@@ -3,7 +3,9 @@ package org.com.viewmodel
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.com.model.Room
 import org.com.network.RoomApi
@@ -136,64 +138,50 @@ class MapViewModel(
      * =========================================================
      */
 
-    fun loadRooms() {
-        if (isLoading) {
+    private var fetchJob: Job? = null
+
+    fun loadRooms(force: Boolean = false) {
+        if (force) {
+            println("MapViewModel: loadRooms(force=true) -> Cancelling previous fetch job")
+            fetchJob?.cancel()
+        } else if (fetchJob?.isActive == true) {
             println("MapViewModel: loadRooms() SKIPPED (already loading)")
             return
         }
 
-        println(
-            "MapViewModel: loadRooms() STARTED"
-        )
+        println("MapViewModel: loadRooms(force=$force) STARTED")
 
-        scope.launch {
-
+        fetchJob = scope.launch {
             isLoading = true
             error = null
 
             try {
+                println("MapViewModel: requesting /rooms")
 
-                println(
-                    "MapViewModel: requesting /rooms"
-                )
+                val result = roomApi.getAllRooms()
 
-                val result =
-                    roomApi.getAllRooms()
-
-                // Keep all rooms
                 rooms = result
 
-                println(
-                    "MapViewModel: received ${result.size} rooms"
-                )
+                println("MapViewModel: received ${result.size} rooms")
 
                 if (result.isEmpty()) {
-
-                    error =
-                        "No rooms are currently available."
+                    error = "No rooms are currently available."
                 }
 
             } catch (e: Exception) {
+                if (e is CancellationException) {
+                    println("MapViewModel: loadRooms() CANCELLED")
+                    throw e
+                }
 
-                println(
-                    "MapViewModel: FAILED"
-                )
+                println("MapViewModel: FAILED")
+                println("MapViewModel: ${e.message}")
 
-                println(
-                    "MapViewModel: ${e.message}"
-                )
-
-                error =
-                    e.message
-                        ?: "Failed to load rooms"
+                error = e.message ?: "Failed to load rooms"
 
             } finally {
-
                 isLoading = false
-
-                println(
-                    "MapViewModel: loadRooms() FINISHED"
-                )
+                println("MapViewModel: loadRooms() FINISHED")
             }
         }
     }

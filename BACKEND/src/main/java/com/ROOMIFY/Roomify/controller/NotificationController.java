@@ -22,7 +22,6 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/api/notifications")
-@CrossOrigin("*")
 public class NotificationController {
 
     @Autowired
