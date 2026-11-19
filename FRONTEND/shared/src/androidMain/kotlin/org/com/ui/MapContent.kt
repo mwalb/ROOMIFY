@@ -371,6 +371,104 @@ private fun createPriceMarker(
 
 /*
  * ============================================================
+ * BUILDING PRICE MARKER
+ * ============================================================
+ */
+
+private fun createBuildingPriceMarker(
+    buildingRooms: List<Room>,
+    selected: Boolean,
+    isSaved: Boolean = false,
+    isViewed: Boolean = false
+): BitmapDescriptor {
+    val minPrice = buildingRooms.map { it.price }.filter { it > 0 }.minOrNull() ?: 0.0
+    val totalCount = buildingRooms.size
+    val availableCount = buildingRooms.count { it.status.equals("AVAILABLE", ignoreCase = true) }
+
+    val labelText = "From ${formatCompactPrice(minPrice)} • $availableCount/$totalCount rooms"
+
+    val color = if (selected) ROOMIFY_ORANGE.toInt() else if (isSaved) ROOMIFY_SAVED_PINK.toInt() else ROOMIFY_BLUE.toInt()
+    val scale = if (selected) 1.3f else 1.0f
+    val width = (260 * scale).toInt()
+    val height = (100 * scale).toInt()
+
+    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+    if (selected) {
+        paint.color = android.graphics.Color.argb(40, 0, 0, 0)
+        canvas.drawRoundRect(12f * scale, 12f * scale, width - (8f * scale), height - (33f * scale), 24f * scale, 24f * scale, paint)
+    }
+
+    paint.color = color
+
+    val left = 10f * scale
+    val top = 10f * scale
+    val right = width - (10f * scale)
+    val bottom = height - (35f * scale)
+    val radius = 22f * scale
+
+    canvas.drawRoundRect(left, top, right, bottom, radius, radius, paint)
+
+    val pointer = Path().apply {
+        moveTo(width / 2f - (15f * scale), bottom)
+        lineTo(width / 2f, height - (10f * scale))
+        lineTo(width / 2f + (15f * scale), bottom)
+        close()
+    }
+    canvas.drawPath(pointer, paint)
+
+    val iconX = 42f * scale
+    val centerY = (top + bottom) / 2f
+    paint.color = android.graphics.Color.argb(50, 255, 255, 255)
+    canvas.drawCircle(iconX, centerY, 19f * scale, paint)
+
+    // Draw Building Icon
+    paint.color = android.graphics.Color.WHITE
+    paint.style = Paint.Style.FILL
+    val bWidth = 16f * scale
+    val bHeight = 22f * scale
+    val bLeft = iconX - bWidth / 2f
+    val bTop = centerY - bHeight / 2f + (1f * scale)
+    val bRect = RectF(bLeft, bTop, bLeft + bWidth, bTop + bHeight)
+    canvas.drawRoundRect(bRect, 2f * scale, 2f * scale, paint)
+
+    val windowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        this.color = color
+        this.style = Paint.Style.FILL
+    }
+    val wWidth = 3f * scale
+    val wHeight = 3.5f * scale
+    val wGapX = 3f * scale
+    val wGapY = 2.5f * scale
+    val wStartLeft = bLeft + 3.5f * scale
+    val wStartTop = bTop + 3f * scale
+
+    for (row in 0..2) {
+        for (col in 0..1) {
+            val wx = wStartLeft + col * (wWidth + wGapX)
+            val wy = wStartTop + row * (wHeight + wGapY)
+            canvas.drawRect(wx, wy, wx + wWidth, wy + wHeight, windowPaint)
+        }
+    }
+
+    val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        this.color = android.graphics.Color.WHITE
+        this.textSize = 12f * scale * 2.1f
+        this.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        this.textAlign = Paint.Align.CENTER
+    }
+
+    val textX = (iconX + right) / 2f
+    val textY = centerY - ((textPaint.descent() + textPaint.ascent()) / 2f)
+    canvas.drawText(labelText, textX, textY, textPaint)
+
+    return BitmapDescriptorFactory.fromBitmap(bitmap)
+}
+
+/*
+ * ============================================================
  * DOT MARKER
  * ============================================================
  */
@@ -663,24 +761,55 @@ actual fun MapContent(
                     }
                 }
             } else {
-                rooms.forEach { room ->
-                    if (room.latitude == 0.0 || room.longitude == 0.0) return@forEach
-
-                    val isSelected = selectedRoom?.id == room.id
-                    val isSaved = savedRoomIds.contains(room.id ?: -1L)
-                    val isViewed = viewedRoomIds.contains(room.id ?: -1L)
-
-                    Marker(
-                        state = remember(room.id) { MarkerState(position = LatLng(room.latitude, room.longitude)) }.apply {
-                            position = LatLng(room.latitude, room.longitude)
-                        },
-                        icon = createPriceMarker(room, isSelected, isSaved, isViewed),
-                        title = room.title ?: "Room",
-                        onClick = {
-                            onRoomSelected(room)
-                            true
+                val buildingMap = rooms.filter { it.latitude != 0.0 && it.longitude != 0.0 }
+                    .groupBy { room ->
+                        if (room.propertyId != null && room.propertyId > 0L) {
+                            "prop_${room.propertyId}"
+                        } else {
+                            val roundedLat = (room.latitude * 10000.0).roundToInt()
+                            val roundedLng = (room.longitude * 10000.0).roundToInt()
+                            "coord_${roundedLat}_${roundedLng}"
                         }
-                    )
+                    }
+
+                buildingMap.forEach { (key, groupRooms) ->
+                    if (groupRooms.size > 1 || (groupRooms.first().propertyId != null && groupRooms.first().propertyId!! > 0L) || groupRooms.first().propertyType.equals("BUILDING", ignoreCase = true)) {
+                        val first = groupRooms.first()
+                        val isSelected = groupRooms.any { it.id == selectedRoom?.id }
+                        val isSaved = groupRooms.any { savedRoomIds.contains(it.id ?: -1L) }
+                        val isViewed = groupRooms.any { viewedRoomIds.contains(it.id ?: -1L) }
+
+                        val primaryRoom = groupRooms.firstOrNull { it.status.equals("AVAILABLE", ignoreCase = true) } ?: first
+
+                        Marker(
+                            state = remember(key) { MarkerState(position = LatLng(first.latitude, first.longitude)) }.apply {
+                                position = LatLng(first.latitude, first.longitude)
+                            },
+                            icon = createBuildingPriceMarker(groupRooms, isSelected, isSaved, isViewed),
+                            title = first.title ?: "Building",
+                            onClick = {
+                                onRoomSelected(primaryRoom)
+                                true
+                            }
+                        )
+                    } else {
+                        val room = groupRooms.first()
+                        val isSelected = selectedRoom?.id == room.id
+                        val isSaved = savedRoomIds.contains(room.id ?: -1L)
+                        val isViewed = viewedRoomIds.contains(room.id ?: -1L)
+
+                        Marker(
+                            state = remember(room.id) { MarkerState(position = LatLng(room.latitude, room.longitude)) }.apply {
+                                position = LatLng(room.latitude, room.longitude)
+                            },
+                            icon = createPriceMarker(room, isSelected, isSaved, isViewed),
+                            title = room.title ?: "Room",
+                            onClick = {
+                                onRoomSelected(room)
+                                true
+                            }
+                        )
+                    }
                 }
             }
         }

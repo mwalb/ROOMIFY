@@ -103,21 +103,26 @@ class PostRoomViewModel(
         _uiState.value = _uiState.value.copy(roomTemplates = newList)
     }
 
-    fun generateUnits(floorNum: Int, startNum: Int, count: Int, templateId: String) {
-        val template = _uiState.value.roomTemplates.find { it.id == templateId } ?: return
+    fun generateUnits(floorNum: Int, startNum: Int, count: Int, templateId: String, customPrice: String? = null) {
+        val template = _uiState.value.roomTemplates.find { it.id == templateId }
+        val fallbackRent = _uiState.value.defaultRent.toDoubleOrNull() ?: 180000.0
+        val resolvedPrice = customPrice?.toDoubleOrNull()
+            ?: template?.price?.toDoubleOrNull()?.takeIf { it > 0 }
+            ?: fallbackRent
+
         val currentUnits = _uiState.value.generatedUnits.toMutableList()
 
         for (i in 0 until count) {
             val unitNum = startNum + i
-            val title = "${_uiState.value.title} - $unitNum"
+            val title = "${_uiState.value.title.ifBlank { "Building Unit" }} - $unitNum"
             val room = Room(
                 title = title,
-                price = template.price.toDoubleOrNull() ?: 0.0,
-                propertyType = template.type,
-                roomsCount = template.rooms.toIntOrNull() ?: 1,
-                bathroomsCount = template.baths.toIntOrNull() ?: 1,
-                area = template.area.toDoubleOrNull() ?: 0.0,
-                amenities = template.amenities.toList(),
+                price = resolvedPrice,
+                propertyType = template?.type ?: _uiState.value.propertyType,
+                roomsCount = template?.rooms?.toIntOrNull() ?: 1,
+                bathroomsCount = template?.baths?.toIntOrNull() ?: 1,
+                area = template?.area?.toDoubleOrNull() ?: 0.0,
+                amenities = template?.amenities?.toList() ?: emptyList(),
                 floorNumber = floorNum,
                 unitNumber = unitNum.toString(),
                 status = "AVAILABLE"
@@ -193,6 +198,10 @@ class PostRoomViewModel(
 
     fun onPriceChange(price: String) {
         _uiState.value = _uiState.value.copy(price = price)
+    }
+
+    fun onDefaultRentChange(defaultRent: String) {
+        _uiState.value = _uiState.value.copy(defaultRent = defaultRent)
     }
 
     fun onPropertyTypeChange(type: String) {

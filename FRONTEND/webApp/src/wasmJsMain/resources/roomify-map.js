@@ -1208,6 +1208,40 @@
                 margin-right: 6px;
             }
 
+            .roomify-units-chips {
+                display: flex;
+                gap: 6px;
+                overflow-x: auto;
+                padding: 4px 0 8px 0;
+                margin: 4px 0 8px 0;
+                max-width: 100%;
+                scrollbar-width: thin;
+            }
+
+            .roomify-unit-chip {
+                flex: 0 0 auto;
+                padding: 5px 10px;
+                border-radius: 9px;
+                background: rgba(255,255,255,0.15);
+                border: 1px solid rgba(255,255,255,0.25);
+                color: #ffffff;
+                font-family: Arial, sans-serif;
+                font-size: 11px;
+                font-weight: 700;
+                cursor: pointer;
+                transition: all 0.15s ease;
+            }
+
+            .roomify-unit-chip:hover {
+                background: rgba(255,255,255,0.3);
+                transform: translateY(-1px);
+            }
+
+            .roomify-unit-chip.occupied {
+                background: rgba(198,40,40,0.3);
+                border-color: rgba(198,40,40,0.5);
+            }
+
 
             /*
              * ====================================================
@@ -1743,26 +1777,35 @@
         var filter = normalizePropertyStatus(window.roomifyCurrentStatusFilter || "ALL");
 
         window.roomifyMarkers.forEach(function(entry) {
-            if (!entry || !entry.marker || !entry.room) return;
+            if (!entry || !entry.marker) return;
 
-            var status = normalizePropertyStatus(entry.room.status);
             var visible = true;
-
-            if (filter === "ALL" || filter === "") {
-                visible = true;
-            } else if (filter === "AVAILABLE") {
-                visible = (status === "AVAILABLE");
-            } else if (filter === "PENDING") {
-                visible = (status === "PENDING");
-            } else if (filter === "RENTED") {
-                visible = (status === "RENTED");
-            } else {
-                visible = (status === filter);
+            if (entry.building) {
+                if (filter === "ALL" || filter === "") {
+                    visible = true;
+                } else {
+                    visible = entry.building.rooms.some(function(r) {
+                        return normalizePropertyStatus(r.status) === filter;
+                    });
+                }
+            } else if (entry.room) {
+                var status = normalizePropertyStatus(entry.room.status);
+                if (filter === "ALL" || filter === "") {
+                    visible = true;
+                } else if (filter === "AVAILABLE") {
+                    visible = (status === "AVAILABLE");
+                } else if (filter === "PENDING") {
+                    visible = (status === "PENDING");
+                } else if (filter === "RENTED") {
+                    visible = (status === "RENTED");
+                } else {
+                    visible = (status === filter);
+                }
             }
 
             entry.marker.setVisible(visible);
 
-            if (!visible && window.roomifySelectedRoomId && String(entry.room.id) === String(window.roomifySelectedRoomId)) {
+            if (!visible && window.roomifySelectedRoomId && entry.room && String(entry.room.id) === String(window.roomifySelectedRoomId)) {
                 window.roomifySelectedRoomId = null;
                 if (window.roomifyInfoOverlay) {
                     window.roomifyInfoOverlay.hide();
@@ -2628,64 +2671,274 @@
 
     /*
      * ============================================================
+     * GROUP ROOMS FOR MAP
+     * ============================================================
+     */
+
+    function groupRoomsForMap(rooms) {
+        if (!Array.isArray(rooms) || !rooms.length) return [];
+
+        var buildingMap = new Map();
+
+        rooms.forEach(function(room) {
+            if (!room) return;
+
+            var lat = Number(room.latitude !== undefined ? room.latitude : room.lat);
+            var lng = Number(room.longitude !== undefined ? room.longitude : room.lng);
+            if (!isFinite(lat) || !isFinite(lng) || lat === 0 || lng === 0) return;
+
+            var roundedLat = Math.round(lat * 10000) / 10000;
+            var roundedLng = Math.round(lng * 10000) / 10000;
+
+            var buildingKey;
+            if (room.propertyId !== undefined && room.propertyId !== null && room.propertyId !== "") {
+                buildingKey = "prop_" + room.propertyId;
+            } else {
+                buildingKey = "coord_" + roundedLat + "_" + roundedLng;
+            }
+
+            if (!buildingMap.has(buildingKey)) {
+                buildingMap.set(buildingKey, []);
+            }
+            buildingMap.get(buildingKey).push(room);
+        });
+
+        var items = [];
+        buildingMap.forEach(function(groupRooms, key) {
+            if (groupRooms.length > 1 || (groupRooms[0] && (groupRooms[0].propertyType === 'BUILDING' || groupRooms[0].propertyId))) {
+                var first = groupRooms[0];
+                var minPrice = Infinity;
+                var maxPrice = 0;
+                var availableCount = 0;
+
+                groupRooms.forEach(function(r) {
+                    var p = Number(r.price || 0);
+                    if (p > 0) {
+                        if (p < minPrice) minPrice = p;
+                        if (p > maxPrice) maxPrice = p;
+                    }
+                    var status = String(r.status || "AVAILABLE").toUpperCase();
+                    if (status === "AVAILABLE") {
+                        availableCount++;
+                    }
+                });
+
+                if (minPrice === Infinity) minPrice = 0;
+
+                items.push({
+                    isBuilding: true,
+                    buildingKey: key,
+                    title: first.title || first.address || "Multi-Unit Building",
+                    address: first.address || "Location specified",
+                    latitude: Number(first.latitude !== undefined ? first.latitude : first.lat),
+                    longitude: Number(first.longitude !== undefined ? first.longitude : first.lng),
+                    totalRooms: groupRooms.length,
+                    availableRooms: availableCount,
+                    minPrice: minPrice,
+                    maxPrice: maxPrice,
+                    rooms: groupRooms
+                });
+            } else {
+                items.push({
+                    isBuilding: false,
+                    room: groupRooms[0]
+                });
+            }
+        });
+
+        return items;
+    }
+
+    /*
+     * ============================================================
      * UPDATE VISIBLE MARKERS
      * ============================================================
      */
 
-    function updateVisibleMarkers(
-        rooms
-    ) {
+    function updateVisibleMarkers(rooms) {
+        if (!window.roomifyMap) return;
 
-        if (
-            !window.roomifyMap
-        ) {
+        if (Array.isArray(window.roomifyMarkers)) {
+            window.roomifyMarkers.forEach(function (entry) {
+                if (entry && entry.marker) {
+                    entry.marker.setMap(null);
+                }
+            });
+        }
+        window.roomifyMarkers = [];
+
+        var items = groupRoomsForMap(rooms);
+
+        items.forEach(function(item) {
+            if (item.isBuilding) {
+                createBuildingMarker(item);
+            } else {
+                createRoomMarker(item.room);
+            }
+        });
+
+        applyMarkerVisibility();
+    }
+
+    function createBuildingMarker(building) {
+        var latitude = Number(building.latitude);
+        var longitude = Number(building.longitude);
+
+        if (!isFinite(latitude) || !isFinite(longitude) || latitude === 0 || longitude === 0) {
             return;
         }
 
-        /*
-         * Remove current markers.
-         */
+        var position = { lat: latitude, lng: longitude };
 
-        if (
-            Array.isArray(
-                window.roomifyMarkers
-            )
-        ) {
+        var selected = building.rooms.some(function(r) {
+            return String(r.id) === String(window.roomifySelectedRoomId);
+        });
 
-            window.roomifyMarkers.forEach(
-                function (entry) {
+        var marker = new google.maps.Marker({
+            position: position,
+            map: window.roomifyMap,
+            title: building.title,
+            icon: createBuildingPriceIcon(
+                building.minPrice,
+                building.totalRooms,
+                building.availableRooms,
+                selected,
+                building.rooms.some(r => window.roomifyViewedRoomIds.has(Number(r.id))),
+                building.rooms.some(r => window.roomifySavedRoomIds.has(Number(r.id)))
+            ),
+            optimized: true,
+            animation: google.maps.Animation.DROP
+        });
 
-                    if (
-                        entry &&
-                        entry.marker
-                    ) {
+        marker.addListener("mouseover", function () {
+            var entry = window.roomifyMarkers.find(m => m.marker === marker);
+            if (entry) entry.hovered = true;
+            refreshMarkerIcons();
 
-                        entry.marker.setMap(
-                            null
-                        );
-                    }
+            showBuildingInfo(marker, building);
+        });
+
+        marker.addListener("mouseout", function () {
+            var entry = window.roomifyMarkers.find(m => m.marker === marker);
+            if (entry) entry.hovered = false;
+            refreshMarkerIcons();
+        });
+
+        marker.addListener("click", function () {
+            var primaryRoom = building.rooms.find(r => String(r.status || "").toUpperCase() === "AVAILABLE") || building.rooms[0];
+            if (primaryRoom) {
+                window.roomifySelectedRoomId = String(primaryRoom.id);
+                window.roomifyViewedRoomIds.add(Number(primaryRoom.id));
+            }
+            window.roomifyPopupPinned = true;
+            refreshMarkerIcons();
+            showBuildingInfo(marker, building);
+
+            if (primaryRoom) {
+                document.dispatchEvent(new CustomEvent("roomMarkerClicked", { detail: String(primaryRoom.id) }));
+            }
+        });
+
+        window.roomifyMarkers.push({
+            marker: marker,
+            building: building,
+            room: building.rooms[0]
+        });
+    }
+
+    function showBuildingInfo(marker, building) {
+        if (!window.roomifyInfoOverlay) {
+            createRoomInfoOverlay();
+        }
+        if (!window.roomifyInfoOverlay) return;
+
+        var content = buildBuildingPopupContent(building);
+        window.roomifyInfoOverlay.setContent(content, String(building.rooms[0]?.id || "bld"));
+
+        var position = marker.getPosition();
+        if (!position) return;
+
+        window.roomifyInfoOverlay.setPosition(position);
+        window.roomifyInfoOverlay.show();
+
+        var overlayDiv = window.roomifyInfoOverlay.div;
+        if (overlayDiv) {
+            overlayDiv.onmouseleave = null;
+            overlayDiv.onmouseleave = function () {
+                if (!window.roomifyPopupPinned) {
+                    window.roomifyInfoOverlay.hide();
                 }
-            );
+            };
+        }
+    }
+
+    function buildBuildingPopupContent(building) {
+        var title = escapeHtml(building.title || "Multi-Unit Building");
+        var address = escapeHtml(building.address || "Location specified");
+        var total = building.totalRooms;
+        var available = building.availableRooms;
+
+        var priceRangeText = "";
+        if (building.minPrice > 0) {
+            if (building.minPrice === building.maxPrice || building.maxPrice <= 0) {
+                priceRangeText = formatFullPrice(building.minPrice);
+            } else {
+                priceRangeText = formatCompactPrice(building.minPrice) + " – " + formatFullPrice(building.maxPrice);
+            }
+        } else {
+            priceRangeText = "Price on request";
         }
 
-        window.roomifyMarkers = [];
+        var chipsHtml = '<div class="roomify-units-chips">';
+        building.rooms.forEach(function(unit) {
+            var unitLabel = unit.unitNumber ? ("Unit " + unit.unitNumber) : ("Room " + unit.id);
+            var isAvail = String(unit.status || "AVAILABLE").toUpperCase() === "AVAILABLE";
+            var chipClass = isAvail ? "roomify-unit-chip" : "roomify-unit-chip occupied";
+            var chipPrice = formatCompactPrice(unit.price);
+            chipsHtml += '<button class="' + chipClass + '" onclick="event.stopPropagation(); window.roomifyOnViewDetailsClick(\'' + escapeHtml(unit.id) + '\', event);">' +
+                escapeHtml(unitLabel) + ' • ' + escapeHtml(chipPrice) +
+                '</button>';
+        });
+        chipsHtml += '</div>';
 
+        var primaryRoomId = escapeHtml(building.rooms[0]?.id || "");
 
-        /*
-         * Recreate only matching markers.
-         */
+        return (
+            '<div class="roomify-popup-container-wrapper" onclick="event.stopPropagation();" onmousedown="event.stopPropagation();" onmouseup="event.stopPropagation();">' +
+            '<div class="roomify-popup">' +
+            '<div class="roomify-popup-header">' +
+            '<div style="flex:1;min-width:0;">' +
+            '<div class="roomify-popup-property-type">Building / Multi-Unit</div>' +
+            '<div class="roomify-popup-title" title="' + title + '">' + title + '</div>' +
+            '</div>' +
+            '<button class="roomify-popup-close" data-roomify-close-popup="true">✕</button>' +
+            '</div>' +
 
-        rooms.forEach(
-            function (room) {
+            '<div class="roomify-popup-location">' +
+            '<span class="roomify-popup-location-text" title="' + address + '">' + address + '</span>' +
+            '</div>' +
 
-                createRoomMarker(
-                    room
-                );
-            }
+            '<div class="roomify-popup-price-row">' +
+            '<div>' +
+            '<div class="roomify-popup-price-label">RENT RANGE</div>' +
+            '<div class="roomify-popup-price">' + priceRangeText + '</div>' +
+            '</div>' +
+            '<div class="roomify-popup-status">' +
+            '<span class="roomify-popup-status-dot" style="background:' + (available > 0 ? '#4CAF50' : '#C62828') + ';"></span>' +
+            available + ' / ' + total + ' Available' +
+            '</div>' +
+            '</div>' +
+
+            '<div class="roomify-popup-price-label" style="margin-top:6px;">SELECTABLE UNITS</div>' +
+            chipsHtml +
+
+            '<button class="roomify-popup-button" style="cursor:pointer;" onclick="window.roomifyOnViewDetailsClick(\'' + primaryRoomId + '\', event);">' +
+            'View Units & Details' +
+            '</button>' +
+
+            '</div>' +
+            '</div>'
         );
-
-        // Ensure status filter is applied to newly created markers
-        applyMarkerVisibility();
     }
 
 
@@ -3186,6 +3439,55 @@
                 '<circle cx="28" cy="24" r="14" fill="rgba(255,255,255,0.18)"/>' +
                 vectorIconSvg +
                 '<text x="72" y="30" text-anchor="middle" font-family="Arial,sans-serif" font-size="13" font-weight="900" fill="#ffffff">' +
+                    escapeHtml(text) +
+                '</text>' +
+            '</g>' +
+            '</svg>';
+
+        return {
+            url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg),
+            scaledSize: new google.maps.Size(width, height),
+            anchor: new google.maps.Point(width / 2, height - 2)
+        };
+    }
+
+    function createBuildingPriceIcon(
+        minPrice,
+        totalRooms,
+        availableRooms,
+        selected,
+        isViewed,
+        isSaved
+    ) {
+        var priceText = "From " + formatCompactPrice(minPrice);
+        var roomsText = availableRooms + " / " + totalRooms + " rooms";
+        var text = priceText + " • " + roomsText;
+
+        var color = selected ? ROOMIFY_SELECTED_ORANGE : (isSaved ? ROOMIFY_SAVED_PINK : "#1A237E");
+        if (availableRooms === 0) color = "#C62828";
+        if (isViewed && !selected && !isSaved) color = ROOMIFY_VIEWED_GRAY;
+
+        var scale = selected ? 1.35 : 1.0;
+        var width = Math.max(170, (text.length * 7.5) + 44) * scale;
+        var height = 55 * scale;
+
+        var buildingVectorSvg = '<g transform="translate(18, 14)"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V9h2v4h4v2z" fill="#FFFFFF"/></g>';
+
+        var svg =
+            '<svg xmlns="http://www.w3.org/2000/svg" ' +
+            'width="' + width + '" height="' + height + '" ' +
+            'viewBox="0 0 ' + width + ' 55">' +
+            '<defs>' +
+            '<filter id="shadow_bld" x="-50%" y="-50%" width="200%" height="200%">' +
+                '<feDropShadow dx="0" dy="1.5" stdDeviation="2.5" flood-opacity="0.38"/>' +
+            '</filter>' +
+            '</defs>' +
+            '<g filter="url(#shadow_bld)">' +
+                '<rect x="5" y="5" rx="18" ry="18" width="' + (width - 10) + '" height="38" fill="' + color + '" stroke="#FFFFFF" stroke-width="2"/>' +
+                '<path d="M' + (width/2 - 7) + ' 43 L' + (width/2) + ' 52 L' + (width/2 + 7) + ' 43" fill="' + color + '"/>' +
+                '<circle cx="28" cy="24" r="14" fill="rgba(255,255,255,0.2)"/>' +
+                buildingVectorSvg +
+                '<text x="' + ((width + 28)/2) + '" y="30" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="900" fill="#ffffff">' +
                     escapeHtml(text) +
                 '</text>' +
             '</g>' +
