@@ -3,12 +3,9 @@ package org.com.ui
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -18,10 +15,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,8 +26,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -38,16 +36,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import org.com.currentTimeMillis
-import org.com.model.Room
 import org.com.model.Booking
-import org.com.network.ApiClient
+import org.com.model.Room
 
-private val PrimaryColor = Color(0xFF1A237E)
-private val PrimaryLight = Color(0xFF3949AB)
-private val SuccessColor = Color(0xFF4CAF50)
+private val PrimaryColor = Color(0xFF142170)
+private val PrimaryLight = Color(0xFF1A237E)
+private val SuccessColor = Color(0xFF10B981)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,7 +67,9 @@ fun TenantScreen(
             .fillMaxSize()
             .background(Brush.verticalGradient(listOf(PrimaryColor, PrimaryLight)))
     ) {
-        val isMobile = maxWidth < 768.dp
+        val width = maxWidth
+        val isMobile = width < 600.dp
+        val isExpanded = width >= 840.dp
         var mobileDrawerOpen by remember { mutableStateOf(false) }
 
         val sidebarContent = @Composable {
@@ -124,7 +120,7 @@ fun TenantScreen(
                             TenantSidebarNavItem("Dashboard", Icons.Default.Dashboard, true) { 
                                 if (isMobile) mobileDrawerOpen = false
                             }
-                            TenantSidebarNavItem("Explore Map", Icons.Default.Map, false) { 
+                            TenantSidebarNavItem("Explore Properties", Icons.Rounded.Explore, false) { 
                                 onExploreRooms() 
                                 if (isMobile) mobileDrawerOpen = false
                             }
@@ -190,8 +186,8 @@ fun TenantScreen(
         // Main Dashboard Outer Card
         Card(
             modifier = if (isMobile) Modifier.fillMaxSize() else Modifier
-                .fillMaxWidth(0.96f)
-                .fillMaxHeight(0.94f)
+                .fillMaxWidth(if (isExpanded) 0.98f else 0.96f)
+                .fillMaxHeight(0.96f)
                 .align(Alignment.Center)
                 .padding(vertical = 8.dp),
             shape = if (isMobile) RoundedCornerShape(0.dp) else RoundedCornerShape(28.dp),
@@ -249,21 +245,24 @@ fun TenantScreen(
                                         Icon(Icons.Default.Menu, "Toggle Menu", tint = PrimaryColor, modifier = Modifier.size(18.dp))
                                     }
                                     Spacer(Modifier.width(10.dp))
-                                    Column(modifier = Modifier.weight(1f, fill = false)) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.weight(1f, fill = false)
+                                    ) {
                                         Text(
-                                            "Welcome back, ${user.name}! 👋",
+                                            "Welcome back, ${user.name}!",
                                             fontSize = if (isMobile) 15.sp else 18.sp,
                                             fontWeight = FontWeight.Black,
                                             color = Color(0xFF0F172A),
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
-                                        Text(
-                                            "Find your perfect room",
-                                            fontSize = 11.sp,
-                                            color = Color(0xFF64748B),
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
+                                        Spacer(Modifier.width(6.dp))
+                                        Icon(
+                                            imageVector = Icons.Rounded.WavingHand,
+                                            contentDescription = null,
+                                            tint = Color(0xFFF59E0B),
+                                            modifier = Modifier.size(if (isMobile) 18.dp else 22.dp)
                                         )
                                     }
                                 }
@@ -299,79 +298,72 @@ fun TenantScreen(
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-                    // Body Content
-                    Column(
+                    // Body Content Container
+                    Box(
                         modifier = Modifier
                             .weight(1f)
-                            .fillMaxWidth()
-                            .verticalScroll(scrollState)
-                            .padding(if (isMobile) 16.dp else 24.dp),
-                        verticalArrangement = Arrangement.spacedBy(24.dp)
+                            .fillMaxWidth(),
+                        contentAlignment = Alignment.TopCenter
                     ) {
-                        // Quick Action Buttons
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                            QuickActionItem("Explore Map", Icons.Default.Map, Color(0xFF2196F3), Modifier.weight(1f), onExploreRooms)
-                            QuickActionItem("Filter Rooms", Icons.Default.Tune, Color(0xFF4CAF50), Modifier.weight(1f)) { onNavigate("discovery") }
-                            QuickActionItem("Saved Places", Icons.Default.Favorite, Color(0xFFE91E63), Modifier.weight(1f)) { onNavigate("saved") }
-                            QuickActionItem("My Bookings", Icons.AutoMirrored.Filled.ListAlt, Color(0xFFFF9800), Modifier.weight(1f)) { onNavigate("bookings") }
-                        }
+                        Column(
+                            modifier = Modifier
+                                .widthIn(max = 1200.dp)
+                                .fillMaxWidth()
+                                .verticalScroll(scrollState)
+                                .padding(
+                                    horizontal = if (isMobile) 16.dp else 24.dp,
+                                    vertical = if (isMobile) 16.dp else 24.dp
+                                ),
+                            verticalArrangement = Arrangement.spacedBy(if (isMobile) 16.dp else 24.dp)
+                        ) {
+                            // High-Value Action Cards & Discovery Hero Section
+                            DashboardActionsSection(
+                                isExpanded = isExpanded,
+                                isMobile = isMobile,
+                                onExploreRooms = onExploreRooms,
+                                onNavigate = onNavigate
+                            )
 
-                        // RECOMMENDED FOR YOU
-                        if (allRooms.isNotEmpty()) {
-                            DashboardSectionWithAction("Recommended For You", null) {
-                                LazyRow(
-                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                    contentPadding = PaddingValues(bottom = 8.dp)
-                                ) {
-                                    items(allRooms.filter { it.status == "AVAILABLE" }.take(6)) { room ->
-                                        TenantPropertyCard(room) { onViewProperty(room) }
-                                    }
-                                }
-                            }
-                        }
-
-                        // RECENTLY VIEWED
-                        if (recentlyViewed.isNotEmpty()) {
-                            DashboardSectionWithAction("Recently Viewed", null) {
-                                LazyRow(
-                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                    contentPadding = PaddingValues(bottom = 8.dp)
-                                ) {
-                                    items(recentlyViewed) { room ->
-                                        TenantPropertyCard(room) { onViewProperty(room) }
-                                    }
-                                }
-                            }
-                        }
-
-                        // MY BOOKINGS PREVIEW
-                        if (bookings.isNotEmpty()) {
-                            DashboardSectionWithAction("My Bookings", "View All", { onNavigate("bookings") }) {
-                                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    bookings.take(3).forEach { booking ->
-                                        val room = allRooms.find { it.id == booking.roomId }
-                                        BookingStatusCardCompactPreview(booking, room) {
-                                            room?.let { onViewProperty(it) }
+                            // RECOMMENDED FOR YOU
+                            if (allRooms.isNotEmpty()) {
+                                DashboardSectionWithAction("Recommended For You", null) {
+                                    LazyRow(
+                                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                        contentPadding = PaddingValues(bottom = 8.dp)
+                                    ) {
+                                        items(allRooms.filter { it.status == "AVAILABLE" }.take(6)) { room ->
+                                            TenantPropertyCard(room) { onViewProperty(room) }
                                         }
                                     }
                                 }
                             }
-                        }
 
-                        // ALL PROPERTIES BUTTON
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onViewAll() },
-                            shape = RoundedCornerShape(20.dp),
-                            color = PrimaryColor
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(24.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text("View All Properties", color = Color.White, fontWeight = FontWeight.Black, fontSize = 17.sp)
-                                Text("Browse the complete property catalog", color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
+                            // RECENTLY VIEWED
+                            if (recentlyViewed.isNotEmpty()) {
+                                DashboardSectionWithAction("Recently Viewed", null) {
+                                    LazyRow(
+                                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                        contentPadding = PaddingValues(bottom = 8.dp)
+                                    ) {
+                                        items(recentlyViewed) { room ->
+                                            TenantPropertyCard(room) { onViewProperty(room) }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // MY BOOKINGS PREVIEW
+                            if (bookings.isNotEmpty()) {
+                                DashboardSectionWithAction("My Bookings", "View All", { onNavigate("bookings") }) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        bookings.take(3).forEach { booking ->
+                                            val room = allRooms.find { it.id == booking.roomId }
+                                            BookingStatusCardCompactPreview(booking, room) {
+                                                room?.let { onViewProperty(it) }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -426,25 +418,244 @@ private fun TenantSidebarNavItem(title: String, icon: ImageVector, active: Boole
 }
 
 @Composable
-private fun QuickActionItem(title: String, icon: ImageVector, color: Color, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Surface(
-        modifier = modifier.height(96.dp).clickable { onClick() },
-        shape = RoundedCornerShape(20.dp),
-        color = Color.White,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        shadowElevation = 2.dp
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(14.dp),
-            horizontalAlignment = Alignment.Start,
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            Surface(color = color.copy(alpha = 0.1f), shape = CircleShape, modifier = Modifier.size(36.dp)) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(icon, null, tint = color, modifier = Modifier.size(20.dp))
+private fun DashboardActionsSection(
+    isExpanded: Boolean,
+    isMobile: Boolean,
+    onExploreRooms: () -> Unit,
+    onNavigate: (String) -> Unit
+) {
+    if (isExpanded) {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            // Primary Discovery Hero Card
+            PrimaryDiscoveryHeroCard(onExploreRooms = onExploreRooms)
+
+            // 3 Secondary High-Value Action Cards
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                ActionCardItem(
+                    title = "Saved Places",
+                    subtitle = "Saved rooms & wishlist",
+                    icon = Icons.Default.Favorite,
+                    iconBgColor = Color(0xFFFCE7F3),
+                    iconTintColor = Color(0xFFEC4899),
+                    modifier = Modifier.weight(1f),
+                    onClick = { onNavigate("saved") }
+                )
+                ActionCardItem(
+                    title = "My Bookings",
+                    subtitle = "Booking requests & status",
+                    icon = Icons.AutoMirrored.Filled.ListAlt,
+                    iconBgColor = Color(0xFFFEF3C7),
+                    iconTintColor = Color(0xFFD97706),
+                    modifier = Modifier.weight(1f),
+                    onClick = { onNavigate("bookings") }
+                )
+                ActionCardItem(
+                    title = "Messages",
+                    subtitle = "Conversations with owners/dalalis",
+                    icon = Icons.Default.Email,
+                    iconBgColor = Color(0xFFE0E7FF),
+                    iconTintColor = PrimaryColor,
+                    modifier = Modifier.weight(1f),
+                    onClick = { onNavigate("messages") }
+                )
+            }
+        }
+    } else {
+        // Compact / Medium Layout: Stacked
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            PrimaryDiscoveryHeroCard(onExploreRooms = onExploreRooms)
+
+            if (isMobile) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    ActionCardItem(
+                        title = "Saved Places",
+                        subtitle = "Saved rooms & wishlist",
+                        icon = Icons.Default.Favorite,
+                        iconBgColor = Color(0xFFFCE7F3),
+                        iconTintColor = Color(0xFFEC4899),
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { onNavigate("saved") }
+                    )
+                    ActionCardItem(
+                        title = "My Bookings",
+                        subtitle = "Booking requests & status",
+                        icon = Icons.AutoMirrored.Filled.ListAlt,
+                        iconBgColor = Color(0xFFFEF3C7),
+                        iconTintColor = Color(0xFFD97706),
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { onNavigate("bookings") }
+                    )
+                    ActionCardItem(
+                        title = "Messages",
+                        subtitle = "Conversations with owners/dalalis",
+                        icon = Icons.Default.Email,
+                        iconBgColor = Color(0xFFE0E7FF),
+                        iconTintColor = PrimaryColor,
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { onNavigate("messages") }
+                    )
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    ActionCardItem(
+                        title = "Saved Places",
+                        subtitle = "Saved rooms & wishlist",
+                        icon = Icons.Default.Favorite,
+                        iconBgColor = Color(0xFFFCE7F3),
+                        iconTintColor = Color(0xFFEC4899),
+                        modifier = Modifier.weight(1f),
+                        onClick = { onNavigate("saved") }
+                    )
+                    ActionCardItem(
+                        title = "My Bookings",
+                        subtitle = "Booking requests & status",
+                        icon = Icons.AutoMirrored.Filled.ListAlt,
+                        iconBgColor = Color(0xFFFEF3C7),
+                        iconTintColor = Color(0xFFD97706),
+                        modifier = Modifier.weight(1f),
+                        onClick = { onNavigate("bookings") }
+                    )
+                    ActionCardItem(
+                        title = "Messages",
+                        subtitle = "Conversations with owners/dalalis",
+                        icon = Icons.Default.Email,
+                        iconBgColor = Color(0xFFE0E7FF),
+                        iconTintColor = PrimaryColor,
+                        modifier = Modifier.weight(1f),
+                        onClick = { onNavigate("messages") }
+                    )
                 }
             }
-            Text(title, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+        }
+    }
+}
+
+@Composable
+private fun PrimaryDiscoveryHeroCard(onExploreRooms: () -> Unit) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .pointerHoverIcon(PointerIcon.Hand)
+            .clickable { onExploreRooms() },
+        shape = RoundedCornerShape(20.dp),
+        color = PrimaryColor,
+        shadowElevation = 4.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    color = Color.White.copy(alpha = 0.15f),
+                    shape = CircleShape,
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Rounded.Explore,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+                }
+                Spacer(Modifier.width(16.dp))
+                Column {
+                    Text(
+                        text = "Explore & Filter Properties",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "Browse rooms, filter by price/area, or view on map",
+                        fontSize = 12.sp,
+                        color = Color.White.copy(alpha = 0.8f)
+                    )
+                }
+            }
+
+            Spacer(Modifier.width(12.dp))
+
+            Surface(
+                color = Color.White,
+                shape = CircleShape,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = "Explore",
+                        tint = PrimaryColor,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ActionCardItem(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    iconBgColor: Color,
+    iconTintColor: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = modifier
+            .pointerHoverIcon(PointerIcon.Hand)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(20.dp),
+        color = Color.White,
+        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+        shadowElevation = 2.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                color = iconBgColor,
+                shape = CircleShape,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(icon, null, tint = iconTintColor, modifier = Modifier.size(20.dp))
+                }
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF0F172A)
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = subtitle,
+                    fontSize = 11.sp,
+                    color = Color(0xFF64748B),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }

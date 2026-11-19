@@ -262,22 +262,36 @@ fun DalaliDashboardScreen(
                                         Icon(Icons.Default.Menu, "Toggle Sidebar", tint = PrimaryColor, modifier = Modifier.size(18.dp))
                                     }
                                     Spacer(Modifier.width(10.dp))
-                                    Column(modifier = Modifier.weight(1f, fill = false)) {
-                                        Text(
-                                            "Welcome back, ${user.name} 👋",
-                                            fontSize = if (isMobile) 15.sp else 18.sp,
-                                            fontWeight = FontWeight.Black,
-                                            color = Color(0xFF0F172A),
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                        Text(
-                                            "Manage listings & requests",
-                                            fontSize = 11.sp,
-                                            color = Color(0xFF64748B),
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.weight(1f, fill = false)
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f, fill = false)) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text(
+                                                    "Welcome back, ${user.name}!",
+                                                    fontSize = if (isMobile) 15.sp else 18.sp,
+                                                    fontWeight = FontWeight.Black,
+                                                    color = Color(0xFF0F172A),
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                                Spacer(Modifier.width(6.dp))
+                                                Icon(
+                                                    imageVector = androidx.compose.material.icons.Icons.Rounded.WavingHand,
+                                                    contentDescription = null,
+                                                    tint = Color(0xFFF59E0B),
+                                                    modifier = Modifier.size(if (isMobile) 18.dp else 22.dp)
+                                                )
+                                            }
+                                            Text(
+                                                "Manage listings & requests",
+                                                fontSize = 11.sp,
+                                                color = Color(0xFF64748B),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
                                     }
                                 }
 

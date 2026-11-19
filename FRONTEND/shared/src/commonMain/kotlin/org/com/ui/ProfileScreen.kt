@@ -16,8 +16,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.HelpCenter
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -40,6 +42,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -68,7 +71,8 @@ fun ProfileScreen(
     user: User,
     onBack: () -> Unit,
     onLogout: () -> Unit,
-    onUpdateUser: (User) -> Unit = {}
+    onUpdateUser: (User) -> Unit = {},
+    onNavigate: (String) -> Unit = {}
 ) {
     val localizationManager = LocalLocalizationManager.current
     val scope = rememberCoroutineScope()
@@ -130,7 +134,8 @@ fun ProfileScreen(
                 },
                 onChangePasswordClick = { showChangePasswordDialog = true },
                 onHelpClick = { showHelpDialog = true },
-                onDeleteAccountClick = { showDeleteAccountDialog = true }
+                onDeleteAccountClick = { showDeleteAccountDialog = true },
+                onNavigate = onNavigate
             )
         } else if (isMedium) {
             MediumProfileLayout(
@@ -218,15 +223,16 @@ private fun DesktopProfileLayout(
     onLanguageClick: () -> Unit,
     onChangePasswordClick: () -> Unit,
     onHelpClick: () -> Unit,
-    onDeleteAccountClick: () -> Unit
+    onDeleteAccountClick: () -> Unit,
+    onNavigate: (String) -> Unit
 ) {
     val scrollState = rememberScrollState()
 
     Surface(
         modifier = Modifier
-            .widthIn(max = 1040.dp)
+            .widthIn(max = 1120.dp)
             .fillMaxWidth()
-            .padding(32.dp),
+            .padding(horizontal = 32.dp, vertical = 24.dp),
         shape = RoundedCornerShape(24.dp),
         color = Color(0xFFF8FAFC),
         shadowElevation = 12.dp
@@ -247,6 +253,7 @@ private fun DesktopProfileLayout(
                 Surface(
                     modifier = Modifier
                         .size(40.dp)
+                        .pointerHoverIcon(PointerIcon.Hand)
                         .clickable { onBack() },
                     shape = CircleShape,
                     color = Color(0xFFF1F5F9)
@@ -274,17 +281,19 @@ private fun DesktopProfileLayout(
             // 2-Column Split Layout
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(28.dp)
+                horizontalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                // Left Column: Identity Summary Card (weight = 0.34f)
+                // Left Column: Identity Summary Card (weight = 0.40f, minWidth = 320.dp)
                 Surface(
-                    modifier = Modifier.weight(0.34f),
+                    modifier = Modifier
+                        .weight(0.40f)
+                        .widthIn(min = 320.dp),
                     shape = RoundedCornerShape(20.dp),
                     color = Color.White,
                     border = BorderStroke(1.dp, Color(0xFFE2E8F0))
                 ) {
                     Column(
-                        modifier = Modifier.padding(24.dp),
+                        modifier = Modifier.padding(28.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         AvatarSummary(
@@ -303,9 +312,9 @@ private fun DesktopProfileLayout(
                     }
                 }
 
-                // Right Column: Settings Sections (weight = 0.66f)
+                // Right Column: Settings & Snapshot Cards (weight = 0.60f)
                 Column(
-                    modifier = Modifier.weight(0.66f),
+                    modifier = Modifier.weight(0.60f),
                     verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
                     // Section 1: ACCOUNT DETAILS
@@ -361,6 +370,120 @@ private fun DesktopProfileLayout(
                             )
                         )
                     )
+
+                    // Section 3: ACCOUNT & ACTIVITY SNAPSHOT
+                    AccountActivitySnapshotCard(user = user, onNavigate = onNavigate)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AccountActivitySnapshotCard(
+    user: User,
+    onNavigate: (String) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "ACCOUNT & ACTIVITY SNAPSHOT",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 0.8.sp,
+            color = Color(0xFF94A3B8),
+            modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
+        )
+
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            color = Color.White,
+            border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text("Current Language", fontSize = 12.sp, color = Color(0xFF64748B))
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            LocalLocalizationManager.current.currentLanguage.displayName,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0F172A)
+                        )
+                    }
+
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("Account Role", fontSize = 12.sp, color = Color(0xFF64748B))
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            user.role.uppercase(),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = NavyPrimary
+                        )
+                    }
+                }
+
+                HorizontalDivider(
+                    color = Color(0xFFF1F5F9),
+                    thickness = 1.dp,
+                    modifier = Modifier.padding(vertical = 14.dp)
+                )
+
+                Text("Quick Jump Links", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF64748B))
+
+                Spacer(Modifier.height(10.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(42.dp)
+                            .pointerHoverIcon(PointerIcon.Hand)
+                            .clickable { onNavigate("saved") },
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFFFCE7F3),
+                        border = BorderStroke(1.dp, Color(0xFFFBCFE8))
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(Icons.Default.Favorite, null, tint = Color(0xFFEC4899), modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Saved Places", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9D174D))
+                        }
+                    }
+
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(42.dp)
+                            .pointerHoverIcon(PointerIcon.Hand)
+                            .clickable { onNavigate("bookings") },
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFFFEF3C7),
+                        border = BorderStroke(1.dp, Color(0xFFFDE68A))
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.ListAlt, null, tint = Color(0xFFD97706), modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("My Bookings", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF92400E))
+                        }
+                    }
                 }
             }
         }
@@ -386,7 +509,7 @@ private fun MediumProfileLayout(
         modifier = Modifier
             .widthIn(max = 640.dp)
             .fillMaxWidth()
-            .padding(vertical = 24.dp, horizontal = 16.dp),
+            .padding(vertical = 24.dp, horizontal = 20.dp),
         shape = RoundedCornerShape(24.dp),
         color = Color.White,
         shadowElevation = 12.dp
@@ -396,7 +519,7 @@ private fun MediumProfileLayout(
                 .fillMaxWidth()
                 .verticalScroll(scrollState)
         ) {
-            // Navy Header Banner
+            // Header Banner
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -407,6 +530,7 @@ private fun MediumProfileLayout(
                     modifier = Modifier
                         .padding(start = 16.dp, top = 16.dp)
                         .size(40.dp)
+                        .pointerHoverIcon(PointerIcon.Hand)
                         .clickable { onBack() },
                     shape = CircleShape,
                     color = Color.White.copy(alpha = 0.2f)
@@ -430,7 +554,7 @@ private fun MediumProfileLayout(
                 )
             }
 
-            // Identity Header Stack
+            // Avatar Header Overlay
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -506,7 +630,7 @@ private fun MediumProfileLayout(
 
                 Spacer(Modifier.height(8.dp))
 
-                LogoutButton(onClick = onLogout, height = 50.dp)
+                LogoutButton(onClick = onLogout, height = 48.dp)
 
                 Spacer(Modifier.height(16.dp))
             }
@@ -648,7 +772,7 @@ private fun CompactProfileLayout(
 
                 Spacer(Modifier.height(8.dp))
 
-                LogoutButton(onClick = onLogout, height = 50.dp)
+                LogoutButton(onClick = onLogout, height = 48.dp)
 
                 Spacer(Modifier.height(24.dp))
             }
@@ -669,8 +793,8 @@ private fun AvatarSummary(
         Box(contentAlignment = Alignment.BottomEnd) {
             Surface(
                 modifier = Modifier
-                    .size(96.dp)
-                    .border(2.dp, Color.White, CircleShape)
+                    .size(104.dp)
+                    .border(3.dp, Color.White, CircleShape)
                     .shadow(4.dp, CircleShape),
                 shape = CircleShape,
                 color = Color(0xFFF1F5F9)
@@ -697,8 +821,8 @@ private fun AvatarSummary(
                         Text(
                             text = user.initials,
                             color = NavyPrimary,
-                            fontSize = 32.sp,
-                            fontWeight = FontWeight.SemiBold
+                            fontSize = 34.sp,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
@@ -707,7 +831,7 @@ private fun AvatarSummary(
             IconButton(
                 onClick = onAvatarUpload,
                 modifier = Modifier
-                    .size(32.dp)
+                    .size(34.dp)
                     .background(NavyPrimary, CircleShape)
                     .border(2.dp, Color.White, CircleShape)
             ) {
@@ -913,6 +1037,7 @@ private fun LogoutButton(
         modifier = Modifier
             .fillMaxWidth()
             .height(height)
+            .pointerHoverIcon(PointerIcon.Hand)
             .clickable { onClick() },
         shape = RoundedCornerShape(12.dp),
         color = Color(0xFFFEF2F2),
@@ -949,13 +1074,14 @@ private fun ResponsiveDialogContainer(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Card(
+        Surface(
             modifier = Modifier
-                .fillMaxWidth(0.92f)
-                .widthIn(max = 460.dp),
+                .widthIn(max = 520.dp)
+                .fillMaxWidth(0.92f),
             shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
+            color = Color.White,
+            surfaceTintColor = Color.Transparent,
+            shadowElevation = 12.dp
         ) {
             Column(
                 modifier = Modifier.padding(24.dp),
@@ -987,7 +1113,7 @@ private fun DialogHeader(
             modifier = Modifier.size(32.dp)
         ) {
             Icon(
-                imageVector = Icons.Default.Close,
+                imageVector = Icons.Rounded.Close,
                 contentDescription = "Close",
                 tint = Color(0xFF64748B),
                 modifier = Modifier.size(20.dp)
@@ -1040,8 +1166,8 @@ private fun EditProfileModal(
                 value = bio,
                 onValueChange = { bio = it },
                 label = { Text("Bio (Optional)") },
-                minLines = 2,
-                maxLines = 3,
+                minLines = 3,
+                maxLines = 4,
                 placeholder = { Text("Tell hosts a bit about yourself...") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp)
@@ -1154,7 +1280,7 @@ private fun ChangePasswordModal(
                     trailingIcon = {
                         IconButton(onClick = { oldPasswordVisible = !oldPasswordVisible }) {
                             Icon(
-                                imageVector = if (oldPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                imageVector = if (oldPasswordVisible) Icons.Rounded.Visibility else Icons.Rounded.VisibilityOff,
                                 contentDescription = null,
                                 tint = Color(0xFF64748B)
                             )
@@ -1173,7 +1299,7 @@ private fun ChangePasswordModal(
                     trailingIcon = {
                         IconButton(onClick = { newPasswordVisible = !newPasswordVisible }) {
                             Icon(
-                                imageVector = if (newPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                imageVector = if (newPasswordVisible) Icons.Rounded.Visibility else Icons.Rounded.VisibilityOff,
                                 contentDescription = null,
                                 tint = Color(0xFF64748B)
                             )
@@ -1192,7 +1318,7 @@ private fun ChangePasswordModal(
                     trailingIcon = {
                         IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
                             Icon(
-                                imageVector = if (confirmPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                imageVector = if (confirmPasswordVisible) Icons.Rounded.Visibility else Icons.Rounded.VisibilityOff,
                                 contentDescription = null,
                                 tint = Color(0xFF64748B)
                             )
@@ -1346,7 +1472,7 @@ private fun HelpSupportModal(
                         modifier = Modifier.size(28.dp)
                     ) {
                         Icon(
-                            imageVector = if (phoneCopied) Icons.Default.Check else Icons.Default.ContentCopy,
+                            imageVector = if (phoneCopied) Icons.Rounded.Check else Icons.Rounded.ContentCopy,
                             contentDescription = "Copy phone",
                             tint = if (phoneCopied) Color(0xFF16A34A) else Color(0xFF64748B),
                             modifier = Modifier.size(16.dp)
@@ -1382,7 +1508,7 @@ private fun HelpSupportModal(
                         modifier = Modifier.size(28.dp)
                     ) {
                         Icon(
-                            imageVector = if (emailCopied) Icons.Default.Check else Icons.Default.ContentCopy,
+                            imageVector = if (emailCopied) Icons.Rounded.Check else Icons.Rounded.ContentCopy,
                             contentDescription = "Copy email",
                             tint = if (emailCopied) Color(0xFF16A34A) else Color(0xFF64748B),
                             modifier = Modifier.size(16.dp)
@@ -1453,54 +1579,40 @@ private fun DeleteAccountModal(
     val isDeleteEnabled = confirmText.trim() == "DELETE"
 
     ResponsiveDialogContainer(onDismiss = { if (!isDeleting) onDismiss() }) {
-        Box(modifier = Modifier.fillMaxWidth()) {
-            IconButton(
-                onClick = { if (!isDeleting) onDismiss() },
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .size(32.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Close",
-                    tint = Color(0xFF64748B),
-                    modifier = Modifier.size(20.dp)
-                )
-            }
+        DialogHeader(
+            title = "Delete Account",
+            titleColor = Color(0xFFDC2626),
+            onClose = { if (!isDeleting) onDismiss() }
+        )
 
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .background(Color(0xFFFEE2E2), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Warning,
-                        contentDescription = null,
-                        tint = Color(0xFFDC2626),
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
+        Spacer(Modifier.height(14.dp))
 
-                Spacer(Modifier.height(8.dp))
-
-                Text(
-                    text = "Delete Account?",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFFDC2626)
-                )
-            }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFFFEE2E2), RoundedCornerShape(12.dp))
+                .padding(12.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Warning,
+                contentDescription = null,
+                tint = Color(0xFFDC2626),
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(Modifier.width(10.dp))
+            Text(
+                text = "This action is permanent and cannot be undone.",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF991B1B)
+            )
         }
 
         Spacer(Modifier.height(14.dp))
 
         Text(
-            text = "Are you sure you want to permanently delete your Roomify account? All your personal information, room listings, favorites, and history will be deactivated. This action cannot be undone.",
+            text = "Are you sure you want to permanently delete your Roomify account? All your personal information, room listings, favorites, and history will be deactivated.",
             fontSize = 14.sp,
             color = Color(0xFF475569),
             lineHeight = 20.sp
@@ -1514,7 +1626,7 @@ private fun DeleteAccountModal(
             label = { Text("Type DELETE to confirm") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(10.dp)
+            shape = RoundedCornerShape(12.dp)
         )
 
         Spacer(Modifier.height(20.dp))
