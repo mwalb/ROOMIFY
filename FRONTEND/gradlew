@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Fix AGP 9.1.1 environment variable conflict on CI/Vercel environments
+unset ANDROID_PREFS_ROOT
+
 #
 # Copyright © 2015 the original authors.
 #

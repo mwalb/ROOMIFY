@@ -1031,7 +1031,8 @@ private fun PropertyPhotoCarousel(
                                     CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp, color = PrimaryColor)
                                 }
                             },
-                            onFailure = {
+                            onFailure = { err ->
+                                println("PropertyDetails photo load failure for '$imageUrl': ${err.message}")
                                 Box(Modifier.fillMaxSize().background(Color(0xFFF1F5F9)), contentAlignment = Alignment.Center) {
                                     Icon(Icons.Default.BrokenImage, null, tint = Color.LightGray, modifier = Modifier.size(40.dp))
                                 }
@@ -1309,7 +1310,10 @@ private fun TenantActionButtons(
             }
 
             OutlinedButton(
-                onClick = { onCallOwner(room) },
+                onClick = {
+                    if (currentUser == null) onLoginRequired()
+                    else onCallOwner(room)
+                },
                 modifier = Modifier
                     .weight(1f)
                     .height(44.dp),

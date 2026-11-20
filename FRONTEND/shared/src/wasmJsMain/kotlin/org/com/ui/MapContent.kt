@@ -2,10 +2,14 @@ package org.com.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -20,6 +24,7 @@ import kotlinx.coroutines.delay
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import org.com.model.*
+import org.com.ui.components.LiveRouteSummaryCard
 import kotlin.js.ExperimentalWasmJsInterop
 import org.w3c.dom.events.Event
 import org.com.i18n.*
@@ -129,6 +134,10 @@ private external fun showRoute(originLat: Double, originLng: Double, destLat: Do
 @OptIn(ExperimentalWasmJsInterop::class)
 @JsFun("() => { if (typeof window.clearRoute === 'function') { window.clearRoute(); } }")
 private external fun clearRoute()
+
+@OptIn(ExperimentalWasmJsInterop::class)
+@JsFun("(callback) => { if (navigator.geolocation) { navigator.geolocation.getCurrentPosition(function(pos) { callback(pos.coords.latitude, pos.coords.longitude); }, function(err) { callback(-6.7924, 39.2083); }, { enableHighAccuracy: true }); } else { callback(-6.7924, 39.2083); } }")
+private external fun fetchBrowserLocation(callback: (Double, Double) -> Unit)
 
 
 /*
@@ -487,17 +496,21 @@ actual fun MapContent(
         }
     }
 
+    var userLocation by remember { mutableStateOf<Pair<Double, Double>?>(null) }
+
     LaunchedEffect(routingDestination?.id) {
         if (routingDestination == null) {
             clearRoute()
+            userLocation = null
             return@LaunchedEffect
         }
 
         val dest = routingDestination
         if (dest.latitude != 0.0 && dest.longitude != 0.0) {
-            // In a real app we'd get the user's current location.
-            // For now, use a default starting point (Dar es Salaam center)
-            showRoute(-6.7924, 39.2083, dest.latitude, dest.longitude)
+            fetchBrowserLocation { lat, lng ->
+                userLocation = Pair(lat, lng)
+                showRoute(lat, lng, dest.latitude, dest.longitude)
+            }
         }
     }
 
@@ -857,6 +870,43 @@ actual fun MapContent(
             showMapLayer()
             delay(100)
             triggerMapResize()
+        }
+    }
+
+    if (routingDestination != null) {
+        val dest = routingDestination
+        val (userLat, userLng) = userLocation ?: Pair(-6.7924, 39.2083)
+
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val isExpanded = maxWidth >= 840.dp
+            val cardModifier = if (isExpanded) {
+                Modifier
+                    .align(Alignment.TopStart)
+                    .padding(top = 80.dp, start = 24.dp)
+                    .width(380.dp)
+            } else {
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(16.dp)
+                    .fillMaxWidth()
+            }
+
+            LiveRouteSummaryCard(
+                originLabel = "Your Current Location",
+                destinationRoom = dest,
+                originLat = userLat,
+                originLng = userLng,
+                destLat = dest.latitude,
+                destLng = dest.longitude,
+                onRecenter = {
+                    showRoute(userLat, userLng, dest.latitude, dest.longitude)
+                },
+                onEndRoute = {
+                    clearRoute()
+                    onClearRoute()
+                },
+                modifier = cardModifier
+            )
         }
     }
 }

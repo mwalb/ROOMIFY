@@ -626,9 +626,9 @@ fun App() {
                                 }
                             },
                             onShowRoute = { room ->
-                                withAuth("route") {
-                                    uriHandler.openUri("https://www.google.com/maps/search/?api=1&query=${room.latitude},${room.longitude}")
-                                }
+                                pendingRoom = null
+                                routingDestination = room
+                                currentRoute = "map"
                             },
                             onCallOwner = { room ->
                                 withAuth("call") {
@@ -636,16 +636,12 @@ fun App() {
                                 }
                             },
                             onSpacePlanner = { room ->
-                                withAuth("planner") {
-                                    showSpacePlanner = true
-                                }
+                                showSpacePlanner = true
                             },
                             showSpacePlanner = showSpacePlanner,
                             onDismissSpacePlanner = { showSpacePlanner = false },
                             onAIRoomArranger = { room ->
-                                withAuth("ai_arranger") {
-                                    showAIRoomArranger = true
-                                }
+                                showAIRoomArranger = true
                             },
                             showAIRoomArranger = showAIRoomArranger,
                             onDismissAIRoomArranger = { showAIRoomArranger = false },

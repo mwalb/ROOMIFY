@@ -35,13 +35,13 @@ object ApiClient {
 
     /**
      * Resolves a potentially relative path from the backend into a full URL.
-     * Handles local/remote hosts, dynamic platform IPs, and relative paths.
+     * Handles local/remote hosts, dynamic platform IPs, relative paths, base64 data URLs, and file/blob URIs.
      */
     fun resolveUrl(path: String?): String {
         if (path.isNullOrBlank()) return ""
 
-        // Clean path - Remove any hardcoded or stale hostnames
-        val cleanPath = path
+        val trimmed = path.trim()
+        val cleanPath = trimmed
             .replace("http://192.168.12.133:8080", "")
             .replace("https://192.168.12.133:8080", "")
             .replace("http://localhost:8080", "")
@@ -52,11 +52,18 @@ object ApiClient {
             .replace("localhost:8080", "")
             .replace("127.0.0.1:8080", "")
 
-        return when {
-            cleanPath.startsWith("http://", ignoreCase = true) || cleanPath.startsWith("https://", ignoreCase = true) -> cleanPath
-            cleanPath.startsWith("/") -> "$MEDIA_BASE_URL$cleanPath"
-            else -> "$MEDIA_BASE_URL/$cleanPath"
+        if (cleanPath.startsWith("http://", ignoreCase = true) ||
+            cleanPath.startsWith("https://", ignoreCase = true) ||
+            cleanPath.startsWith("data:image", ignoreCase = true) ||
+            cleanPath.startsWith("file://", ignoreCase = true) ||
+            cleanPath.startsWith("blob:", ignoreCase = true)
+        ) {
+            return cleanPath
         }
+
+        val base = MEDIA_BASE_URL.trimEnd('/')
+        val relative = if (cleanPath.startsWith("/")) cleanPath else "/$cleanPath"
+        return "$base$relative"
     }
 
     fun setToken(newToken: String?) {

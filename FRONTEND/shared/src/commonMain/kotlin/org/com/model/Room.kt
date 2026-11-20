@@ -94,5 +94,15 @@ data class Room(
     fun getFullUrl(path: String): String = ApiClient.resolveUrl(path)
 
     val locationSummary: String
-        get() = address?.split(",")?.firstOrNull()?.trim() ?: "Location not specified"
+        get() {
+            val raw = address?.removePrefix("Coordinates:")?.trim()
+            val isCoordPattern = raw != null && Regex("^-?\\d+(\\.\\d+)?,\\s*-?\\d+(\\.\\d+)?$").matches(raw)
+            if (!isCoordPattern && !raw.isNullOrBlank()) {
+                return raw.split(",").firstOrNull()?.trim() ?: raw
+            }
+            if (neighbourhoodPlaces.isNotEmpty()) {
+                return neighbourhoodPlaces.first().trim()
+            }
+            return "Dar es Salaam, Tanzania"
+        }
 }

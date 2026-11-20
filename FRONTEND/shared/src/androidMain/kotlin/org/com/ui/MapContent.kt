@@ -18,6 +18,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -869,6 +870,53 @@ actual fun MapContent(
                 onClose = { onRoomCleared() },
                 onViewProperty = { onViewProperty(room) }
             )
+        }
+
+        if (routingDestination != null) {
+            val dest = routingDestination
+            val originLat = routePoints.firstOrNull()?.latitude ?: -6.7924
+            val originLng = routePoints.firstOrNull()?.longitude ?: 39.2083
+
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                val isExpanded = maxWidth >= 840.dp
+                val cardModifier = if (isExpanded) {
+                    Modifier
+                        .align(Alignment.TopStart)
+                        .padding(top = 90.dp, start = 16.dp)
+                        .width(380.dp)
+                } else {
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 20.dp, start = 16.dp, end = 16.dp)
+                        .fillMaxWidth()
+                }
+
+                org.com.ui.components.LiveRouteSummaryCard(
+                    originLabel = "Your Current Location",
+                    destinationRoom = dest,
+                    originLat = originLat,
+                    originLng = originLng,
+                    destLat = dest.latitude,
+                    destLng = dest.longitude,
+                    onRecenter = {
+                        val bounds = com.google.android.gms.maps.model.LatLngBounds.builder()
+                            .include(com.google.android.gms.maps.model.LatLng(originLat, originLng))
+                            .include(com.google.android.gms.maps.model.LatLng(dest.latitude, dest.longitude))
+                            .build()
+                        mapScope.launch {
+                            cameraPositionState.animate(
+                                com.google.android.gms.maps.CameraUpdateFactory.newLatLngBounds(bounds, 100),
+                                800
+                            )
+                        }
+                    },
+                    onEndRoute = {
+                        routePoints.clear()
+                        onClearRoute()
+                    },
+                    modifier = cardModifier
+                )
+            }
         }
     }
 }

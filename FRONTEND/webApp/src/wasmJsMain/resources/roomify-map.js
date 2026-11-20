@@ -4622,6 +4622,7 @@
                 "Roomify: destroying map"
             );
 
+            window.clearRoute();
 
             var map =
                 document.getElementById(
@@ -4681,6 +4682,104 @@
                 "Roomify: map destroyed"
             );
         };
+
+
+    /*
+     * ============================================================
+     * ROUTE DRAWING & TRACKING
+     * ============================================================
+     */
+
+    window.roomifyDirectionsRenderer = null;
+    window.roomifyRoutePolyline = null;
+    window.roomifyOriginMarker = null;
+
+    window.showRoute = function(originLat, originLng, destLat, destLng) {
+        if (!window.roomifyMap || !window.google || !window.google.maps) return;
+
+        window.clearRoute();
+
+        var origin = new google.maps.LatLng(Number(originLat), Number(originLng));
+        var dest = new google.maps.LatLng(Number(destLat), Number(destLng));
+
+        var originSvg =
+            '<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">' +
+            '<circle cx="18" cy="18" r="14" fill="#2563EB" stroke="#FFFFFF" stroke-width="3"/>' +
+            '<circle cx="18" cy="18" r="6" fill="#FFFFFF"/>' +
+            '</svg>';
+
+        window.roomifyOriginMarker = new google.maps.Marker({
+            position: origin,
+            map: window.roomifyMap,
+            title: "Your Location",
+            icon: {
+                url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(originSvg),
+                scaledSize: new google.maps.Size(36, 36),
+                anchor: new google.maps.Point(18, 18)
+            },
+            zIndex: 99999
+        });
+
+        if (typeof google.maps.DirectionsService === "function") {
+            var directionsService = new google.maps.DirectionsService();
+            window.roomifyDirectionsRenderer = new google.maps.DirectionsRenderer({
+                map: window.roomifyMap,
+                suppressMarkers: false,
+                polylineOptions: {
+                    strokeColor: "#142170",
+                    strokeWeight: 5,
+                    strokeOpacity: 0.9
+                }
+            });
+
+            directionsService.route({
+                origin: origin,
+                destination: dest,
+                travelMode: google.maps.TravelMode.DRIVING
+            }, function(response, status) {
+                if (status === "OK" && window.roomifyDirectionsRenderer) {
+                    window.roomifyDirectionsRenderer.setDirections(response);
+                } else {
+                    console.warn("Roomify: DirectionsService failed (" + status + "), drawing polyline fallback");
+                    drawPolylineFallback(origin, dest);
+                }
+            });
+        } else {
+            drawPolylineFallback(origin, dest);
+        }
+    };
+
+    function drawPolylineFallback(origin, dest) {
+        var path = [origin, dest];
+        window.roomifyRoutePolyline = new google.maps.Polyline({
+            path: path,
+            geodesic: true,
+            strokeColor: '#142170',
+            strokeOpacity: 0.9,
+            strokeWeight: 5,
+            map: window.roomifyMap
+        });
+
+        var bounds = new google.maps.LatLngBounds();
+        bounds.extend(origin);
+        bounds.extend(dest);
+        window.roomifyMap.fitBounds(bounds);
+    }
+
+    window.clearRoute = function() {
+        if (window.roomifyDirectionsRenderer) {
+            window.roomifyDirectionsRenderer.setMap(null);
+            window.roomifyDirectionsRenderer = null;
+        }
+        if (window.roomifyRoutePolyline) {
+            window.roomifyRoutePolyline.setMap(null);
+            window.roomifyRoutePolyline = null;
+        }
+        if (window.roomifyOriginMarker) {
+            window.roomifyOriginMarker.setMap(null);
+            window.roomifyOriginMarker = null;
+        }
+    };
 
 
     console.log(
