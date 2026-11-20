@@ -1084,15 +1084,15 @@ private fun RoomPropertyPopup(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = room.propertyType?.takeIf { it.isNotBlank() } ?: "Property",
-                            color = Color(0xFF64748B),
+                            text = room.propertyType?.uppercase()?.takeIf { it.isNotBlank() } ?: "APARTMENT",
+                            color = Color(0xFF142170),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
                             letterSpacing = 0.6.sp
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = room.title?.takeIf { it.isNotBlank() } ?: "Room",
+                            text = room.title?.takeIf { it.isNotBlank() } ?: "Modern apartment",
                             color = Color(0xFF0F172A),
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
@@ -1110,35 +1110,48 @@ private fun RoomPropertyPopup(
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close",
-                            tint = Color(0xFF64748B),
+                            tint = Color(0xFF334155),
                             modifier = Modifier.size(18.dp)
                         )
                     }
                 }
 
-                // Image Preview with 1/N badge
+                // Image Preview (150.dp height, RoundedCornerShape(12.dp))
                 val imageUrls = room.fullImageUrls
-                if (imageUrls.isNotEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(150.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFFF1F5F9))
-                    ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFFF1F5F9))
+                ) {
+                    if (imageUrls.isNotEmpty()) {
                         KamelImage(
                             resource = { asyncPainterResource(imageUrls.first()) },
-                            contentDescription = null,
+                            contentDescription = "Property photo",
                             modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
+                            contentScale = ContentScale.Crop,
+                            onFailure = {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.PhotoLibrary,
+                                        contentDescription = null,
+                                        tint = Color(0xFF94A3B8),
+                                        modifier = Modifier.size(36.dp)
+                                    )
+                                }
+                            }
                         )
 
                         if (imageUrls.size > 1) {
                             Surface(
                                 modifier = Modifier
-                                    .align(Alignment.TopEnd)
+                                    .align(Alignment.BottomEnd)
                                     .padding(8.dp),
-                                color = Color.Black.copy(alpha = 0.75f),
+                                color = Color(0xCC0F172A),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 Text(
@@ -1150,10 +1163,31 @@ private fun RoomPropertyPopup(
                                 )
                             }
                         }
+                    } else {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    imageVector = Icons.Default.PhotoLibrary,
+                                    contentDescription = null,
+                                    tint = Color(0xFF94A3B8),
+                                    modifier = Modifier.size(36.dp)
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "No photo available",
+                                    color = Color(0xFF94A3B8),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
                     }
                 }
 
-                val location = formatLocationDisplay(room.address, room.latitude, room.longitude)
+                val location = formatLocationDisplay(room.address, room.latitude, room.longitude, room.neighbourhoodPlaces)
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1170,6 +1204,7 @@ private fun RoomPropertyPopup(
                         text = location,
                         color = Color(0xFF64748B),
                         fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -1185,16 +1220,16 @@ private fun RoomPropertyPopup(
                         Text(
                             text = "MONTHLY RENT",
                             color = Color(0xFF64748B),
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 0.6.sp
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = formatFullPrice(room.price),
-                            color = Color(0xFF142170),
+                            color = Color(0xFF0F172A),
                             fontSize = 18.sp,
-                            fontWeight = FontWeight.ExtraBold
+                            fontWeight = FontWeight.Bold
                         )
                     }
 
@@ -1207,8 +1242,8 @@ private fun RoomPropertyPopup(
                     onClick = onViewProperty,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(42.dp),
-                    shape = RoundedCornerShape(10.dp),
+                        .height(44.dp),
+                    shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFF142170),
                         contentColor = Color.White
@@ -1225,25 +1260,23 @@ private fun RoomPropertyPopup(
     }
 }
 
-private fun formatLocationDisplay(rawLocation: String?, lat: Double? = null, lng: Double? = null): String {
-    if (rawLocation.isNullOrBlank()) {
-        if (lat != null && lng != null && lat != 0.0 && lng != 0.0) {
-            val shortLat = (lat * 10000.0).roundToInt() / 10000.0
-            val shortLng = (lng * 10000.0).roundToInt() / 10000.0
-            return "$shortLat, $shortLng"
-        }
-        return "Location available"
-    }
-    val isCoords = rawLocation.matches(Regex("^-?\\d+(\\.\\d+)?,\\s*-?\\d+(\\.\\d+)?$"))
-    if (isCoords) {
-        val parts = rawLocation.split(",").map { it.trim().toDoubleOrNull() }
-        if (parts.size == 2 && parts[0] != null && parts[1] != null) {
-            val shortLat = (parts[0]!! * 10000.0).roundToInt() / 10000.0
-            val shortLng = (parts[1]!! * 10000.0).roundToInt() / 10000.0
-            return "$shortLat, $shortLng"
+private fun formatLocationDisplay(
+    rawLocation: String?,
+    lat: Double? = null,
+    lng: Double? = null,
+    neighbourhoodPlaces: List<String> = emptyList()
+): String {
+    if (!rawLocation.isNullOrBlank()) {
+        val clean = rawLocation.removePrefix("Coordinates:").trim()
+        val isCoords = clean.matches(Regex("^-?\\d+(\\.\\d+)?,\\s*-?\\d+(\\.\\d+)?$"))
+        if (!isCoords && clean.isNotBlank()) {
+            return clean
         }
     }
-    return rawLocation
+    if (neighbourhoodPlaces.isNotEmpty()) {
+        return neighbourhoodPlaces.first()
+    }
+    return "Dar es Salaam, Tanzania"
 }
 
 /*
@@ -1254,38 +1287,32 @@ private fun formatLocationDisplay(rawLocation: String?, lat: Double? = null, lng
 
 @Composable
 private fun StatusBadge(status: String?) {
-    val normalized = status?.uppercase() ?: "AVAILABLE"
-    val color = when (normalized) {
-        "AVAILABLE" -> RoomifyGreen
-        "PENDING" -> RoomifyYellow
-        "RENTED" -> RoomifyRed
-        else -> RoomifyWhite
+    val normalized = status?.uppercase()?.trim() ?: "AVAILABLE"
+    val (bgColor, dotColor, textColor) = when (normalized) {
+        "AVAILABLE" -> Triple(Color(0xFFDCFCE7), Color(0xFF16A34A), Color(0xFF15803D))
+        "PENDING" -> Triple(Color(0xFFFEF3C7), Color(0xFFD97706), Color(0xFFB45309))
+        else -> Triple(Color(0xFFFEF2F2), Color(0xFFDC2626), Color(0xFF991B1B))
     }
 
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(50.dp))
-            .background(RoomifyWhite.copy(alpha = 0.10f))
-            .border(
-                width = 1.dp,
-                color = RoomifyWhite.copy(alpha = 0.17f),
-                shape = RoundedCornerShape(50.dp)
-            )
-            .padding(horizontal = 10.dp, vertical = 6.dp),
+            .background(bgColor)
+            .padding(horizontal = 10.dp, vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
                 .size(7.dp)
                 .clip(CircleShape)
-                .background(color)
+                .background(dotColor)
         )
         Spacer(modifier = Modifier.width(6.dp))
         Text(
             text = statusText(status),
-            color = RoomifyWhite,
+            color = textColor,
             fontSize = 11.sp,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.SemiBold
         )
     }
 }
@@ -1342,28 +1369,28 @@ private fun FeatureItem(
 ) {
     Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(11.dp))
-            .background(RoomifyWhite.copy(alpha = 0.10f))
+            .clip(RoundedCornerShape(8.dp))
+            .background(Color(0xFFF1F5F9))
             .border(
                 width = 1.dp,
-                color = RoomifyWhite.copy(alpha = 0.10f),
-                shape = RoundedCornerShape(11.dp)
+                color = Color(0xFFE2E8F0),
+                shape = RoundedCornerShape(8.dp)
             )
-            .padding(horizontal = 9.dp, vertical = 7.dp),
+            .padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = RoomifyWhite80,
-            modifier = Modifier.size(16.dp)
+            tint = Color(0xFF64748B),
+            modifier = Modifier.size(15.dp)
         )
         Spacer(modifier = Modifier.width(5.dp))
         Text(
             text = "$value $label",
-            fontSize = 11.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
-            color = RoomifyWhite90
+            color = Color(0xFF334155)
         )
     }
 }

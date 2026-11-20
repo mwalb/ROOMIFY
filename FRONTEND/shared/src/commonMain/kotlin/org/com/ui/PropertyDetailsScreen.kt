@@ -1161,7 +1161,7 @@ private fun PropertyHeaderDetails(
             lineHeight = 28.sp
         )
 
-        val cleanLocation = formatLocationDisplay(room.address, room.latitude, room.longitude)
+        val cleanLocation = formatLocationDisplay(room.address, room.latitude, room.longitude, room.neighbourhoodPlaces)
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -1736,25 +1736,23 @@ private fun ComplexOverviewCard(property: Property) {
     }
 }
 
-private fun formatLocationDisplay(rawLocation: String?, lat: Double? = null, lng: Double? = null): String {
-    if (rawLocation.isNullOrBlank()) {
-        if (lat != null && lng != null && lat != 0.0 && lng != 0.0) {
-            val shortLat = (lat * 10000.0).roundToInt() / 10000.0
-            val shortLng = (lng * 10000.0).roundToInt() / 10000.0
-            return "$shortLat, $shortLng"
-        }
-        return "Location available"
-    }
-    val isCoords = rawLocation.matches(Regex("^-?\\d+(\\.\\d+)?,\\s*-?\\d+(\\.\\d+)?$"))
-    if (isCoords) {
-        val parts = rawLocation.split(",").map { it.trim().toDoubleOrNull() }
-        if (parts.size == 2 && parts[0] != null && parts[1] != null) {
-            val shortLat = (parts[0]!! * 10000.0).roundToInt() / 10000.0
-            val shortLng = (parts[1]!! * 10000.0).roundToInt() / 10000.0
-            return "$shortLat, $shortLng"
+private fun formatLocationDisplay(
+    rawLocation: String?,
+    lat: Double? = null,
+    lng: Double? = null,
+    neighbourhoodPlaces: List<String> = emptyList()
+): String {
+    if (!rawLocation.isNullOrBlank()) {
+        val clean = rawLocation.removePrefix("Coordinates:").trim()
+        val isCoords = clean.matches(Regex("^-?\\d+(\\.\\d+)?,\\s*-?\\d+(\\.\\d+)?$"))
+        if (!isCoords && clean.isNotBlank()) {
+            return clean
         }
     }
-    return rawLocation
+    if (neighbourhoodPlaces.isNotEmpty()) {
+        return neighbourhoodPlaces.first()
+    }
+    return "Dar es Salaam, Tanzania"
 }
 
 @OptIn(ExperimentalLayoutApi::class)

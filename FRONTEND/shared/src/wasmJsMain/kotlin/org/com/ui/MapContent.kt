@@ -238,6 +238,14 @@ private fun List<Room>.toJsonString(): String {
         val area =
             room.area
 
+        val imagesList = room.fullImageUrls.ifEmpty { room.images }
+        val imagesJson = imagesList.joinToString(prefix = "[", postfix = "]", separator = ",") {
+            "\"${it.replace("\\", "\\\\").replace("\"", "\\\"")}\""
+        }
+        val neighbourhoodJson = room.neighbourhoodPlaces.joinToString(prefix = "[", postfix = "]", separator = ",") {
+            "\"${it.replace("\\", "\\\\").replace("\"", "\\\"")}\""
+        }
+
         """
         {
             "id":"${room.id}",
@@ -252,6 +260,9 @@ private fun List<Room>.toJsonString(): String {
             "roomsCount":$roomsCount,
             "bathroomsCount":$bathroomsCount,
             "area":$area,
+            "images":$imagesJson,
+            "fullImageUrls":$imagesJson,
+            "neighbourhoodPlaces":$neighbourhoodJson,
             "image":"${room.firstImageUrl ?: ""}"
         }
         """.trimIndent()

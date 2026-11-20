@@ -1035,39 +1035,36 @@
             .roomify-popup-property-type {
                 font-size: 11px;
                 font-weight: 600;
-                color: #64748B;
+                color: #142170;
                 letter-spacing: 0.6px;
                 text-transform: uppercase;
             }
 
             .roomify-popup-image-container {
                 width: 100%;
-                height: 160px;
-                margin: 12px 0;
-                border-radius: 20px;
+                height: 150px;
+                margin: 10px 0;
+                border-radius: 12px;
                 overflow: hidden;
-                background: rgba(255, 255, 255, 0.1);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
+                background: #F1F5F9;
+                position: relative;
             }
 
             .roomify-popup-image {
                 width: 100%;
-                height: 100%;
+                height: 150px;
                 object-fit: cover;
                 transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             }
 
             .roomify-popup:hover .roomify-popup-image {
-                transform: scale(1.05);
-            }
-                text-transform: uppercase;
+                transform: scale(1.03);
             }
 
             .roomify-popup-title {
-                font-size: 20px;
-                font-weight: 800;
-                color: #ffffff;
+                font-size: 16px;
+                font-weight: 700;
+                color: #0F172A;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
@@ -1078,9 +1075,9 @@
                 height: 32px;
                 border: 0;
                 border-radius: 50%;
-                background: rgba(255,255,255,0.13);
+                background: #F1F5F9;
                 cursor: pointer;
-                color: #ffffff;
+                color: #334155;
                 font-size: 16px;
                 display: flex;
                 align-items: center;
@@ -1090,28 +1087,26 @@
             }
 
             .roomify-popup-close:hover {
-                background: rgba(255,255,255,0.25);
+                background: #E2E8F0;
             }
 
             .roomify-popup-location {
                 display: flex;
                 align-items: center;
-                background: rgba(255,255,255,0.09);
-                border-radius: 13px;
-                padding: 8px 11px;
-                margin: 8px 0 10px 0;
+                padding: 4px 0;
+                margin: 4px 0 8px 0;
             }
 
             .roomify-popup-location-icon {
                 font-size: 14px;
-                margin-right: 7px;
-                opacity: 0.8;
+                margin-right: 6px;
+                color: #64748B;
             }
 
             .roomify-popup-location-text {
-                font-size: 14px;
+                font-size: 12px;
                 font-weight: 500;
-                color: rgba(255, 255, 255, 0.95);
+                color: #64748B;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
@@ -1121,21 +1116,21 @@
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                margin: 4px 0 8px 0;
+                margin: 6px 0 10px 0;
             }
 
             .roomify-popup-price-label {
-                font-size: 9px;
-                font-weight: 700;
-                color: rgba(255,255,255,0.55);
-                letter-spacing: 1px;
+                font-size: 10px;
+                font-weight: 600;
+                color: #64748B;
+                letter-spacing: 0.6px;
                 text-transform: uppercase;
             }
 
             .roomify-popup-price {
-                font-size: 21px;
-                font-weight: 900;
-                color: #ffffff;
+                font-size: 18px;
+                font-weight: 700;
+                color: #0F172A;
             }
 
             .roomify-popup-status {
@@ -1143,11 +1138,8 @@
                 align-items: center;
                 padding: 4px 10px;
                 border-radius: 50px;
-                background: rgba(255,255,255,0.10);
-                border: 1px solid rgba(255,255,255,0.17);
                 font-size: 11px;
-                font-weight: 700;
-                color: #ffffff;
+                font-weight: 600;
             }
 
             .roomify-popup-status-dot {
@@ -1168,45 +1160,40 @@
             .roomify-popup-feature {
                 display: flex;
                 align-items: center;
-                padding: 5px 9px;
-                border-radius: 11px;
-                background: rgba(255,255,255,0.10);
-                border: 1px solid rgba(255,255,255,0.10);
-                font-size: 11px;
+                padding: 5px 10px;
+                border-radius: 8px;
+                background: #F1F5F9;
+                border: 1px solid #E2E8F0;
+                font-size: 12px;
                 font-weight: 500;
-                color: rgba(255,255,255,0.90);
+                color: #334155;
             }
 
             .roomify-popup-feature-icon {
                 font-size: 13px;
                 margin-right: 4px;
-                opacity: 0.7;
+                color: #64748B;
             }
 
             .roomify-popup-button {
                 display: block;
                 width: 100%;
-                padding: 10px 12px;
+                height: 44px;
+                padding: 0 12px;
                 border: 0;
-                border-radius: 15px;
-                background: rgba(255,255,255,0.95);
-                color: #1A237E;
-                font-family: Arial, sans-serif;
-                font-size: 14px;
+                border-radius: 12px;
+                background: #142170;
+                color: #FFFFFF;
+                font-family: inherit;
+                font-size: 13px;
                 font-weight: 700;
                 cursor: pointer;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.15);
                 transition: background 0.2s ease;
-                margin-top: 4px;
+                margin-top: 6px;
             }
 
             .roomify-popup-button:hover {
-                background: #ffffff;
-            }
-
-            .roomify-popup-button-icon {
-                font-size: 15px;
-                margin-right: 6px;
+                background: #0d164a;
             }
 
             .roomify-units-chips {
@@ -3525,23 +3512,25 @@
      * ============================================================
      */
 
-    function formatLocationDisplayJs(str) {
-        if (!str) return "Location available";
-        var isCoords = /^-?\d+(\.\d+)?,[\s]*-?\d+(\.\d+)?$/.test(str.trim());
-        if (isCoords) {
-            var parts = str.split(",").map(function(p) { return parseFloat(p.trim()); });
-            if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-                return (Math.round(parts[0] * 10000) / 10000) + ", " + (Math.round(parts[1] * 10000) / 10000);
+    function formatLocationDisplayJs(str, room) {
+        if (str) {
+            var clean = String(str).replace(/^Coordinates:/i, '').trim();
+            var isCoords = /^-?\d+(\.\d+)?,[\s]*-?\d+(\.\d+)?$/.test(clean);
+            if (!isCoords && clean.length > 0) {
+                return clean;
             }
         }
-        return str;
+        if (room && Array.isArray(room.neighbourhoodPlaces) && room.neighbourhoodPlaces.length > 0) {
+            return room.neighbourhoodPlaces[0];
+        }
+        return "Dar es Salaam, Tanzania";
     }
 
     function buildPopupContent(room) {
 
         var title =
             escapeHtml(
-                room.title || "Room"
+                room.title || "Modern apartment"
             );
 
         var price =
@@ -3562,20 +3551,21 @@
                 "AVAILABLE"
             ).toUpperCase();
 
-        var statusLabel =
-            escapeHtml(
-                statusText(status)
-            );
+        var statusLabel = escapeHtml(statusText(status));
+        var statusContainerBg = "#DCFCE7";
+        var statusDotBg = "#16A34A";
+        var statusTextColor = "#15803D";
 
-        var statusColorValue =
-            statusColor(status);
-
-        if (vStatus === "PENDING") {
+        if (vStatus === "PENDING" || status === "PENDING") {
             statusLabel = "Pending Verification";
-            statusColorValue = "#F57F17";
-        } else if (vStatus === "REJECTED") {
-            statusLabel = "Rejected";
-            statusColorValue = "#D32F2F";
+            statusContainerBg = "#FEF3C7";
+            statusDotBg = "#D97706";
+            statusTextColor = "#B45309";
+        } else if (vStatus === "REJECTED" || status === "RENTED") {
+            statusLabel = status === "RENTED" ? "Rented" : "Rejected";
+            statusContainerBg = "#FEF2F2";
+            statusDotBg = "#DC2626";
+            statusTextColor = "#991B1B";
         }
 
         var address =
@@ -3585,112 +3575,65 @@
 
         var propertyType =
             escapeHtml(
-                room.propertyType || ""
+                (room.propertyType || "APARTMENT").toUpperCase()
             );
 
-        var locationDisplay = address ? formatLocationDisplayJs(address) : "Location available";
+        var locationDisplay = escapeHtml(formatLocationDisplayJs(address, room));
 
         var photos = [];
-        if (Array.isArray(room.images) && room.images.length > 0) {
-            photos = room.images;
-        } else if (Array.isArray(room.fullImageUrls) && room.fullImageUrls.length > 0) {
-            photos = room.fullImageUrls;
-        } else if (room.image) {
+        if (Array.isArray(room.fullImageUrls) && room.fullImageUrls.length > 0) {
+            photos = room.fullImageUrls.filter(function(u) { return u && String(u).trim().length > 0; });
+        } else if (Array.isArray(room.images) && room.images.length > 0) {
+            photos = room.images.filter(function(u) { return u && String(u).trim().length > 0; });
+        } else if (room.image && String(room.image).trim().length > 0) {
             photos = [room.image];
         }
 
         var imageHtml = "";
         if (photos.length > 0) {
             var resolvedImg = resolveMediaUrl(photos[0]);
-            var photoBadge = photos.length > 1 ? '<div style="position:absolute; top:8px; right:8px; background:rgba(15,23,42,0.75); color:white; padding:3px 8px; border-radius:12px; font-size:10px; font-weight:bold; z-index:2;">1 / ' + photos.length + '</div>' : '';
+            var photoBadge = photos.length > 1 ? '<div style="position:absolute; bottom:8px; right:8px; background:rgba(15,23,42,0.8); color:#FFFFFF; padding:3px 8px; border-radius:12px; font-size:10px; font-weight:bold; z-index:2;">1 / ' + photos.length + '</div>' : '';
             imageHtml =
-                '<div class="roomify-popup-image-container" style="position:relative; height:150px; border-radius:12px; overflow:hidden; margin:8px 0;">' +
+                '<div class="roomify-popup-image-container" style="position:relative; height:150px; border-radius:12px; overflow:hidden; margin:10px 0; background:#F1F5F9;">' +
                 photoBadge +
-                '<img src="' + escapeHtml(resolvedImg) + '" class="roomify-popup-image" style="width:100%; height:150px; object-fit:cover; border-radius:12px;" onerror="this.parentElement.style.display=\'none\'" />' +
+                '<img src="' + escapeHtml(resolvedImg) + '" class="roomify-popup-image" style="width:100%; height:150px; object-fit:cover; border-radius:12px;" onerror="this.onerror=null; this.style.display=\'none\'; this.nextElementSibling.style.display=\'flex\';" />' +
+                '<div style="display:none; align-items:center; justify-content:center; width:100%; height:100%; color:#94A3B8; font-size:32px;">📷</div>' +
+                '</div>';
+        } else {
+            imageHtml =
+                '<div class="roomify-popup-image-container" style="position:relative; height:150px; border-radius:12px; overflow:hidden; margin:10px 0; background:#F1F5F9; display:flex; align-items:center; justify-content:center;">' +
+                '<div style="display:flex; align-items:center; justify-content:center; width:100%; height:100%; color:#94A3B8; font-size:32px;">📷</div>' +
                 '</div>';
         }
 
         var featuresHtml = "";
-
         var features = [];
 
-        if (
-            Number(room.roomsCount) > 0
-        ) {
-
-            features.push(
-                Number(room.roomsCount) +
-                " Beds"
-            );
+        if (Number(room.roomsCount) > 0) {
+            features.push(Number(room.roomsCount) + " Beds");
+        }
+        if (Number(room.bathroomsCount) > 0) {
+            features.push(Number(room.bathroomsCount) + " Baths");
+        }
+        if (Number(room.area) > 0) {
+            features.push(Math.round(Number(room.area)) + " m²");
         }
 
-        if (
-            Number(room.bathroomsCount) > 0
-        ) {
-
-            features.push(
-                Number(room.bathroomsCount) +
-                " Baths"
-            );
-        }
-
-        if (
-            Number(room.area) > 0
-        ) {
-
-            features.push(
-                Math.round(
-                    Number(room.area)
-                ) +
-                " m²"
-            );
-        }
-
-        if (
-            features.length > 0
-        ) {
-
-            featuresHtml =
-                '<div class="roomify-popup-features">';
-
-            features.forEach(
-                function (feature) {
-
-                    var icon = "";
-
-                    if (
-                        feature.indexOf("Beds") > -1
-                    ) {
-                        icon = "";
-                    } else if (
-                        feature.indexOf("Baths") > -1
-                    ) {
-                        icon = "";
-                    } else if (
-                        feature.indexOf("m²") > -1
-                    ) {
-                        icon = "";
-                    }
-
-                    featuresHtml +=
-                        '<span class="roomify-popup-feature">' +
-                        '<span class="roomify-popup-feature-icon">' +
-                        icon +
-                        '</span>' +
-                        feature +
-                        '</span>';
-                }
-            );
-
+        if (features.length > 0) {
+            featuresHtml = '<div class="roomify-popup-features">';
+            features.forEach(function (feature) {
+                featuresHtml +=
+                    '<span class="roomify-popup-feature">' +
+                    feature +
+                    '</span>';
+            });
             featuresHtml += '</div>';
         }
 
-        var isRented = status === "RENTED";
         var buttonText = "View Property Details";
         var buttonStyle = 'style="cursor:pointer;"';
         var safeRoomId = escapeHtml(room.id);
 
-        // FIX: Wrap everything in a container that stops propagation
         return (
             '<div class="roomify-popup-container-wrapper" ' +
             'onclick="event.stopPropagation();" ' +
@@ -3698,17 +3641,14 @@
             'onmouseup="event.stopPropagation();">' +
 
             '<div class="roomify-popup">' +
-            (isRented ? '<div style="position:absolute; top:10px; left:10px; background:rgba(198,40,40,0.9); color:white; padding:2px 8px; border-radius:10px; font-size:9px; font-weight:bold; z-index:10;">RENTED</div>' : '') +
 
             '<div class="roomify-popup-header">' +
 
             '<div style="flex:1;min-width:0;">' +
             '<div class="roomify-popup-property-type">' +
-            (propertyType || "Property") +
+            propertyType +
             '</div>' +
-            '<div class="roomify-popup-title" title="' +
-            title +
-            '">' +
+            '<div class="roomify-popup-title" title="' + title + '">' +
             title +
             '</div>' +
             '</div>' +
@@ -3722,9 +3662,7 @@
             imageHtml +
 
             '<div class="roomify-popup-location">' +
-            '<span class="roomify-popup-location-text" title="' +
-            locationDisplay +
-            '">' +
+            '<span class="roomify-popup-location-text" title="' + locationDisplay + '">' +
             locationDisplay +
             '</span>' +
             '</div>' +
@@ -3732,14 +3670,10 @@
             '<div class="roomify-popup-price-row">' +
             '<div>' +
             '<div class="roomify-popup-price-label">MONTHLY RENT</div>' +
-            '<div class="roomify-popup-price">' +
-            price +
+            '<div class="roomify-popup-price">' + price + '</div>' +
             '</div>' +
-            '</div>' +
-            '<div class="roomify-popup-status">' +
-            '<span class="roomify-popup-status-dot" style="background:' +
-            statusColorValue +
-            ';"></span>' +
+            '<div class="roomify-popup-status" style="background:' + statusContainerBg + '; color:' + statusTextColor + ';">' +
+            '<span class="roomify-popup-status-dot" style="background:' + statusDotBg + ';"></span>' +
             statusLabel +
             '</div>' +
             '</div>' +
