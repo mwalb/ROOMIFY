@@ -43,6 +43,7 @@ import io.kamel.image.asyncPainterResource
 import kotlinx.coroutines.*
 import org.com.i18n.LocalRoomifyStrings
 import org.com.model.*
+import org.com.network.ApiClient
 import org.com.network.RoomifyApi
 import org.com.ui.components.AIRoomArrangerDialog
 import org.com.ui.components.SpacePlannerDialog
