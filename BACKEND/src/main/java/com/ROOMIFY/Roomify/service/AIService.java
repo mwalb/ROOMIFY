@@ -7,10 +7,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.util.*;
+import java.util.List;
+import java.util.concurrent.*;
 
 @Service
 public class AIService {
@@ -26,28 +34,36 @@ public class AIService {
 
     private static final List<String> IMAGE_MODEL_CANDIDATES = List.of(
             "gemini-2.5-flash-image",
-            "gemini-3.1-flash-image-preview",
             "gemini-3.0-flash-image",
-            "gemini-2.5-flash-image-preview",
             "gemini-2.0-flash-exp-image-generation"
-    );
-
-    private static final List<String> IMAGEN_MODEL_CANDIDATES = List.of(
-            "imagen-3.0-generate-002",
-            "imagen-3.0-generate-001"
     );
 
     private static final List<String> TEXT_FALLBACK_MODELS = List.of(
             "gemini-3.8-flash",
             "gemini-3.0-flash",
-            "gemini-2.5-flash",
-            "gemini-flash-latest"
+            "gemini-2.5-flash"
     );
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate geminiRestTemplate = createTimedRestTemplate(6000, 14000);
+    private final RestTemplate quickRenderRestTemplate = createTimedRestTemplate(3500, 6500);
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ExecutorService bgExecutor = Executors.newCachedThreadPool();
+
+    // Caches the last known working models so subsequent requests finish in a single ~3s call
+    private volatile String cachedWorkingImageModel = null;
+    private volatile String cachedWorkingTextModel = null;
+    private volatile List<String> cachedDiscoveredModels = null;
+    private volatile long discoveredModelsTimestamp = 0L;
+
+    private static RestTemplate createTimedRestTemplate(int connectMs, int readMs) {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(connectMs);
+        factory.setReadTimeout(readMs);
+        return new RestTemplate(factory);
+    }
 
     public AIRoomResponse generateRoomArrangement(AIRoomRequest request, byte[] imageBytes) throws Exception {
+        long startNs = System.nanoTime();
         if (apiKey == null || apiKey.isBlank() || "disabled".equals(apiKey) || "none".equals(apiKey)) {
             throw new RuntimeException("AI Features are currently disabled: GEMINI_API_KEY is not configured.");
         }
@@ -58,8 +74,9 @@ public class AIService {
         textPart.put("text", prompt);
         parts.add(textPart);
 
-        if (imageBytes != null && imageBytes.length > 0) {
-            String base64Image = Base64.getEncoder().encodeToString(imageBytes);
+        byte[] compactImage = downscaleImageForFastUpload(imageBytes);
+        if (compactImage != null && compactImage.length > 0) {
+            String base64Image = Base64.getEncoder().encodeToString(compactImage);
             Map<String, Object> imagePart = new HashMap<>();
             Map<String, String> inlineData = new HashMap<>();
             inlineData.put("mime_type", "image/jpeg");
@@ -70,125 +87,193 @@ public class AIService {
 
         List<Map<String, Object>> contents = List.of(Map.of("parts", parts));
 
-        // Build ordered model attempt list starting with configured model
-        List<String> imageModels = new ArrayList<>();
-        if (model != null && !model.isBlank()) {
-            imageModels.add(stripModelsPrefix(model));
-        }
-        for (String candidate : IMAGE_MODEL_CANDIDATES) {
-            if (!imageModels.contains(candidate)) {
-                imageModels.add(candidate);
-            }
-        }
-        List<String> textModels = new ArrayList<>(TEXT_FALLBACK_MODELS);
+        // Pre-warm the visual fallback render in parallel so if the Gemini key only returns text,
+        // the room render is already ready (zero extra wait time!)
+        Future<String> fallbackRenderFuture = bgExecutor.submit(() -> fetchVisualFallbackImage(request));
 
-        // Dynamically query Google's /v1beta/models catalog for this key so new models (e.g. gemini-3.x) are auto-discovered
-        for (String liveModel : discoverAvailableModels()) {
-            if (liveModel.contains("image") && !imageModels.contains(liveModel)) {
-                imageModels.add(liveModel);
-            } else if (liveModel.contains("flash") && !textModels.contains(liveModel)) {
-                textModels.add(liveModel);
-            }
-        }
-
-        RuntimeException lastError = null;
-        Set<String> attempted = new HashSet<>();
-        String fallbackRecommendation = null;
-
-        // 1. Try image-capable Gemini models first (requiring an actual generated image!)
-        for (int i = 0; i < imageModels.size(); i++) {
-            String candidateModel = imageModels.get(i);
-            if (!attempted.add("img:" + candidateModel)) continue;
-            try {
-                AIRoomResponse res = callGeminiModel(candidateModel, contents, true, request.getStyle());
-                if (res.getGeneratedImageUrl() != null && !res.getGeneratedImageUrl().isBlank()) {
-                    return res;
-                }
-                // Model returned text without an image -> keep the text as fallback and try next image model
-                if (fallbackRecommendation == null && res.getRecommendation() != null) {
-                    fallbackRecommendation = res.getRecommendation();
-                }
-            } catch (org.springframework.web.client.HttpClientErrorException e) {
-                int code = e.getStatusCode().value();
-                String bodyStr = e.getResponseBodyAsString();
-                System.err.println("Gemini image model '" + candidateModel + "' failed (HTTP " + code + "): " + bodyStr);
-
-                if (code == 401 || code == 403) {
-                    throw new RuntimeException(buildFriendlyGeminiError(code, bodyStr));
-                }
-                String suggested = extractSuggestedModel(bodyStr);
-                if (suggested != null) {
-                    if (suggested.contains("image") && !imageModels.contains(suggested)) {
-                        imageModels.add(suggested);
-                    } else if (!textModels.contains(suggested)) {
-                        textModels.add(0, suggested);
+        try {
+            // Fast path: if we already found a working image model, try it first
+            if (cachedWorkingImageModel != null) {
+                try {
+                    AIRoomResponse fastRes = callGeminiModel(cachedWorkingImageModel, contents, true, request.getStyle());
+                    if (fastRes.getGeneratedImageUrl() != null && !fastRes.getGeneratedImageUrl().isBlank()) {
+                        fallbackRenderFuture.cancel(true);
+                        logLatency("cached-image:" + cachedWorkingImageModel, startNs);
+                        return fastRes;
                     }
+                } catch (Exception ignored) {
+                    cachedWorkingImageModel = null;
                 }
-                if (code == 429) {
-                    lastError = new RuntimeException("AI quota reached. Please wait a minute and try again.");
-                    continue;
-                }
-                lastError = new RuntimeException(buildFriendlyGeminiError(code, bodyStr));
-            } catch (RuntimeException e) {
-                lastError = e;
             }
-        }
 
-        // 2. Try Google Imagen 3 (:predict) if Gemini image models did not return an image
-        for (String imagenModel : IMAGEN_MODEL_CANDIDATES) {
-            try {
-                String imagenUrl = callImagenPredict(imagenModel, prompt);
-                if (imagenUrl != null) {
-                    String rec = fallbackRecommendation != null ? fallbackRecommendation
-                            : generateTextRecommendation(textModels, contents, request.getStyle());
-                    return AIRoomResponse.builder()
-                            .generatedImageUrl(imagenUrl)
-                            .recommendation(rec)
-                            .style(request.getStyle())
-                            .build();
-                }
-            } catch (Exception ignored) {}
-        }
-
-        // 3. Fallback: get text recommendation from standard Gemini Flash + generate a photorealistic room render
-        for (int i = 0; i < textModels.size(); i++) {
-            String textModel = textModels.get(i);
-            if (!attempted.add("txt:" + textModel)) continue;
-            try {
-                AIRoomResponse textRes = callGeminiModel(textModel, contents, false, request.getStyle());
-                if (textRes.getGeneratedImageUrl() == null || textRes.getGeneratedImageUrl().isBlank()) {
-                    String renderedUrl = fetchVisualFallbackImage(request);
-                    textRes.setGeneratedImageUrl(renderedUrl);
-                }
-                return textRes;
-            } catch (org.springframework.web.client.HttpClientErrorException e) {
-                int code = e.getStatusCode().value();
-                String bodyStr = e.getResponseBodyAsString();
-                System.err.println("Gemini fallback model '" + textModel + "' failed (HTTP " + code + "): " + bodyStr);
-                if (code == 401 || code == 403) {
-                    throw new RuntimeException(buildFriendlyGeminiError(code, bodyStr));
-                }
-                String suggested = extractSuggestedModel(bodyStr);
-                if (suggested != null && !textModels.contains(suggested)) {
-                    textModels.add(suggested);
-                }
-                lastError = new RuntimeException(buildFriendlyGeminiError(code, bodyStr));
-            } catch (RuntimeException e) {
-                lastError = e;
+            // Build concise candidate lists (max 2 image attempts + 1-2 text attempts to avoid multi-model lag)
+            List<String> imageModels = new ArrayList<>();
+            if (model != null && !model.isBlank()) {
+                imageModels.add(stripModelsPrefix(model));
             }
-        }
+            for (String candidate : IMAGE_MODEL_CANDIDATES) {
+                if (!imageModels.contains(candidate)) {
+                    imageModels.add(candidate);
+                }
+            }
+            List<String> textModels = new ArrayList<>();
+            if (cachedWorkingTextModel != null) {
+                textModels.add(cachedWorkingTextModel);
+            }
+            for (String tm : TEXT_FALLBACK_MODELS) {
+                if (!textModels.contains(tm)) {
+                    textModels.add(tm);
+                }
+            }
 
-        if (fallbackRecommendation != null) {
-            return AIRoomResponse.builder()
-                    .generatedImageUrl(fetchVisualFallbackImage(request))
-                    .recommendation(fallbackRecommendation)
-                    .style(request.getStyle())
-                    .build();
+            RuntimeException lastError = null;
+            Set<String> attempted = new HashSet<>();
+            String fallbackRecommendation = null;
+
+            // 1. Try at most 2 image-capable Gemini models
+            int imageAttempts = 0;
+            for (int i = 0; i < imageModels.size() && imageAttempts < 2; i++) {
+                String candidateModel = imageModels.get(i);
+                if (!attempted.add("img:" + candidateModel)) continue;
+                imageAttempts++;
+                try {
+                    AIRoomResponse res = callGeminiModel(candidateModel, contents, true, request.getStyle());
+                    if (res.getGeneratedImageUrl() != null && !res.getGeneratedImageUrl().isBlank()) {
+                        cachedWorkingImageModel = candidateModel;
+                        fallbackRenderFuture.cancel(true);
+                        logLatency("image:" + candidateModel, startNs);
+                        return res;
+                    }
+                    // Model succeeded and returned a rich design recommendation without an inline image
+                    if (res.getRecommendation() != null && !res.getRecommendation().isBlank()) {
+                        fallbackRecommendation = res.getRecommendation();
+                        cachedWorkingTextModel = candidateModel;
+                        break; // We already have the recommendation! Skip redundant model calls.
+                    }
+                } catch (org.springframework.web.client.HttpClientErrorException e) {
+                    int code = e.getStatusCode().value();
+                    String bodyStr = e.getResponseBodyAsString();
+                    System.err.println("Gemini image model '" + candidateModel + "' failed (HTTP " + code + ")");
+
+                    if (code == 401 || code == 403) {
+                        throw new RuntimeException(buildFriendlyGeminiError(code, bodyStr));
+                    }
+                    String suggested = extractSuggestedModel(bodyStr);
+                    if (suggested != null) {
+                        if (suggested.contains("image") && !imageModels.contains(suggested)) {
+                            imageModels.add(i + 1, suggested);
+                        } else if (!textModels.contains(suggested)) {
+                            textModels.add(0, suggested);
+                        }
+                    }
+                    lastError = new RuntimeException(buildFriendlyGeminiError(code, bodyStr));
+                } catch (RuntimeException e) {
+                    lastError = e;
+                }
+            }
+
+            // 2. If Step 1 already gave us a recommendation, immediately attach the parallel render and return!
+            if (fallbackRecommendation != null) {
+                String renderedUrl = awaitFallbackRender(fallbackRenderFuture, request);
+                logLatency("parallel-render+rec", startNs);
+                return AIRoomResponse.builder()
+                        .generatedImageUrl(renderedUrl)
+                        .recommendation(fallbackRecommendation)
+                        .style(request.getStyle())
+                        .build();
+            }
+
+            // 3. Otherwise get text recommendation from the fastest available Gemini Flash model (in parallel with the render)
+            for (int i = 0; i < textModels.size(); i++) {
+                String textModel = textModels.get(i);
+                if (!attempted.add("txt:" + textModel)) continue;
+                try {
+                    AIRoomResponse textRes = callGeminiModel(textModel, contents, false, request.getStyle());
+                    cachedWorkingTextModel = textModel;
+                    if (textRes.getGeneratedImageUrl() == null || textRes.getGeneratedImageUrl().isBlank()) {
+                        textRes.setGeneratedImageUrl(awaitFallbackRender(fallbackRenderFuture, request));
+                    }
+                    logLatency("text:" + textModel, startNs);
+                    return textRes;
+                } catch (org.springframework.web.client.HttpClientErrorException e) {
+                    int code = e.getStatusCode().value();
+                    String bodyStr = e.getResponseBodyAsString();
+                    System.err.println("Gemini text model '" + textModel + "' failed (HTTP " + code + ")");
+                    if (code == 401 || code == 403) {
+                        throw new RuntimeException(buildFriendlyGeminiError(code, bodyStr));
+                    }
+                    String suggested = extractSuggestedModel(bodyStr);
+                    if (suggested != null && !textModels.contains(suggested)) {
+                        textModels.add(i + 1, suggested);
+                    } else if (i == textModels.size() - 1) {
+                        // Last resort: auto-discover live models once per hour
+                        for (String live : discoverAvailableModelsCached()) {
+                            if (!textModels.contains(live)) textModels.add(live);
+                        }
+                    }
+                    lastError = new RuntimeException(buildFriendlyGeminiError(code, bodyStr));
+                } catch (RuntimeException e) {
+                    lastError = e;
+                }
+            }
+
+            if (lastError != null) {
+                throw lastError;
+            }
+            throw new RuntimeException("Could not reach the AI service. Please check your connection and try again.");
+        } finally {
+            fallbackRenderFuture.cancel(true);
         }
-        if (lastError != null) {
-            throw lastError;
+    }
+
+    private void logLatency(String path, long startNs) {
+        long elapsedMs = (System.nanoTime() - startNs) / 1_000_000L;
+        System.out.println("⚡ AI Room Arranger completed via [" + path + "] in " + elapsedMs + " ms");
+    }
+
+    /**
+     * Downscales large source room photos to max 768px JPEG before sending to Gemini,
+     * cutting payload size from 3-6 MB down to ~65 KB and saving 3-6 seconds of upload/token latency.
+     */
+    private byte[] downscaleImageForFastUpload(byte[] rawBytes) {
+        if (rawBytes == null || rawBytes.length <= 120_000) return rawBytes;
+        try {
+            BufferedImage src = ImageIO.read(new ByteArrayInputStream(rawBytes));
+            if (src == null) return rawBytes;
+            int maxDim = 768;
+            int w = src.getWidth();
+            int h = src.getHeight();
+            if (w <= maxDim && h <= maxDim) return rawBytes;
+
+            double scale = (w > h) ? ((double) maxDim / w) : ((double) maxDim / h);
+            int targetW = Math.max(1, (int) Math.round(w * scale));
+            int targetH = Math.max(1, (int) Math.round(h * scale));
+
+            BufferedImage resized = new BufferedImage(targetW, targetH, BufferedImage.TYPE_INT_RGB);
+            Graphics2D g2d = resized.createGraphics();
+            g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            g2d.drawImage(src, 0, 0, targetW, targetH, Color.WHITE, null);
+            g2d.dispose();
+
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            ImageIO.write(resized, "jpg", out);
+            return out.toByteArray();
+        } catch (Exception e) {
+            return rawBytes;
         }
-        throw new RuntimeException("Could not reach the AI service. Please check your connection and try again.");
+    }
+
+    private String awaitFallbackRender(Future<String> renderFuture, AIRoomRequest request) {
+        try {
+            String storedPath = renderFuture.get(4500, TimeUnit.MILLISECONDS);
+            if (storedPath != null && !storedPath.isBlank()) {
+                return storedPath;
+            }
+        } catch (Exception ignored) {
+            // If downloading onto the server takes >4.5s, return the direct fast turbo URL immediately
+            // so the client receives the response right away and streams the image in KamelImage!
+        }
+        return buildDirectTurboRenderUrl(request);
     }
 
     /**
@@ -204,68 +289,39 @@ public class AIService {
         return path;
     }
 
-    private String callImagenPredict(String imagenModel, String prompt) {
-        try {
-            String url = "https://generativelanguage.googleapis.com/v1beta/models/"
-                    + imagenModel + ":predict?key=" + apiKey.trim();
-            Map<String, Object> body = Map.of(
-                    "instances", List.of(Map.of("prompt", prompt)),
-                    "parameters", Map.of("sampleCount", 1, "outputOptions", Map.of("mimeType", "image/jpeg"))
-            );
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            ResponseEntity<String> resp = restTemplate.postForEntity(url, new HttpEntity<>(body, headers), String.class);
-            if (resp.getStatusCode() == HttpStatus.OK && resp.getBody() != null) {
-                JsonNode preds = objectMapper.readTree(resp.getBody()).path("predictions");
-                if (preds.isArray() && preds.size() > 0) {
-                    String b64 = preds.get(0).path("bytesBase64Encoded").asText("");
-                    String mime = preds.get(0).path("mimeType").asText("image/jpeg");
-                    if (!b64.isBlank()) {
-                        return persistGeneratedImage(Base64.getDecoder().decode(b64), mime);
-                    }
-                }
-            }
-        } catch (Exception e) {
-            System.err.println("Imagen '" + imagenModel + "' not available: " + e.getMessage());
-        }
-        return null;
-    }
-
-    private String generateTextRecommendation(List<String> textModels, List<Map<String, Object>> contents, String style) {
-        for (String tm : textModels) {
-            try {
-                AIRoomResponse r = callGeminiModel(tm, contents, false, style);
-                if (r.getRecommendation() != null) return r.getRecommendation();
-            } catch (Exception ignored) {}
-        }
-        return "Arranged your room in " + style + " style with optimal natural light and walking flow.";
+    private String buildDirectTurboRenderUrl(AIRoomRequest request) {
+        String furnitureList = (request.getFurniture() != null && !request.getFurniture().isEmpty())
+                ? String.join(", ", request.getFurniture())
+                : "bed, wardrobe, study desk, curtains, warm lighting";
+        String style = (request.getStyle() != null && !request.getStyle().isBlank()) ? request.getStyle() : "Modern";
+        String extra = (request.getAdditionalInstructions() != null && !request.getAdditionalInstructions().isBlank())
+                ? ", " + request.getAdditionalInstructions().trim()
+                : "";
+        String visualPrompt = "Photorealistic interior design photograph of a " + style
+                + " residential room furnished with " + furnitureList + extra
+                + ", realistic architecture, natural window light, wide angle lens";
+        String encoded = java.net.URLEncoder.encode(visualPrompt, java.nio.charset.StandardCharsets.UTF_8)
+                .replace("+", "%20");
+        int seed = Math.abs(Objects.hash(style, furnitureList, extra)) % 99999;
+        return "https://image.pollinations.ai/prompt/" + encoded
+                + "?width=768&height=512&nologo=true&model=turbo&seed=" + seed;
     }
 
     /**
-     * Generates a photorealistic furnished room visualization via Pollinations Flux and stores it
-     * in MediaStorageService (/uploads/ai/...) whenever the user's Gemini key only permits text output.
+     * Generates a photorealistic furnished room visualization via Pollinations Turbo in the background
+     * while Gemini is running, and stores it in MediaStorageService (/uploads/ai/...).
      */
     private String fetchVisualFallbackImage(AIRoomRequest request) {
+        String genUrl = buildDirectTurboRenderUrl(request);
         try {
-            String furnitureList = (request.getFurniture() != null && !request.getFurniture().isEmpty())
-                    ? String.join(", ", request.getFurniture())
-                    : "bed, wardrobe, study desk, curtains, warm lighting";
-            String style = (request.getStyle() != null && !request.getStyle().isBlank()) ? request.getStyle() : "Modern";
-            String visualPrompt = "Photorealistic interior design photograph of a " + style
-                    + " residential room furnished with " + furnitureList
-                    + ", realistic architecture, natural window light, wide angle lens, 4k interior photography";
-            String encoded = java.net.URLEncoder.encode(visualPrompt, java.nio.charset.StandardCharsets.UTF_8);
-            int seed = Math.abs(Objects.hash(style, furnitureList, request.getAdditionalInstructions())) % 99999;
-            String genUrl = "https://image.pollinations.ai/prompt/" + encoded
-                    + "?width=1024&height=768&nologo=true&seed=" + seed;
-            ResponseEntity<byte[]> imgResp = restTemplate.getForEntity(genUrl, byte[].class);
+            ResponseEntity<byte[]> imgResp = quickRenderRestTemplate.getForEntity(genUrl, byte[].class);
             if (imgResp.getStatusCode() == HttpStatus.OK && imgResp.getBody() != null && imgResp.getBody().length > 1024) {
                 return persistGeneratedImage(imgResp.getBody(), "image/jpeg");
             }
         } catch (Exception e) {
-            System.err.println("Visual fallback render note: " + e.getMessage());
+            System.err.println("Visual fallback render note (returning direct turbo stream URL): " + e.getMessage());
         }
-        return null;
+        return genUrl;
     }
 
     private String stripModelsPrefix(String name) {
@@ -276,7 +332,7 @@ public class AIService {
 
     /**
      * Parses a model recommendation from Google's deprecation error message, e.g.
-     * "Please update your code to use models/gemini-3.0-flash for the latest features".
+     * "Please update your code to use models/gemini-3.8-flash for the latest features".
      */
     private String extractSuggestedModel(String errorBody) {
         if (errorBody == null) return null;
@@ -300,13 +356,17 @@ public class AIService {
     }
 
     /**
-     * Queries Google's /v1beta/models endpoint to discover which Gemini models are currently enabled for this API key.
+     * Queries Google's /v1beta/models endpoint at most once per hour (only when fallback discovery is needed).
      */
-    private List<String> discoverAvailableModels() {
+    private List<String> discoverAvailableModelsCached() {
+        long now = System.currentTimeMillis();
+        if (cachedDiscoveredModels != null && (now - discoveredModelsTimestamp) < 3_600_000L) {
+            return cachedDiscoveredModels;
+        }
         List<String> discovered = new ArrayList<>();
         try {
             String listUrl = "https://generativelanguage.googleapis.com/v1beta/models?key=" + apiKey.trim();
-            ResponseEntity<String> resp = restTemplate.getForEntity(listUrl, String.class);
+            ResponseEntity<String> resp = geminiRestTemplate.getForEntity(listUrl, String.class);
             if (resp.getStatusCode() == HttpStatus.OK && resp.getBody() != null) {
                 JsonNode modelsNode = objectMapper.readTree(resp.getBody()).path("models");
                 for (JsonNode m : modelsNode) {
@@ -324,6 +384,8 @@ public class AIService {
                     }
                 }
             }
+            cachedDiscoveredModels = discovered;
+            discoveredModelsTimestamp = now;
         } catch (Exception e) {
             System.err.println("Note: Could not list Gemini models dynamically: " + e.getMessage());
         }
@@ -340,6 +402,8 @@ public class AIService {
         body.put("contents", contents);
         if (requestImageModality) {
             body.put("generationConfig", Map.of("responseModalities", List.of("TEXT", "IMAGE")));
+        } else {
+            body.put("generationConfig", Map.of("maxOutputTokens", 450, "temperature", 0.6));
         }
 
         HttpHeaders headers = new HttpHeaders();
@@ -349,7 +413,7 @@ public class AIService {
                 + targetModel + ":generateContent?key=" + apiKey.trim();
 
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
-        ResponseEntity<String> responseEntity = restTemplate.postForEntity(url, entity, String.class);
+        ResponseEntity<String> responseEntity = geminiRestTemplate.postForEntity(url, entity, String.class);
 
         if (responseEntity.getStatusCode() != HttpStatus.OK) {
             throw new RuntimeException("Gemini API call failed: " + responseEntity.getStatusCode());
@@ -408,35 +472,19 @@ public class AIService {
 
     private String constructPrompt(AIRoomRequest request) {
         StringBuilder sb = new StringBuilder();
-        sb.append("You are an interior-space visualization assistant for RoomifyTZ.\n\n");
-        sb.append("Use the uploaded room photograph as the primary source image.\n\n");
-        sb.append("Preserve the existing room architecture, walls, floor, ceiling, doors, windows, permanent fixtures, room proportions and camera perspective.\n");
-        sb.append("Do not redesign or reconstruct the room.\n\n");
-        sb.append("Add the requested furniture realistically inside the existing room.\n\n");
-        
-        sb.append("Furniture requested:\n");
-        for (String item : request.getFurniture()) {
-            sb.append("- ").append(item).append("\n");
-        }
-        sb.append("\n");
-
+        sb.append("You are an interior-space visualization assistant for RoomifyTZ.\n");
+        sb.append("Use the uploaded room photograph as the primary source image. Preserve existing walls, floor, windows, doors, and camera perspective.\n\n");
+        sb.append("Furniture requested: ").append(String.join(", ", request.getFurniture())).append("\n");
         sb.append("Preferred style: ").append(request.getStyle()).append("\n");
-        
+
         if (request.getRoomWidth() != null && request.getRoomLength() != null) {
             sb.append("Room dimensions: ").append(request.getRoomWidth()).append("m x ").append(request.getRoomLength()).append("m\n");
         }
-        
         if (request.getAdditionalInstructions() != null && !request.getAdditionalInstructions().isEmpty()) {
             sb.append("Additional instructions: ").append(request.getAdditionalInstructions()).append("\n");
         }
-        
-        sb.append("\nArrange furniture according to realistic interior-design principles. ");
-        sb.append("Maintain realistic furniture scale relative to the room. ");
-        sb.append("Keep doors and windows accessible. Maintain a practical walking path. ");
-        sb.append("Do not place furniture through walls. Do not change the room's structural elements. ");
-        sb.append("Do not invent additional rooms. Do not significantly alter the original architecture. ");
-        sb.append("Generate a photorealistic visualization showing how this exact room could look after furnishing.");
-        
+
+        sb.append("\nProvide a concise, well-structured 4-point interior layout plan (using numbered bullet points) and generate a photorealistic visualization showing how this room looks after furnishing.");
         return sb.toString();
     }
 
@@ -452,7 +500,6 @@ public class AIService {
             if (parts.isMissingNode()) return null;
 
             for (JsonNode part : parts) {
-                // 1. Inline base64 data (the REST API answers in camelCase; accept snake_case too)
                 JsonNode inline = part.has("inlineData") ? part.path("inlineData")
                         : (part.has("inline_data") ? part.path("inline_data") : null);
                 if (inline != null) {
@@ -468,7 +515,6 @@ public class AIService {
                     }
                 }
 
-                // 2. Check for URI (some models return a hosted URL)
                 JsonNode fileData = part.has("fileData") ? part.path("fileData")
                         : (part.has("file_data") ? part.path("file_data") : null);
                 if (fileData != null) {
@@ -476,7 +522,6 @@ public class AIService {
                             : fileData.path("file_uri").asText();
                 }
 
-                // 3. Fallback: Search for anything that looks like a data URI in text
                 if (part.has("text")) {
                     String text = part.get("text").asText();
                     if (text.contains("data:image/")) {

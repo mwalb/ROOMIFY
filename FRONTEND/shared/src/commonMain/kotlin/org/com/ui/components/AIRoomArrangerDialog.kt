@@ -659,11 +659,11 @@ private fun parseBoldInline(text: String) = buildAnnotatedString {
 
 private fun buildClientFallbackRenderUrl(style: String, furniture: List<String>): String {
     val items = if (furniture.isNotEmpty()) furniture.joinToString(", ") else "double bed, wardrobe, sofa, curtains"
-    val cleanPrompt = "Photorealistic interior design photograph of a $style bedroom furnished with $items, warm lighting, 4k"
+    val cleanPrompt = "Photorealistic interior design photograph of a $style bedroom furnished with $items, warm lighting, wide angle lens"
         .replace(" ", "%20")
         .replace(",", "%2C")
     val seed = kotlin.math.abs((style + items).hashCode()) % 99999
-    return "https://image.pollinations.ai/prompt/$cleanPrompt?width=1024&height=768&nologo=true&seed=$seed"
+    return "https://image.pollinations.ai/prompt/$cleanPrompt?width=768&height=512&nologo=true&model=turbo&seed=$seed"
 }
 
 @OptIn(ExperimentalLayoutApi::class)

@@ -97,8 +97,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/users/profile/**").authenticated()
                         .requestMatchers("/api/users/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
 
-                        // Analytics and System Audit require Admin or Super Admin
-                        .requestMatchers("/api/analytics/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        // Analytics available to authenticated Owners, Dalalis, Furniture Sellers, and Admins
+                        .requestMatchers(HttpMethod.GET, "/api/analytics/**").permitAll()
+                        .requestMatchers("/api/analytics/**").hasAnyRole("OWNER", "DALALI", "FURNITURE_SELLER", "ADMIN", "SUPER_ADMIN")
                         .requestMatchers("/api/system/audit/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
 
                         // Admin management
