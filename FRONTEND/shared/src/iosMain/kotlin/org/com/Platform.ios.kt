@@ -15,3 +15,6 @@ actual fun currentTimeMillis(): Long = (NSDate().timeIntervalSince1970() * 1000)
 actual fun getPlatformBaseUrl(): String = "http://localhost:8080"
 
 actual fun openVideoPlayerModal(videoUrl: String): Boolean = false
+
+actual fun syncWebMapLayer(isMapRoute: Boolean) {}
+

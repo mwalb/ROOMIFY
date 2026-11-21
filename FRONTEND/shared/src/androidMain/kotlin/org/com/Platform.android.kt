@@ -13,3 +13,6 @@ actual fun currentTimeMillis(): Long = System.currentTimeMillis()
 actual fun getPlatformBaseUrl(): String = "http://10.0.2.2:8080"
 
 actual fun openVideoPlayerModal(videoUrl: String): Boolean = false
+
+actual fun syncWebMapLayer(isMapRoute: Boolean) {}
+

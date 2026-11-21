@@ -11,3 +11,6 @@ expect fun currentTimeMillis(): Long
 expect fun getPlatformBaseUrl(): String
 
 expect fun openVideoPlayerModal(videoUrl: String): Boolean
+
+expect fun syncWebMapLayer(isMapRoute: Boolean)
+

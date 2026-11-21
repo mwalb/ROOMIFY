@@ -19,3 +19,6 @@ actual fun currentTimeMillis(): Long = Date.now().toLong()
 actual fun getPlatformBaseUrl(): String = "http://localhost:8080"
 
 actual fun openVideoPlayerModal(videoUrl: String): Boolean = false
+
+actual fun syncWebMapLayer(isMapRoute: Boolean) {}
+

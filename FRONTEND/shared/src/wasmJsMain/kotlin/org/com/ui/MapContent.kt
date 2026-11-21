@@ -757,13 +757,10 @@ actual fun MapContent(
 
                 println("Roomify: View Details -> room ${room.id}")
 
-                // Trigger navigation first to ensure instant transition
+                // Trigger navigation; App-level route sync manages map layer visibility
                 onViewProperty(
                     room
                 )
-
-                // Then hide the persistent DOM map
-                hideMapLayer()
             }
 
         document.addEventListener(

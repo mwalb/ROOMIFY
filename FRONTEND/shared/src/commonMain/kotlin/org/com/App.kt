@@ -629,6 +629,35 @@ fun App() {
                 tonalElevation = 0.dp
             ) {
                 val activeRoute = if (authState is AuthState.Loading) "loading" else currentRoute
+
+                val isWebMapActive = when {
+                    activeRoute == "loading" -> false
+                    activeRoute == "details" -> false
+                    activeRoute == "furniture_choice" || activeRoute == "furniture_dashboard" ||
+                        activeRoute == "shop_detail" || activeRoute == "furniture_detail" ||
+                        activeRoute == "post_furniture" || activeRoute == "post_shop" -> false
+                    activeRoute == "booking" && pendingRoom != null && authState is AuthState.Authenticated -> false
+                    activeRoute == "chat" && (pendingRoom != null || activeConversation != null) && authState is AuthState.Authenticated -> false
+                    authState is AuthState.Authenticated -> activeRoute !in setOf(
+                        "ownerdashboard", "dalalidashboard", "analytics", "finances",
+                        "postroom", "profile", "tenant", "messages", "bookings",
+                        "saved", "admindashboard"
+                    )
+                    authState is AuthState.Error -> false
+                    else -> activeRoute !in setOf("register", "login")
+                }
+
+                SideEffect {
+                    syncWebMapLayer(isWebMapActive)
+                }
+
+                LaunchedEffect(activeRoute, isWebMapActive) {
+                    println("App: 🧭 activeRoute=$activeRoute (previousRoute=$previousRoute, isWebMapActive=$isWebMapActive)")
+                    syncWebMapLayer(isWebMapActive)
+                    delay(120)
+                    syncWebMapLayer(isWebMapActive)
+                }
+
                 Box(modifier = Modifier.fillMaxSize()) {
                 when {
                     activeRoute == "loading" -> {
@@ -713,6 +742,9 @@ fun App() {
                                 }
                             )
                         } else {
+                            LaunchedEffect(Unit) {
+                                navigateBack("map")
+                            }
                             Box(Modifier.fillMaxSize())
                         }
                     }

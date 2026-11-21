@@ -266,7 +266,7 @@
 
                     if (
                         map &&
-                        map.style.zIndex === "1"
+                        (map.style.zIndex === "1" || map.style.zIndex === "9999" || window.roomifyIsMapPage)
                     ) {
 
                         composeTarget.style.background =

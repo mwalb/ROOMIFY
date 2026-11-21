@@ -82,3 +82,23 @@ actual fun getPlatformBaseUrl(): String {
 private external fun jsOpenVideoModal(url: String): Boolean
 
 actual fun openVideoPlayerModal(videoUrl: String): Boolean = jsOpenVideoModal(videoUrl)
+
+@OptIn(ExperimentalWasmJsInterop::class)
+@JsFun("""
+(isMapRoute) => {
+    console.log('[ROOMIFY ROUTE SYNC] isMapRoute=' + isMapRoute);
+    if (isMapRoute) {
+        if (typeof window.roomifyShowMap === 'function') {
+            window.roomifyShowMap();
+        }
+    } else {
+        if (typeof window.roomifyHideMap === 'function') {
+            window.roomifyHideMap();
+        }
+    }
+}
+""")
+private external fun jsSyncWebMapLayer(isMapRoute: Boolean)
+
+actual fun syncWebMapLayer(isMapRoute: Boolean) = jsSyncWebMapLayer(isMapRoute)
+

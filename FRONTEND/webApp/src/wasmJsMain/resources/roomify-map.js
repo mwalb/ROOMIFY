@@ -193,9 +193,38 @@
         if (topRightControls) topRightControls.style.display = "flex";
     }
 
+    function registerMapResizeListenerOnce() {
+        if (window.roomifyMapResizeListenerBound) return;
+        window.roomifyMapResizeListenerBound = true;
+        window.addEventListener('resize', function() {
+            var isSmall = window.innerWidth < 900;
+            var compose = document.getElementById("ComposeTarget");
+            var map = document.getElementById("google-map-container");
+
+            if (window.roomifyIsMapPage) {
+                if (compose) {
+                    compose.style.left = isSmall ? "0px" : "400px";
+                    compose.style.width = isSmall ? "100vw" : "calc(100vw - 400px)";
+                }
+                if (map && map.classList.contains("map-mode")) {
+                    map.style.left = isSmall ? "0px" : "400px";
+                    map.style.width = isSmall ? "100vw" : "calc(100vw - 400px)";
+                }
+            } else {
+                if (compose) {
+                    compose.style.left = "0px";
+                    compose.style.width = "100vw";
+                }
+            }
+            updateSidebarVisibility();
+            window.roomifyResizeMap();
+        });
+    }
+
     window.roomifyShowMap = function () {
         console.log("[ROOMIFY MAP] SHOW MAP START");
         window.roomifyIsMapPage = true;
+        registerMapResizeListenerOnce();
 
         var map = document.getElementById("google-map-container");
         var compose = document.getElementById("ComposeTarget");
@@ -222,65 +251,28 @@
             compose.classList.add("map-mode");
             compose.style.left = isSmallScreen ? "0px" : "400px";
             compose.style.width = isSmallScreen ? "100vw" : "calc(100vw - 400px)";
+            compose.style.background = "transparent";
+            compose.style.backgroundColor = "transparent";
+            var canvases = compose.querySelectorAll("canvas");
+            canvases.forEach(function(c) {
+                c.style.background = "transparent";
+                c.style.backgroundColor = "transparent";
+            });
         }
 
         updateSidebarVisibility();
 
-        window.addEventListener('resize', function() {
-            var isSmall = window.innerWidth < 900;
-            var compose = document.getElementById("ComposeTarget");
-            var map = document.getElementById("google-map-container");
-
-            if (window.roomifyIsMapPage) {
-                if (compose) {
-                    compose.style.left = isSmall ? "0px" : "400px";
-                    compose.style.width = isSmall ? "100vw" : "calc(100vw - 400px)";
-                }
-                if (map && map.classList.contains("map-mode")) {
-                    map.style.left = isSmall ? "0px" : "400px";
-                    map.style.width = isSmall ? "100vw" : "calc(100vw - 400px)";
-                }
-            } else {
-                if (compose) {
-                    compose.style.left = "0px";
-                    compose.style.width = "100vw";
-                }
+        setTimeout(function () {
+            if (window.roomifyMap && window.google && window.google.maps) {
+                google.maps.event.trigger(window.roomifyMap, "resize");
             }
-            updateSidebarVisibility();
-            window.roomifyResizeMap();
-        });
+        }, 50);
 
         setTimeout(function () {
-
-            if (
-                window.roomifyMap &&
-                window.google &&
-                window.google.maps
-            ) {
-
-                google.maps.event.trigger(
-                    window.roomifyMap,
-                    "resize"
-                );
+            if (window.roomifyMap && window.google && window.google.maps) {
+                google.maps.event.trigger(window.roomifyMap, "resize");
             }
-
-        }, 100);
-
-        setTimeout(function () {
-
-            if (
-                window.roomifyMap &&
-                window.google &&
-                window.google.maps
-            ) {
-
-                google.maps.event.trigger(
-                    window.roomifyMap,
-                    "resize"
-                );
-            }
-
-        }, 500);
+        }, 300);
     };
 
     window.roomifyResizeMap = function () {
@@ -320,6 +312,8 @@
             compose.classList.remove("map-mode");
             compose.style.left = "0";
             compose.style.width = "100vw";
+            compose.style.background = "#F5F7FB";
+            compose.style.backgroundColor = "#F5F7FB";
             console.log("[ROOMIFY MAP] ComposeTarget restored to full width");
         }
 
