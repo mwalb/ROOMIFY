@@ -43,13 +43,14 @@ import org.com.model.TopRoomAnalytics
 private val PrimaryColor = Color(0xFF142170)
 private val PrimaryLight = Color(0xFF2B3A9E)
 private val SuccessColor = Color(0xFF2E7D32)
-private val CardBorderColor = Color(0xFFE2E8F0)
+private val CardBorderColor = Color(0xFFD5E0F0)
 private val SubtitleColor = Color(0xFF64748B)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnalyticsScreen(onBack: () -> Unit) {
     Scaffold(
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
                 title = {

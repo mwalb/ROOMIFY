@@ -21,20 +21,21 @@ object RoomifyColors {
     val Success = Color(0xFF2E7D32)
     
     val Surface = Color.White
-    val Background = Color(0xFFF3F6FE)
-    val BackgroundMiddle = Color(0xFFF7F8FC)
-    val BackgroundBottom = Color(0xFFFAF5FF)
-    val SurfaceTint = Color(0xFFEEF2FF)
-    val AmbientGlowIndigo = Color(0xFF3949AB).copy(alpha = 0.08f)
-    val AmbientGlowAmber = Color(0xFFFFB300).copy(alpha = 0.07f)
+    val Background = Color(0xFFE8EEF7)       // Cool Indigo-Slate Mist (Primary Canvas)
+    val BackgroundMiddle = Color(0xFFEDF2FA) // Cool Mist Midpoint
+    val BackgroundBottom = Color(0xFFE4EBF5) // Deeper Periwinkle Slate
+    val SurfaceTint = Color(0xFFF1F5FB)      // Tinted Ghost Indigo for Secondary Sections
+    val CardBorder = Color(0xFFD5E0F0)       // Subtle Indigo-Grey hairline defining card edges
+    val AmbientGlowIndigo = Color(0xFF1A237E).copy(alpha = 0.14f)
+    val AmbientGlowAmber = Color(0xFFF59E0B).copy(alpha = 0.10f)
 
-    val TextPrimary = Color(0xFF212121)
-    val TextSecondary = Color(0xFF757575)
+    val TextPrimary = Color(0xFF0F172A)
+    val TextSecondary = Color(0xFF475569)
 
     // Shared extended palette (use these instead of per-screen raw colours)
     val TextStrong = Color(0xFF0F172A)
     val TextMuted = Color(0xFF64748B)
-    val Divider = Color(0xFFE2E8F0)
+    val Divider = Color(0xFFD5E0F0)
     val Warning = Color(0xFFF59E0B)
     val Accent = Color(0xFF03DAC5)
     val Skeleton = Color(0xFFE5E7EB)

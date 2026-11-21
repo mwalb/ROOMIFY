@@ -34,6 +34,7 @@ fun MessagesScreen(
     onConversationClick: (Conversation) -> Unit
 ) {
     Scaffold(
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
                 title = { Text("My Messages", fontWeight = FontWeight.Bold) },

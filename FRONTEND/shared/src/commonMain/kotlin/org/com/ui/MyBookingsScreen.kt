@@ -46,6 +46,7 @@ fun MyBookingsScreen(
     onViewProperty: (Room) -> Unit
 ) {
     Scaffold(
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
                 title = { Text("My Bookings", fontWeight = FontWeight.Bold) },

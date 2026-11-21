@@ -162,7 +162,7 @@ fun PropertyDetailsScreen(
                     .fillMaxWidth()
                     .padding(24.dp),
                 shape = RoundedCornerShape(24.dp),
-                color = Color(0xFFF8FAFC),
+                color = org.com.ui.theme.RoomifyColors.Background,
                 shadowElevation = 12.dp
             ) {
                 Column(

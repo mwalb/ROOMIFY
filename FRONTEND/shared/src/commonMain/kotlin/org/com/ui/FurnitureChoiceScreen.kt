@@ -67,12 +67,13 @@ fun FurnitureChoiceScreen(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
             )
         },
-        containerColor = Color(0xFFF8FAFC)
+        containerColor = org.com.ui.theme.RoomifyColors.Background
     ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .background(org.com.ui.theme.RoomifyColors.PageBackgroundBrush)
                 .verticalScroll(rememberScrollState()),
             contentAlignment = Alignment.Center
         ) {
@@ -84,7 +85,7 @@ fun FurnitureChoiceScreen(
                 shape = RoundedCornerShape(24.dp),
                 color = Color.White,
                 shadowElevation = 6.dp,
-                border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                border = BorderStroke(1.dp, Color(0xFFD5E0F0))
             ) {
                 Column(
                     modifier = Modifier.padding(28.dp),

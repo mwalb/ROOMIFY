@@ -387,7 +387,7 @@ fun AdminMainShell(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(ContentBgGray)
+            .background(RoomifyColors.PageBackgroundBrush)
     ) {
         // Clean Top Header (Height = 68.dp, #FFFFFF, 1.dp bottom border #E2E8F0)
         Surface(

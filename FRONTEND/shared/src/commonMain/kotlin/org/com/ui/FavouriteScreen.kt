@@ -37,6 +37,7 @@ fun FavouriteScreen(
     onViewProperty: (Room) -> Unit
 ) {
     Scaffold(
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
                 title = { Text("My Favourites", fontWeight = FontWeight.Bold) },

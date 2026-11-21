@@ -199,7 +199,7 @@ fun DalaliDashboardScreen(
                 .align(Alignment.Center)
                 .padding(vertical = 8.dp),
             shape = if (isMobile) RoundedCornerShape(0.dp) else RoundedCornerShape(28.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FA)),
+            colors = CardDefaults.cardColors(containerColor = org.com.ui.theme.RoomifyColors.Background),
             elevation = CardDefaults.cardElevation(defaultElevation = if (isMobile) 0.dp else 16.dp)
         ) {
             Row(modifier = Modifier.fillMaxSize()) {
@@ -219,7 +219,7 @@ fun DalaliDashboardScreen(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .background(Color(0xFFF8F9FA))
+                        .background(org.com.ui.theme.RoomifyColors.PageBackgroundBrush)
                 ) {
                     // Top Bar with Menu Toggle, Back, Welcome & Commission Summary
                     Surface(

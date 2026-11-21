@@ -312,8 +312,8 @@
             compose.classList.remove("map-mode");
             compose.style.left = "0";
             compose.style.width = "100vw";
-            compose.style.background = "#F5F7FB";
-            compose.style.backgroundColor = "#F5F7FB";
+            compose.style.background = "#E8EEF7";
+            compose.style.backgroundColor = "#E8EEF7";
             console.log("[ROOMIFY MAP] ComposeTarget restored to full width");
         }
 
@@ -554,13 +554,14 @@
                 left: 0 !important;
                 width: 400px !important;
                 height: 100vh !important;
-                background: white !important;
+                background: linear-gradient(180deg, #F0F4FC 0%, #E8EEF7 100%) !important;
+                border-right: 1px solid #D5E0F0 !important;
                 z-index: 10000 !important;
-                box-shadow: 10px 0 30px rgba(0,0,0,0.05);
+                box-shadow: 10px 0 30px rgba(20,33,112,0.08);
                 display: none;
                 flex-direction: column;
                 font-family: 'Inter', Arial, sans-serif;
-                color: #1A1A1A;
+                color: #0F172A;
                 transform: none !important;
                 transition: none !important;
                 pointer-events: none;
