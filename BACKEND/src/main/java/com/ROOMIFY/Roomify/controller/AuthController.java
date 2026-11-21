@@ -230,11 +230,23 @@ public class AuthController {
     }
 
     private ResponseEntity<?> processGoogleUser(String email, String name) {
-        User user = userRepository.findByEmail(email).orElse(null);
+        User user = findUserByEmail(email).orElse(null);
         if (user == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                    Map.of("success", false, "message", "No Roomify account is registered for this Google email")
-            );
+            // Auto-provision a tenant account on first Google sign-in so users don't hit "Authentication failed".
+            user = new User();
+            user.setEmail(email.trim());
+            user.setName((name != null && !name.isBlank()) ? name.trim() : email.substring(0, email.indexOf('@')));
+            user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
+            user.setRole(UserRole.TENANT);
+            user.setStatus("ACTIVE");
+            user.setEmailVerified(true);
+            user.setCreatedAt(LocalDateTime.now());
+            user = userRepository.save(user);
+            try {
+                notificationService.notifyUserRegistered(user);
+            } catch (Exception notifEx) {
+                System.err.println("Warning: Failed to send welcome notification: " + notifEx.getMessage());
+            }
         }
         if ("SUSPENDED".equalsIgnoreCase(user.getStatus())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(

@@ -154,11 +154,48 @@ fun AIRoomArrangerDialog(
                         }
                         
                         if (errorMessage != null) {
-                            Surface(color = Color(0xFFFFEBEE), shape = RoundedCornerShape(12.dp)) {
-                                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.Error, null, tint = Color.Red)
+                            Surface(
+                                color = Color(0xFFFEF2F2),
+                                shape = RoundedCornerShape(14.dp),
+                                border = BorderStroke(1.dp, Color(0xFFFECACA))
+                            ) {
+                                Row(
+                                    Modifier.fillMaxWidth().padding(14.dp),
+                                    verticalAlignment = Alignment.Top
+                                ) {
+                                    Icon(
+                                        Icons.Default.ErrorOutline,
+                                        contentDescription = "Error",
+                                        tint = Color(0xFFDC2626),
+                                        modifier = Modifier.size(20.dp)
+                                    )
                                     Spacer(Modifier.width(12.dp))
-                                    Text(errorMessage!!, color = Color.Red, fontSize = 13.sp)
+                                    Column(Modifier.weight(1f)) {
+                                        Text(
+                                            "Couldn't generate room preview",
+                                            color = Color(0xFF991B1B),
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 13.sp
+                                        )
+                                        Spacer(Modifier.height(2.dp))
+                                        Text(
+                                            cleanAiError(errorMessage!!),
+                                            color = Color(0xFFB91C1C),
+                                            fontSize = 12.sp,
+                                            lineHeight = 17.sp
+                                        )
+                                    }
+                                    IconButton(
+                                        onClick = { errorMessage = null },
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Close,
+                                            contentDescription = "Dismiss",
+                                            tint = Color(0xFF991B1B),
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -187,22 +224,27 @@ fun AIRoomArrangerDialog(
                                     isGenerating = true
                                     errorMessage = null
                                     scope.launch {
-                                        val request = AIRoomRequest(
-                                            sourceImageUrl = selectedImageUrl,
-                                            furniture = selectedFurniture.toList(),
-                                            style = selectedStyle,
-                                            roomWidth = roomWidth.toDoubleOrNull(),
-                                            roomLength = roomLength.toDoubleOrNull(),
-                                            ceilingHeight = ceilingHeight.toDoubleOrNull(),
-                                            additionalInstructions = instructions
-                                        )
-                                        val response = RoomifyApi.visualizeRoom(request)
-                                        if (response.success) {
-                                            generationResult = response.data
-                                        } else {
-                                            errorMessage = response.message
+                                        try {
+                                            val request = AIRoomRequest(
+                                                sourceImageUrl = selectedImageUrl,
+                                                furniture = selectedFurniture.toList(),
+                                                style = selectedStyle,
+                                                roomWidth = roomWidth.toDoubleOrNull(),
+                                                roomLength = roomLength.toDoubleOrNull(),
+                                                ceilingHeight = ceilingHeight.toDoubleOrNull(),
+                                                additionalInstructions = instructions
+                                            )
+                                            val response = RoomifyApi.visualizeRoom(request)
+                                            if (response.success && response.data != null) {
+                                                generationResult = response.data
+                                            } else {
+                                                errorMessage = response.message.ifBlank { "AI generation failed. Please try again." }
+                                            }
+                                        } catch (e: Exception) {
+                                            errorMessage = e.message ?: "Connection error while contacting AI service."
+                                        } finally {
+                                            isGenerating = false
                                         }
-                                        isGenerating = false
                                     }
                                 }
                             },
@@ -529,3 +571,17 @@ private fun FlowRow(
         content()
     }
 }
+
+/** Strips any raw JSON dump if an older backend returns one, keeping a readable one-liner. */
+private fun cleanAiError(raw: String): String {
+    val trimmed = raw.trim()
+    if (trimmed.contains("\"status\": \"PERMISSION_DENIED\"") || trimmed.contains("ACCESS_DENIED")) {
+        return "Gemini API access is denied for the server's API key (HTTP 403). Enable the Generative Language API in Google Cloud / AI Studio or replace GEMINI_API_KEY."
+    }
+    val brace = trimmed.indexOf('{')
+    val head = if (brace > 0) trimmed.substring(0, brace).trim().trimEnd(':') else trimmed
+    return head.removePrefix("AI Generation failed:").trim().ifBlank {
+        "AI service is temporarily unavailable. Please try again."
+    }
+}
+

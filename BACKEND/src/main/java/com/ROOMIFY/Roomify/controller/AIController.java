@@ -41,7 +41,10 @@ public class AIController {
             AIRoomResponse response = aiService.generateRoomArrangement(request, imageBytes);
             return ResponseEntity.ok(new ApiResponse<>(true, response, "Room visualization generated successfully"));
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(new ApiResponse<>(false, null, "AI Generation failed: " + e.getMessage()));
+            String msg = (e.getMessage() != null && !e.getMessage().isBlank())
+                    ? e.getMessage()
+                    : "AI Generation failed. Please try again.";
+            return ResponseEntity.status(500).body(new ApiResponse<>(false, null, msg));
         }
     }
 
@@ -54,7 +57,10 @@ public class AIController {
             AIRoomResponse response = aiService.generateRoomArrangement(request, imageBytes);
             return ResponseEntity.ok(new ApiResponse<>(true, response, "Custom room visualization generated successfully"));
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(new ApiResponse<>(false, null, "AI Generation failed: " + e.getMessage()));
+            String msg = (e.getMessage() != null && !e.getMessage().isBlank())
+                    ? e.getMessage()
+                    : "AI Generation failed. Please try again.";
+            return ResponseEntity.status(500).body(new ApiResponse<>(false, null, msg));
         }
     }
 }

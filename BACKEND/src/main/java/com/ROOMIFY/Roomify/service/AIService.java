@@ -97,19 +97,56 @@ public class AIService {
             }
         } catch (org.springframework.web.client.HttpClientErrorException e) {
             if (e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
-                throw new RuntimeException("AI Quota exceeded. Please wait a moment and try again.");
+                throw new RuntimeException("AI quota reached. Please wait a minute and try again.");
             }
             if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
-                throw new RuntimeException("AI model '" + model + "' was not found. Set GEMINI_MODEL to a supported image model (e.g. gemini-2.5-flash-image).");
+                throw new RuntimeException("The configured AI model (" + model + ") is unavailable. Ask the administrator to update GEMINI_MODEL.");
             }
-            if (e.getStatusCode() == HttpStatus.BAD_REQUEST || e.getStatusCode() == HttpStatus.FORBIDDEN) {
-                throw new RuntimeException("Gemini rejected the request (check GEMINI_API_KEY and model access): " + e.getResponseBodyAsString());
+            if (e.getStatusCode() == HttpStatus.BAD_REQUEST || e.getStatusCode() == HttpStatus.FORBIDDEN || e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+                throw new RuntimeException(buildFriendlyGeminiError(e.getStatusCode().value(), e.getResponseBodyAsString()));
             }
-            throw new RuntimeException("AI Generation failed: " + e.getMessage());
+            throw new RuntimeException("AI service returned HTTP " + e.getStatusCode().value() + ". Please try again.");
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             System.err.println("Gemini API Error Body: " + e.getMessage());
-            throw new RuntimeException("AI Generation failed: " + e.getMessage());
+            throw new RuntimeException("Could not reach the AI service. Please check your connection and try again.");
         }
+    }
+
+    /**
+     * Logs the raw Gemini error on the server and returns a short, readable message for the UI
+     * (never dumping raw JSON to the end user).
+     */
+    private String buildFriendlyGeminiError(int status, String rawBody) {
+        System.err.println("Gemini HTTP " + status + ": " + rawBody);
+        String apiMessage = "";
+        String reason = "";
+        try {
+            JsonNode err = objectMapper.readTree(rawBody).path("error");
+            apiMessage = err.path("message").asText("");
+            for (JsonNode d : err.path("details")) {
+                if (d.has("reason")) {
+                    reason = d.path("reason").asText("");
+                    break;
+                }
+            }
+        } catch (Exception ignored) {}
+
+        if (status == 403 || "ACCESS_DENIED".equalsIgnoreCase(reason) || "SERVICE_DISABLED".equalsIgnoreCase(reason)
+                || apiMessage.toLowerCase().contains("permission denied")) {
+            return "Gemini API access is denied for the configured key (HTTP 403). Enable the Generative Language API on this key's Google Cloud project, remove any IP/referrer restrictions on the key, or create a fresh key at aistudio.google.com.";
+        }
+        if ("API_KEY_INVALID".equalsIgnoreCase(reason) || apiMessage.toLowerCase().contains("api key not valid")) {
+            return "The configured GEMINI_API_KEY is not valid. Create a new key at aistudio.google.com and set it with `fly secrets set GEMINI_API_KEY=...`.";
+        }
+        if (apiMessage.toLowerCase().contains("response modalities") || apiMessage.toLowerCase().contains("image")) {
+            return "The selected Gemini model (" + model + ") does not support image generation on this key. Try setting GEMINI_MODEL to an image-enabled model.";
+        }
+        if (!apiMessage.isBlank()) {
+            return "AI service rejected the request: " + apiMessage;
+        }
+        return "AI service rejected the request (HTTP " + status + "). Check GEMINI_API_KEY and model access.";
     }
 
     private String constructPrompt(AIRoomRequest request) {
