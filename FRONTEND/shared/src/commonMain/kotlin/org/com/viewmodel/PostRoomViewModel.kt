@@ -3,6 +3,9 @@ package org.com.viewmodel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -375,19 +378,46 @@ class PostRoomViewModel(
                     val result = RoomifyApi.createProperty(property)
                     if (result.success && result.data != null) {
                         val savedProperty = result.data!!
-                        
-                        // Upload Unit Images & Inherited Building Video
-                        savedProperty.units.forEachIndexed { index, savedUnit ->
-                            val unitImages = state.unitImages[index]
-                            if (!unitImages.isNullOrEmpty() && savedUnit.id != null) {
-                                val imageBytes = unitImages.map { it.readByteArray(context) }
-                                roomApi.uploadImages(savedUnit.id!!, imageBytes)
-                            }
-                            // Attach building walkthrough video as default for all generated rooms
-                            state.video?.let { videoFile ->
-                                if (savedUnit.id != null) {
-                                    roomApi.uploadVideo(savedUnit.id!!, videoFile.readByteArray(context))
-                                }
+                        val savedUnits = savedProperty.units
+
+                        // 1. Upload the shared building video ONCE on the first unit (instead of N times!)
+                        val firstUnitId = savedUnits.firstOrNull { it.id != null }?.id
+                        var sharedVideoUrl: String? = null
+                        if (firstUnitId != null && state.video != null) {
+                            val videoBytes = state.video.readByteArray(context)
+                            sharedVideoUrl = roomApi.uploadVideo(firstUnitId, videoBytes)
+                        }
+
+                        // 2. Upload shared building images ONCE on the first unit if provided
+                        var sharedImageUrls: List<String> = emptyList()
+                        if (firstUnitId != null && state.images.isNotEmpty() && state.unitImages.isEmpty()) {
+                            val sharedBytes = state.images.map { it.readByteArray(context) }
+                            sharedImageUrls = roomApi.uploadImages(firstUnitId, sharedBytes) ?: emptyList()
+                        }
+
+                        // 3. Upload per-unit images & link shared media in parallel batches of 4
+                        coroutineScope {
+                            savedUnits.chunked(4).forEach { batch ->
+                                batch.map { savedUnit ->
+                                    async {
+                                        val index = savedUnits.indexOf(savedUnit)
+                                        val unitId = savedUnit.id ?: return@async
+                                        val unitImages = state.unitImages[index]
+                                        if (!unitImages.isNullOrEmpty()) {
+                                            val imageBytes = unitImages.map { it.readByteArray(context) }
+                                            roomApi.uploadImages(unitId, imageBytes)
+                                        }
+                                        // Share the already-uploaded building video/images with remaining units without re-uploading megabytes
+                                        if (unitId != firstUnitId && (!sharedVideoUrl.isNullOrBlank() || sharedImageUrls.isNotEmpty())) {
+                                            val patched = savedUnit.copy(
+                                                videoUrl = sharedVideoUrl ?: savedUnit.videoUrl,
+                                                hasVideo = !sharedVideoUrl.isNullOrBlank() || savedUnit.hasVideo,
+                                                images = if (savedUnit.images.isEmpty() && sharedImageUrls.isNotEmpty()) sharedImageUrls else savedUnit.images
+                                            )
+                                            roomApi.updateRoom(unitId, patched)
+                                        }
+                                    }
+                                }.awaitAll()
                             }
                         }
 

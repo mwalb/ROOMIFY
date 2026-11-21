@@ -70,28 +70,38 @@ public class PropertyController {
     }
 
     @PostMapping
+    @Transactional
     public ResponseEntity<ApiResponse<PropertyResponseDTO>> create(@RequestBody Property property) {
+        // Synchronize owner details from User entity once (single DB lookup)
+        User owner = null;
+        if (property.getOwnerId() != null) {
+            owner = userRepository.findById(property.getOwnerId()).orElse(null);
+            if (owner != null) {
+                property.setOwnerName(owner.getName());
+                if (property.getContactPhone() == null || property.getContactPhone().isBlank()) {
+                    property.setContactPhone(owner.getPhone());
+                }
+                if (property.getContactEmail() == null || property.getContactEmail().isBlank()) {
+                    property.setContactEmail(owner.getEmail());
+                }
+            }
+        }
+
         // Obey 3NF: Link units to property if they exist in request
         if (property.getUnits() != null) {
+            java.time.LocalDateTime now = java.time.LocalDateTime.now();
             for (Room unit : property.getUnits()) {
                 unit.setProperty(property);
                 if (unit.getPostedBy() == null || unit.getPostedBy() == 0L) {
                     unit.setPostedBy(property.getOwnerId());
                 }
+                if (unit.getCreatedAt() == null) unit.setCreatedAt(now);
+                if (unit.getUpdatedAt() == null) unit.setUpdatedAt(now);
             }
         }
 
-        // Synchronize owner details from User entity
-        if (property.getOwnerId() != null) {
-            userRepository.findById(property.getOwnerId()).ifPresent(user -> {
-                property.setOwnerName(user.getName());
-                property.setContactPhone(user.getPhone());
-                property.setContactEmail(user.getEmail());
-            });
-        }
-
         Property saved = repository.save(property);
-        return ResponseEntity.ok(new ApiResponse<>(true, toDTO(saved), "Property created"));
+        return ResponseEntity.ok(new ApiResponse<>(true, PropertyResponseDTO.fromEntity(saved, owner), "Property created"));
     }
 
     @GetMapping("/owner/{ownerId}")
