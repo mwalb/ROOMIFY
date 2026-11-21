@@ -470,8 +470,37 @@ fun App() {
     // NAVIGATION FUNCTIONS
     // ============================================================
 
+    // Track the route the user came from so Back buttons return to the previous dashboard or map
+    var previousRoute by remember {
+        mutableStateOf("map")
+    }
+
+    fun getRoleHomeRoute(): String {
+        val user = (authState as? AuthState.Authenticated)?.user ?: return "map"
+        return when {
+            user.role.equals("OWNER", ignoreCase = true) -> "ownerdashboard"
+            user.role.equals("DALALI", ignoreCase = true) -> "dalalidashboard"
+            user.role.equals("TENANT", ignoreCase = true) -> "tenant"
+            user.role.equals("ADMIN", ignoreCase = true) || user.role.equals("SUPER_ADMIN", ignoreCase = true) -> "admindashboard"
+            else -> "map"
+        }
+    }
+
+    fun navigateBack(fallback: String = getRoleHomeRoute()) {
+        val target = if (previousRoute.isNotBlank() && previousRoute != currentRoute && previousRoute != "details") {
+            previousRoute
+        } else {
+            fallback
+        }
+        println("App: navigateBack from $currentRoute -> $target")
+        currentRoute = target
+    }
+
     fun navigateTo(route: String) {
-        println("App: navigateTo -> $route")
+        println("App: navigateTo -> $route (from $currentRoute)")
+        if (currentRoute != route && currentRoute != "details" && currentRoute != "login") {
+            previousRoute = currentRoute
+        }
         when (route) {
             "login" -> {
                 currentRoute = "login"
@@ -556,7 +585,10 @@ fun App() {
     }
 
     fun viewProperty(room: Room) {
-        println("App: viewProperty -> ${room.id}")
+        println("App: viewProperty -> ${room.id} (from $currentRoute)")
+        if (currentRoute != "details") {
+            previousRoute = currentRoute
+        }
         
         val roomId: Long? = room.id
         if (roomId != null) {
@@ -600,15 +632,15 @@ fun App() {
                 AnimatedContent(
                     targetState = transitionKey,
                     transitionSpec = {
-                        (fadeIn(animationSpec = tween(320)) +
-                                scaleIn(initialScale = 0.985f, animationSpec = tween(320)) +
-                                slideInVertically(animationSpec = tween(320)) { it / 28 })
-                            .togetherWith(fadeOut(animationSpec = tween(180)))
+                        (fadeIn(animationSpec = tween(260)) +
+                                scaleIn(initialScale = 0.99f, animationSpec = tween(260)) +
+                                slideInVertically(animationSpec = tween(260)) { it / 32 })
+                            .togetherWith(fadeOut(animationSpec = tween(150)))
                     },
                     label = "RoomifyRouteTransition"
-                ) { _ ->
+                ) { activeRoute ->
                 when {
-                    authState is AuthState.Loading -> {
+                    activeRoute == "loading" -> {
                         // Show loading spinner
                         Box(
                             modifier = Modifier.fillMaxSize(),
@@ -621,7 +653,7 @@ fun App() {
                         }
                     }
 
-                    currentRoute == "details" && pendingRoom != null -> {
+                    activeRoute == "details" && pendingRoom != null -> {
                         PropertyDetailsScreen(
                             room = pendingRoom!!,
                             currentUser = (authState as? AuthState.Authenticated)?.user,
@@ -629,7 +661,7 @@ fun App() {
                             onBack = {
                                 pendingRoom = null
                                 postLoginDestination = null
-                                currentRoute = "map"
+                                navigateBack("map")
                             },
                             onBookNow = { room ->
                                 withAuth("booking") {
@@ -691,7 +723,7 @@ fun App() {
                         )
                     }
 
-                    currentRoute == "furniture_choice" -> {
+                    activeRoute == "furniture_choice" -> {
                         org.com.ui.FurnitureChoiceScreen(
                             onOption1 = {
                                 currentRoute = "furniture_dashboard"
@@ -700,18 +732,18 @@ fun App() {
                                 currentRoute = "post_furniture"
                             },
                             onBack = {
-                                currentRoute = "map"
+                                navigateBack()
                             }
                         )
                     }
 
-                    currentRoute == "furniture_dashboard" -> {
+                    activeRoute == "furniture_dashboard" -> {
                         val authUser = (authState as? AuthState.Authenticated)?.user
                         org.com.ui.FurnitureDashboard(
                             furnitures = furnitureList,
                             shops = shopList,
                             currentUser = authUser,
-                            onBack = { currentRoute = "map" },
+                            onBack = { navigateBack() },
                             onViewDetail = {
                                 pendingFurniture = it
                                 currentRoute = "furniture_detail"
@@ -765,7 +797,7 @@ fun App() {
                         )
                     }
 
-                    currentRoute == "shop_detail" && pendingShop != null -> {
+                    activeRoute == "shop_detail" && pendingShop != null -> {
                         org.com.ui.ShopDetailScreen(
                             shop = pendingShop!!,
                             shopFurniture = furnitureList.filter { it.shopId == pendingShop?.id },
@@ -777,14 +809,14 @@ fun App() {
                         )
                     }
 
-                    currentRoute == "furniture_detail" && pendingFurniture != null -> {
+                    activeRoute == "furniture_detail" && pendingFurniture != null -> {
                         org.com.ui.FurnitureDetailScreen(
                             furniture = pendingFurniture!!,
                             onBack = { currentRoute = "furniture_dashboard" }
                         )
                     }
 
-                    currentRoute == "post_furniture" -> {
+                    activeRoute == "post_furniture" -> {
                         val ctx = platformContext
                         val authUser = (authState as? AuthState.Authenticated)?.user
                         org.com.ui.PostFurniture(
@@ -832,7 +864,7 @@ fun App() {
                         )
                     }
 
-                    currentRoute == "post_shop" -> {
+                    activeRoute == "post_shop" -> {
                         val ctx = platformContext
                         var isShopSubmitting by remember { mutableStateOf(false) }
                         org.com.ui.PostShop(
@@ -871,7 +903,7 @@ fun App() {
                         )
                     }
 
-                    currentRoute == "booking" && pendingRoom != null && authState is AuthState.Authenticated -> {
+                    activeRoute == "booking" && pendingRoom != null && authState is AuthState.Authenticated -> {
                         val auth = authState as AuthState.Authenticated
                         BookingScreen(
                             room = pendingRoom!!,
@@ -902,7 +934,7 @@ fun App() {
                         )
                     }
 
-                    currentRoute == "chat" && (pendingRoom != null || activeConversation != null) && authState is AuthState.Authenticated -> {
+                    activeRoute == "chat" && (pendingRoom != null || activeConversation != null) && authState is AuthState.Authenticated -> {
                         val auth = authState as AuthState.Authenticated
                         ChatScreen(
                             currentUser = auth.user,
@@ -913,7 +945,7 @@ fun App() {
                             onBack = { 
                                 if (activeConversation != null) {
                                     activeConversation = null
-                                    currentRoute = "messages"
+                                    navigateBack("messages")
                                 } else {
                                     currentRoute = "details"
                                 }
@@ -927,7 +959,7 @@ fun App() {
                         // USER IS LOGGED IN - Main App logic
                         // ================================================
                         val user = (authState as AuthState.Authenticated).user
-                        when (currentRoute) {
+                        when (activeRoute) {
                                 "discovery" -> {
                                     currentRoute = "map"
                                 }
@@ -963,12 +995,19 @@ fun App() {
                                         bookings = ownerBookings,
                                         conversations = ownerConversations,
                                         isRefreshing = viewModel.isLoading,
-                                        onAddProperty = { currentRoute = "postroom" },
+                                        onAddProperty = {
+                                            previousRoute = "ownerdashboard"
+                                            currentRoute = "postroom"
+                                        },
                                         onViewAnalytics = {
+                                            previousRoute = "ownerdashboard"
                                             postLoginDestination = "ownerdashboard"
                                             currentRoute = "analytics"
                                         },
-                                        onViewFinances = { currentRoute = "finances" },
+                                        onViewFinances = {
+                                            previousRoute = "ownerdashboard"
+                                            currentRoute = "finances"
+                                        },
                                         onAcceptBooking = { booking ->
                                             scope.launch {
                                                 if (booking.id != null && bookingApi.acceptBooking(booking.id)) {
@@ -984,6 +1023,7 @@ fun App() {
                                             }
                                         },
                                         onConversationClick = { conv ->
+                                            previousRoute = "ownerdashboard"
                                             activeConversation = conv
                                             currentRoute = "chat"
                                         },
@@ -1014,8 +1054,12 @@ fun App() {
                                         properties = viewModel.rooms.filter { it.dalaliId == user.id || it.postedBy == user.id },
                                         bookings = ownerBookings,
                                         isRefreshing = viewModel.isLoading,
-                                        onAddProperty = { currentRoute = "postroom" },
+                                        onAddProperty = {
+                                            previousRoute = "dalalidashboard"
+                                            currentRoute = "postroom"
+                                        },
                                         onViewAnalytics = {
+                                            previousRoute = "dalalidashboard"
                                             postLoginDestination = "dalalidashboard"
                                             currentRoute = "analytics"
                                         },
@@ -1051,13 +1095,13 @@ fun App() {
                                 "analytics" -> {
                                     AnalyticsScreen(
                                         onBack = {
-                                            currentRoute = if (postLoginDestination != null) postLoginDestination!! else "map"
+                                            currentRoute = if (postLoginDestination != null) postLoginDestination!! else getRoleHomeRoute()
                                         }
                                     )
                                 }
                             "finances" -> {
                                 val currentAuthUser = (authState as? AuthState.Authenticated)?.user
-                                org.com.ui.FinancesScreen(currentUser = currentAuthUser, onBack = { currentRoute = "ownerdashboard" })
+                                org.com.ui.FinancesScreen(currentUser = currentAuthUser, onBack = { navigateBack("ownerdashboard") })
                             }
                             "postroom" -> {
                                     PostRoom(
@@ -1113,14 +1157,14 @@ fun App() {
                                         },
                                         onErrorDismissed = postRoomViewModel::dismissError,
                                         onBack = {
-                                            currentRoute = "map"
+                                            navigateBack()
                                         }
                                     )
                                 }
                                 "profile" -> {
                                     ProfileScreen(
                                         user = (authState as AuthState.Authenticated).user,
-                                        onBack = { currentRoute = "map" },
+                                        onBack = { navigateBack() },
                                         onLogout = {
                                             scope.launch {
                                                 authManager.logout()
@@ -1177,8 +1221,9 @@ fun App() {
                                 "messages" -> {
                                     MessagesScreen(
                                         conversations = tenantConversations,
-                                        onBack = { currentRoute = "tenant" },
+                                        onBack = { navigateBack("tenant") },
                                         onConversationClick = { conv -> 
+                                            previousRoute = "messages"
                                             activeConversation = conv
                                             currentRoute = "chat"
                                         }
@@ -1189,31 +1234,15 @@ fun App() {
                                     MyBookingsScreen(
                                         bookings = tenantBookings,
                                         allRooms = viewModel.rooms,
-                                        onBack = { currentRoute = "tenant" },
+                                        onBack = { navigateBack("tenant") },
                                         onViewProperty = { viewProperty(it) }
                                     )
                                 }
                                 "saved" -> {
                                     FavouriteScreen(
                                         savedRooms = tenantFavorites,
-                                        onBack = { currentRoute = "tenant" },
+                                        onBack = { navigateBack("tenant") },
                                         onViewProperty = { viewProperty(it) }
-                                    )
-                                }
-                                "map" -> {
-                                    AppMapContainer(
-                                        viewModel = viewModel,
-                                        authState = authState,
-                                        routingDestination = routingDestination,
-                                        onLogout = {
-                                            scope.launch {
-                                                authManager.logout()
-                                                currentRoute = "map"
-                                            }
-                                        },
-                                        onClearRoute = { routingDestination = null },
-                                        onViewProperty = ::viewProperty,
-                                        onNavigate = ::navigateTo
                                     )
                                 }
                                 "admindashboard" -> {
@@ -1229,12 +1258,28 @@ fun App() {
                                         onBack = { currentRoute = "map" }
                                     )
                                 }
+                                else -> {
+                                    AppMapContainer(
+                                        viewModel = viewModel,
+                                        authState = authState,
+                                        routingDestination = routingDestination,
+                                        onLogout = {
+                                            scope.launch {
+                                                authManager.logout()
+                                                currentRoute = "map"
+                                            }
+                                        },
+                                        onClearRoute = { routingDestination = null },
+                                        onViewProperty = ::viewProperty,
+                                        onNavigate = ::navigateTo
+                                    )
+                                }
                             }
                         }
 
                     authState is AuthState.Error -> {
                         // Show error state with login/register
-                        if (currentRoute == "register") {
+                        if (activeRoute == "register") {
                             RegisterScreen(
                                 authState = authState,
                                 onRegister = { request ->
@@ -1280,7 +1325,7 @@ fun App() {
 
                     else -> {
                         // Logged-out state
-                        when (currentRoute) {
+                        when (activeRoute) {
                             "register" -> {
                                 RegisterScreen(
                                     authState = authState,
