@@ -20,6 +20,18 @@ public class AIService {
     @Value("${gemini.model:gemini-2.5-flash-image}")
     private String model;
 
+    private static final List<String> IMAGE_MODEL_CANDIDATES = List.of(
+            "gemini-2.5-flash-image",
+            "gemini-2.5-flash-image-preview",
+            "gemini-2.0-flash-exp-image-generation",
+            "gemini-2.0-flash-exp"
+    );
+
+    private static final List<String> TEXT_FALLBACK_MODELS = List.of(
+            "gemini-2.5-flash",
+            "gemini-2.0-flash"
+    );
+
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -29,18 +41,11 @@ public class AIService {
         }
         String prompt = constructPrompt(request);
 
-        // Prepare the request body for Gemini API
-        Map<String, Object> body = new HashMap<>();
-        List<Map<String, Object>> contents = new ArrayList<>();
-        Map<String, Object> content = new HashMap<>();
         List<Map<String, Object>> parts = new ArrayList<>();
-
-        // Part 1: Text prompt
         Map<String, Object> textPart = new HashMap<>();
         textPart.put("text", prompt);
         parts.add(textPart);
 
-        // Part 2: Image data (optional if no source photo was provided)
         if (imageBytes != null && imageBytes.length > 0) {
             String base64Image = Base64.getEncoder().encodeToString(imageBytes);
             Map<String, Object> imagePart = new HashMap<>();
@@ -51,67 +56,107 @@ public class AIService {
             parts.add(imagePart);
         }
 
-        content.put("parts", parts);
-        contents.add(content);
-        body.put("contents", contents);
-        // Ask for image output as well as text (required by image-capable Gemini models)
-        body.put("generationConfig", Map.of("responseModalities", List.of("TEXT", "IMAGE")));
+        List<Map<String, Object>> contents = List.of(Map.of("parts", parts));
 
-        // Configure generation config (if needed for image generation/output)
-        // Note: As of now, standard Gemini 1.5 Flash returns text. 
-        // If "gemini-3.1-flash-image-preview" supports image output, it might return a base64 image or a URL.
-        
+        // Build ordered model attempt list starting with configured model
+        List<String> imageModels = new ArrayList<>();
+        if (model != null && !model.isBlank()) {
+            imageModels.add(model.trim());
+        }
+        for (String candidate : IMAGE_MODEL_CANDIDATES) {
+            if (!imageModels.contains(candidate)) {
+                imageModels.add(candidate);
+            }
+        }
+
+        RuntimeException lastError = null;
+
+        // 1. Try image-capable models first (with responseModalities = TEXT, IMAGE)
+        for (String candidateModel : imageModels) {
+            try {
+                return callGeminiModel(candidateModel, contents, true, request.getStyle());
+            } catch (org.springframework.web.client.HttpClientErrorException e) {
+                int code = e.getStatusCode().value();
+                String bodyStr = e.getResponseBodyAsString();
+                System.err.println("Gemini image model '" + candidateModel + "' failed (HTTP " + code + "): " + bodyStr);
+
+                // If 403 or invalid key, fail immediately — other models won't work with a forbidden key
+                if (code == 401 || code == 403) {
+                    throw new RuntimeException(buildFriendlyGeminiError(code, bodyStr));
+                }
+                if (code == 429) {
+                    lastError = new RuntimeException("AI quota reached. Please wait a minute and try again.");
+                    continue;
+                }
+                // 404 (model not found) or 400 (modality unsupported) -> try next candidate
+                lastError = new RuntimeException(buildFriendlyGeminiError(code, bodyStr));
+            } catch (RuntimeException e) {
+                lastError = e;
+            }
+        }
+
+        // 2. Fallback to standard multimodal text models so the user still gets an AI layout plan
+        for (String textModel : TEXT_FALLBACK_MODELS) {
+            try {
+                return callGeminiModel(textModel, contents, false, request.getStyle());
+            } catch (org.springframework.web.client.HttpClientErrorException e) {
+                int code = e.getStatusCode().value();
+                String bodyStr = e.getResponseBodyAsString();
+                System.err.println("Gemini fallback model '" + textModel + "' failed (HTTP " + code + "): " + bodyStr);
+                if (code == 401 || code == 403) {
+                    throw new RuntimeException(buildFriendlyGeminiError(code, bodyStr));
+                }
+                lastError = new RuntimeException(buildFriendlyGeminiError(code, bodyStr));
+            } catch (RuntimeException e) {
+                lastError = e;
+            }
+        }
+
+        if (lastError != null) {
+            throw lastError;
+        }
+        throw new RuntimeException("Could not reach the AI service. Please check your connection and try again.");
+    }
+
+    private AIRoomResponse callGeminiModel(
+            String targetModel,
+            List<Map<String, Object>> contents,
+            boolean requestImageModality,
+            String style
+    ) throws Exception {
+        Map<String, Object> body = new HashMap<>();
+        body.put("contents", contents);
+        if (requestImageModality) {
+            body.put("generationConfig", Map.of("responseModalities", List.of("TEXT", "IMAGE")));
+        }
+
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        String url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + apiKey;
+        String url = "https://generativelanguage.googleapis.com/v1beta/models/"
+                + targetModel + ":generateContent?key=" + apiKey.trim();
 
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
-        
-        try {
-            ResponseEntity<String> responseEntity = restTemplate.postForEntity(url, entity, String.class);
+        ResponseEntity<String> responseEntity = restTemplate.postForEntity(url, entity, String.class);
 
-            if (responseEntity.getStatusCode() == HttpStatus.OK) {
-                System.out.println("Gemini API Response: " + responseEntity.getBody());
-                JsonNode root = objectMapper.readTree(responseEntity.getBody());
-
-                // Check for errors in the response
-                if (root.has("error")) {
-                    throw new RuntimeException("Gemini API Error: " + root.path("error").path("message").asText());
-                }
-
-                String generatedImageUrl = extractImageUrl(root);
-                String recommendation = extractText(root);
-
-                if (generatedImageUrl == null) {
-                    System.err.println("Warning: Gemini returned text but no image data. Ensure the model supports image output.");
-                }
-
-                return AIRoomResponse.builder()
-                        .generatedImageUrl(generatedImageUrl)
-                        .recommendation(recommendation)
-                        .style(request.getStyle())
-                        .build();
-            } else {
-                throw new RuntimeException("Gemini API call failed: " + responseEntity.getStatusCode());
-            }
-        } catch (org.springframework.web.client.HttpClientErrorException e) {
-            if (e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
-                throw new RuntimeException("AI quota reached. Please wait a minute and try again.");
-            }
-            if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
-                throw new RuntimeException("The configured AI model (" + model + ") is unavailable. Ask the administrator to update GEMINI_MODEL.");
-            }
-            if (e.getStatusCode() == HttpStatus.BAD_REQUEST || e.getStatusCode() == HttpStatus.FORBIDDEN || e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
-                throw new RuntimeException(buildFriendlyGeminiError(e.getStatusCode().value(), e.getResponseBodyAsString()));
-            }
-            throw new RuntimeException("AI service returned HTTP " + e.getStatusCode().value() + ". Please try again.");
-        } catch (RuntimeException e) {
-            throw e;
-        } catch (Exception e) {
-            System.err.println("Gemini API Error Body: " + e.getMessage());
-            throw new RuntimeException("Could not reach the AI service. Please check your connection and try again.");
+        if (responseEntity.getStatusCode() != HttpStatus.OK) {
+            throw new RuntimeException("Gemini API call failed: " + responseEntity.getStatusCode());
         }
+
+        JsonNode root = objectMapper.readTree(responseEntity.getBody());
+        if (root.has("error")) {
+            throw new RuntimeException("Gemini API Error: " + root.path("error").path("message").asText());
+        }
+
+        String generatedImageUrl = extractImageUrl(root);
+        String recommendation = extractText(root);
+        System.out.println("✅ Gemini succeeded with model '" + targetModel + "' (image=" + (generatedImageUrl != null) + ")");
+
+        return AIRoomResponse.builder()
+                .generatedImageUrl(generatedImageUrl)
+                .recommendation(recommendation)
+                .style(style)
+                .build();
     }
 
     /**
