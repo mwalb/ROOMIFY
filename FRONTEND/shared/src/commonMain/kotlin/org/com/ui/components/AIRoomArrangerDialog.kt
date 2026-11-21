@@ -20,6 +20,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -135,6 +139,8 @@ fun AIRoomArrangerDialog(
                     ResultScreen(
                         originalUrl = ApiClient.resolveUrl(selectedImageUrl),
                         result = generationResult!!,
+                        selectedStyle = selectedStyle,
+                        selectedFurniture = selectedFurniture.toList(),
                         onBack = { generationResult = null; currentStep = 5 },
                         onClose = onDismiss
                     )
@@ -433,126 +439,231 @@ private fun StepInstructions(value: String, onChange: (String) -> Unit) {
 }
 
 @Composable
-private fun ResultScreen(originalUrl: String, result: AIRoomResponse, onBack: () -> Unit, onClose: () -> Unit) {
-    var showAfter by remember { mutableStateOf(true) }
+private fun ResultScreen(
+    originalUrl: String,
+    result: AIRoomResponse,
+    selectedStyle: String,
+    selectedFurniture: List<String>,
+    onBack: () -> Unit,
+    onClose: () -> Unit
+) {
+    val uriHandler = LocalUriHandler.current
+    var savedToast by remember { mutableStateOf(false) }
+
+    val effectiveAfterUrl = remember(result.generatedImageUrl, selectedStyle, selectedFurniture) {
+        if (!result.generatedImageUrl.isNullOrBlank()) {
+            ApiClient.resolveUrl(result.generatedImageUrl)
+        } else {
+            buildClientFallbackRenderUrl(selectedStyle, selectedFurniture)
+        }
+    }
 
     Column(modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState())) {
         Text("AI Room Visualization", fontSize = 22.sp, fontWeight = FontWeight.Black, color = PrimaryColor)
         Spacer(Modifier.height(16.dp))
 
-        if (result.generatedImageUrl != null) {
+        if (originalUrl.isNotBlank()) {
             BeforeAfterSlider(
                 beforeUrl = originalUrl,
-                afterUrl = ApiClient.resolveUrl(result.generatedImageUrl),
-                modifier = Modifier.fillMaxWidth().height(320.dp)
+                afterUrl = effectiveAfterUrl,
+                modifier = Modifier.fillMaxWidth().height(340.dp)
             )
             Text(
-                "Drag the handle to compare before and after",
+                "Drag the handle left or right to compare Before & After",
                 fontSize = 12.sp,
                 color = Color(0xFF64748B),
                 modifier = Modifier.padding(top = 8.dp).fillMaxWidth(),
                 textAlign = TextAlign.Center
             )
-        } else Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(300.dp)
-                .clip(RoundedCornerShape(20.dp))
-                .background(Color(0xFFF0F2F5))
-        ) {
-            KamelImage(
-                resource = { asyncPainterResource(if(showAfter && result.generatedImageUrl != null) ApiClient.resolveUrl(result.generatedImageUrl) else originalUrl) },
-                contentDescription = "AI Visualization",
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.fillMaxSize(),
-                onLoading = {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = PrimaryColor)
-                    }
-                },
-                onFailure = {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.BrokenImage, null, tint = Color.LightGray, modifier = Modifier.size(48.dp))
-                            Text("Image failed to render", color = Color.Gray, fontSize = 12.sp)
-                        }
-                    }
-                }
-            )
-            
-            if (result.generatedImageUrl == null && showAfter) {
-                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f)), contentAlignment = Alignment.Center) {
-                    Text("AI generated a description but no image was returned.", color = Color.White, textAlign = TextAlign.Center, modifier = Modifier.padding(24.dp))
-                }
-            }
-
-            // Switch Toggle
-            Surface(
-                modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
-                color = Color.Black.copy(alpha = 0.6f),
-                shape = RoundedCornerShape(50.dp)
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(340.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color(0xFFF0F2F5))
             ) {
-                Row(Modifier.padding(4.dp)) {
-                    Button(
-                        onClick = { showAfter = false },
-                        colors = ButtonDefaults.buttonColors(containerColor = if(!showAfter) Color.White else Color.Transparent),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                        shape = RoundedCornerShape(50.dp),
-                        modifier = Modifier.height(32.dp)
-                    ) {
-                        Text("BEFORE", color = if(!showAfter) Color.Black else Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    }
-                    Button(
-                        onClick = { showAfter = true },
-                        colors = ButtonDefaults.buttonColors(containerColor = if(showAfter) Color.White else Color.Transparent),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                        shape = RoundedCornerShape(50.dp),
-                        modifier = Modifier.height(32.dp)
-                    ) {
-                        Text("AFTER", color = if(showAfter) Color.Black else Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
+                RoomifyImage(
+                    url = effectiveAfterUrl,
+                    contentDescription = "AI Visualization",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
             }
         }
 
         Spacer(Modifier.height(24.dp))
 
-        Surface(color = PrimaryColor.copy(alpha = 0.05f), shape = RoundedCornerShape(16.dp)) {
-            Column(Modifier.padding(16.dp)) {
+        Surface(
+            color = PrimaryColor.copy(alpha = 0.05f),
+            shape = RoundedCornerShape(18.dp),
+            border = BorderStroke(1.dp, PrimaryColor.copy(alpha = 0.14f))
+        ) {
+            Column(Modifier.padding(18.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.AutoAwesome, null, tint = PrimaryColor, modifier = Modifier.size(20.dp))
-                    Spacer(Modifier.width(12.dp))
-                    Text("AI Recommendation", fontWeight = FontWeight.Bold, color = PrimaryColor)
+                    Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = PrimaryColor, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(10.dp))
+                    Text("AI Interior Design Plan", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = PrimaryColor)
                 }
-                Spacer(Modifier.height(8.dp))
-                Text(result.recommendation ?: "This layout optimizes space while maintaining the room's character.", fontSize = 14.sp, lineHeight = 20.sp)
+                Spacer(Modifier.height(12.dp))
+                FormattedAiRecommendation(
+                    raw = result.recommendation ?: "This layout optimizes space while maintaining the room's character."
+                )
             }
         }
 
-        Spacer(Modifier.height(32.dp))
+        if (savedToast) {
+            Spacer(Modifier.height(12.dp))
+            Surface(
+                color = Color(0xFFDCFCE7),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, Color(0xFF86EFAC))
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF15803D), modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        "Visualization opened in a new tab so you can save or share it.",
+                        color = Color(0xFF166534),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(28.dp))
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Button(
-                onClick = { /* Save to gallery or favorites */ },
+                onClick = {
+                    savedToast = true
+                    try {
+                        uriHandler.openUri(effectiveAfterUrl)
+                    } catch (_: Exception) {}
+                },
                 modifier = Modifier.weight(1f).height(50.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = AccentColor, contentColor = Color.Black)
             ) {
-                Icon(Icons.Default.Save, null)
+                Icon(Icons.Default.Save, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("SAVE", fontWeight = FontWeight.Bold)
+                Text("SAVE IMAGE", fontWeight = FontWeight.Bold)
             }
             OutlinedButton(
                 onClick = onBack,
                 modifier = Modifier.weight(1f).height(50.dp),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Icon(Icons.Default.Refresh, null)
+                Icon(Icons.Default.Refresh, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("REGENERATE")
+                Text("REGENERATE", fontWeight = FontWeight.Bold)
             }
         }
     }
+}
+
+/**
+ * Renders Gemini's Markdown recommendation (`### Headings`, `1. **Title:** details`, `- bullets`)
+ * as clean styled sections instead of raw `###` and `**` characters.
+ */
+@Composable
+private fun FormattedAiRecommendation(raw: String) {
+    val lines = remember(raw) { raw.lines().map { it.trim() }.filter { it.isNotEmpty() } }
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        lines.forEach { line ->
+            when {
+                line.startsWith("#") -> {
+                    val headingText = line.trimStart('#').trim().replace("**", "")
+                    Text(
+                        text = headingText,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 15.sp,
+                        color = PrimaryColor,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+                line.firstOrNull()?.isDigit() == true && line.contains(".") -> {
+                    val numPart = line.substringBefore(".").trim()
+                    val bodyPart = line.substringAfter(".").trim()
+                    Surface(
+                        color = Color.White,
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(12.dp),
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .clip(CircleShape)
+                                    .background(PrimaryColor),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(numPart, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                            Spacer(Modifier.width(10.dp))
+                            Text(
+                                text = parseBoldInline(bodyPart),
+                                fontSize = 13.sp,
+                                lineHeight = 19.sp,
+                                color = Color(0xFF1E293B),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+                line.startsWith("- ") || line.startsWith("* ") -> {
+                    val bodyPart = line.drop(2).trim()
+                    Row(verticalAlignment = Alignment.Top) {
+                        Text("•", color = PrimaryColor, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = parseBoldInline(bodyPart),
+                            fontSize = 13.sp,
+                            lineHeight = 19.sp,
+                            color = Color(0xFF1E293B)
+                        )
+                    }
+                }
+                else -> {
+                    Text(
+                        text = parseBoldInline(line),
+                        fontSize = 14.sp,
+                        lineHeight = 20.sp,
+                        color = Color(0xFF334155)
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun parseBoldInline(text: String) = buildAnnotatedString {
+    val parts = text.split("**")
+    parts.forEachIndexed { idx, segment ->
+        if (idx % 2 == 1) {
+            withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))) {
+                append(segment)
+            }
+        } else {
+            append(segment)
+        }
+    }
+}
+
+private fun buildClientFallbackRenderUrl(style: String, furniture: List<String>): String {
+    val items = if (furniture.isNotEmpty()) furniture.joinToString(", ") else "double bed, wardrobe, sofa, curtains"
+    val cleanPrompt = "Photorealistic interior design photograph of a $style bedroom furnished with $items, warm lighting, 4k"
+        .replace(" ", "%20")
+        .replace(",", "%2C")
+    val seed = kotlin.math.abs((style + items).hashCode()) % 99999
+    return "https://image.pollinations.ai/prompt/$cleanPrompt?width=1024&height=768&nologo=true&seed=$seed"
 }
 
 @OptIn(ExperimentalLayoutApi::class)
