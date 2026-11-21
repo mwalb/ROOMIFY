@@ -733,9 +733,12 @@ object RoomifyApi {
         }
     }
 
-    suspend fun resetPassword(email: String, newPassword: String): ApiResponse<String> {
+    suspend fun resetPassword(email: String, code: String, newPassword: String): ApiResponse<String> {
         return try {
-            ApiClient.post("auth/reset-password", mapOf("email" to email, "newPassword" to newPassword))
+            ApiClient.post(
+                "auth/reset-password",
+                mapOf("email" to email, "code" to code, "newPassword" to newPassword)
+            )
         } catch (e: Exception) {
             ApiResponse.failure(e.message ?: "Password reset failed")
         }

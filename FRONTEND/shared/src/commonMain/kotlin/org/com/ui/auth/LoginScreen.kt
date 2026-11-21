@@ -168,6 +168,10 @@ fun LoginScreen(
     var resetEmail by remember { mutableStateOf("") }
     var resetNewPassword by remember { mutableStateOf("") }
     var resetMessage by remember { mutableStateOf<String?>(null) }
+    var resetStep by remember { mutableStateOf(1) }
+    var resetCode by remember { mutableStateOf("") }
+    var resetBusy by remember { mutableStateOf(false) }
+    var resetIsError by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     val loading =
@@ -202,50 +206,102 @@ fun LoginScreen(
 
     if (showForgotPasswordDialog) {
         androidx.compose.material3.AlertDialog(
-            onDismissRequest = { showForgotPasswordDialog = false },
+            onDismissRequest = {
+                showForgotPasswordDialog = false
+                resetStep = 1; resetCode = ""; resetNewPassword = ""; resetMessage = null; resetIsError = false
+            },
             title = { Text("Badilisha Nywila (Reset Password)", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     if (resetMessage != null) {
-                        Text(resetMessage!!, color = Color(0xFF15803D), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            resetMessage!!,
+                            color = if (resetIsError) Color(0xFFB91C1C) else Color(0xFF15803D),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                     OutlinedTextField(
                         value = resetEmail,
                         onValueChange = { resetEmail = it },
                         label = { Text("Barua Pepe (Email)") },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        enabled = resetStep == 1 && !resetBusy
                     )
-                    OutlinedTextField(
-                        value = resetNewPassword,
-                        onValueChange = { resetNewPassword = it },
-                        label = { Text("Nywila Mpya (New Password)") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
+                    if (resetStep == 2) {
+                        Text(
+                            "Enter the 6-digit code we emailed to your account address.",
+                            fontSize = 12.sp,
+                            color = Color(0xFF475569)
+                        )
+                        OutlinedTextField(
+                            value = resetCode,
+                            onValueChange = { v -> resetCode = v.filter { it.isDigit() }.take(6) },
+                            label = { Text("Reset Code") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword)
+                        )
+                        OutlinedTextField(
+                            value = resetNewPassword,
+                            onValueChange = { resetNewPassword = it },
+                            label = { Text("Nywila Mpya (New Password)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            visualTransformation = PasswordVisualTransformation()
+                        )
+                    }
                 }
             },
             confirmButton = {
                 Button(
+                    enabled = !resetBusy && when (resetStep) {
+                        1 -> resetEmail.isNotBlank()
+                        else -> resetCode.length == 6 && resetNewPassword.length >= 6
+                    },
                     onClick = {
-                        if (resetEmail.isNotBlank() && resetNewPassword.isNotBlank()) {
-                            scope.launch {
-                                try {
-                                    val res = org.com.network.RoomifyApi.resetPassword(resetEmail.trim(), resetNewPassword)
-                                    resetMessage = res.message.ifBlank { "Nywila imebadilishwa kikamilifu!" }
-                                } catch (e: Exception) {
-                                    resetMessage = e.message ?: "Failed"
+                        scope.launch {
+                            resetBusy = true
+                            try {
+                                if (resetStep == 1) {
+                                    val res = org.com.network.RoomifyApi.requestForgotPassword(resetEmail.trim())
+                                    resetIsError = !res.success
+                                    resetMessage = res.message.ifBlank { "Code sent. Check your email." }
+                                    if (res.success) resetStep = 2
+                                } else {
+                                    val res = org.com.network.RoomifyApi.resetPassword(
+                                        resetEmail.trim(), resetCode, resetNewPassword
+                                    )
+                                    resetIsError = !res.success
+                                    resetMessage = res.message.ifBlank {
+                                        if (res.success) "Nywila imebadilishwa kikamilifu!" else "Failed"
+                                    }
+                                    if (res.success) {
+                                        showForgotPasswordDialog = false
+                                        email = resetEmail.trim()
+                                        password = ""
+                                        resetStep = 1; resetCode = ""; resetNewPassword = ""
+                                    }
                                 }
+                            } catch (e: Exception) {
+                                resetIsError = true
+                                resetMessage = e.message ?: "Failed"
+                            } finally {
+                                resetBusy = false
                             }
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A237E))
                 ) {
-                    Text("Hifadhi", color = Color.White)
+                    Text(if (resetStep == 1) "Send Code" else "Hifadhi", color = Color.White)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showForgotPasswordDialog = false }) {
+                TextButton(onClick = {
+                    showForgotPasswordDialog = false
+                    resetStep = 1; resetCode = ""; resetNewPassword = ""; resetMessage = null; resetIsError = false
+                }) {
                     Text("Ghairi")
                 }
             }

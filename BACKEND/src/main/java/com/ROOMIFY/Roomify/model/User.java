@@ -52,6 +52,10 @@ public class User {
     private LocalDateTime resetTokenExpiry;
 
     @JsonIgnore
+    @Column(name = "reset_attempts")
+    private Integer resetAttempts = 0;
+
+    @JsonIgnore
     @OneToMany(mappedBy = "user")
     private List<Booking> bookings;
 

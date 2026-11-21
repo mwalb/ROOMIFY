@@ -515,39 +515,116 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    private static final int RESET_CODE_TTL_MINUTES = 15;
+    private static final int RESET_RESEND_COOLDOWN_SECONDS = 60;
+    private static final int RESET_MAX_ATTEMPTS = 5;
+    private final java.security.SecureRandom secureRandom = new java.security.SecureRandom();
+
+    private Optional<User> findUserByEmail(String email) {
+        if (email == null) return Optional.empty();
+        return userRepository.findByEmailIgnoreCase(email.trim());
+    }
+
+    private String maskEmail(String email) {
+        int at = email.indexOf('@');
+        if (at <= 1) return email;
+        return email.charAt(0) + "***" + email.substring(at - 1);
+    }
+
+    /**
+     * Step 1: generate a one-time code and email it ONLY to the address registered for that account.
+     * The code is stored hashed and is never returned in the API response.
+     */
     @PostMapping("/forgot-password")
+    @Transactional
     public ResponseEntity<ApiResponse<String>> forgotPassword(@RequestBody Map<String, String> request) {
         String email = request.get("email");
         if (email == null || email.isBlank()) {
             return ResponseEntity.badRequest().body(new ApiResponse<>(false, null, "Email is required"));
         }
-        Optional<User> userOpt = userRepository.findByEmail(email);
+        String genericMessage = "If an account exists for " + maskEmail(email.trim())
+                + ", a 6-digit reset code has been sent. Check your inbox and spam folder.";
+
+        Optional<User> userOpt = findUserByEmail(email);
         if (userOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse<>(false, null, "No account found with this email"));
+            // Same response as success so account existence is not revealed.
+            return ResponseEntity.ok(new ApiResponse<>(true, null, genericMessage));
         }
-        String resetCode = String.format("%06d", new Random().nextInt(900000) + 100000);
-        System.out.println("=== PASSWORD RESET CODE FOR " + email + ": " + resetCode + " ===");
+
+        User user = userOpt.get();
+        LocalDateTime now = LocalDateTime.now();
+        if (user.getResetTokenExpiry() != null) {
+            LocalDateTime issuedAt = user.getResetTokenExpiry().minusMinutes(RESET_CODE_TTL_MINUTES);
+            if (issuedAt.plusSeconds(RESET_RESEND_COOLDOWN_SECONDS).isAfter(now)) {
+                return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(new ApiResponse<>(
+                        false, null, "Please wait a minute before requesting another code"));
+            }
+        }
+
+        String resetCode = String.format("%06d", secureRandom.nextInt(1_000_000));
+        user.setPasswordResetToken(passwordEncoder.encode(resetCode));
+        user.setResetTokenExpiry(now.plusMinutes(RESET_CODE_TTL_MINUTES));
+        user.setResetAttempts(0);
+        userRepository.save(user);
+
+        // Always sent to the stored email of this user (never to a client-supplied address).
+        System.out.println("Password reset code issued for user id=" + user.getId() + " -> " + maskEmail(user.getEmail()));
         try {
-            notificationService.sendPasswordResetCode(userOpt.get(), resetCode);
+            notificationService.sendPasswordResetCode(user, resetCode);
         } catch (Exception notifEx) {
             System.err.println("Warning: Failed to send password reset email: " + notifEx.getMessage());
         }
-        return ResponseEntity.ok(new ApiResponse<>(true, resetCode, "Reset code generated and sent to " + email));
+        return ResponseEntity.ok(new ApiResponse<>(true, null, genericMessage));
     }
 
+    /**
+     * Step 2: verify the emailed code and set the new password.
+     */
     @PostMapping("/reset-password")
+    @Transactional
     public ResponseEntity<ApiResponse<String>> resetPassword(@RequestBody Map<String, String> request) {
         String email = request.get("email");
+        String code = request.get("code");
         String newPassword = request.get("newPassword");
-        if (email == null || email.isBlank() || newPassword == null || newPassword.isBlank()) {
-            return ResponseEntity.badRequest().body(new ApiResponse<>(false, null, "Email and new password are required"));
+        if (email == null || email.isBlank() || code == null || code.isBlank()
+                || newPassword == null || newPassword.isBlank()) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(false, null,
+                    "Email, reset code and new password are required"));
         }
-        Optional<User> userOpt = userRepository.findByEmail(email);
+        if (newPassword.length() < 6) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(false, null,
+                    "Password must be at least 6 characters"));
+        }
+
+        String invalid = "Invalid or expired reset code";
+        Optional<User> userOpt = findUserByEmail(email);
         if (userOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse<>(false, null, "User not found"));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse<>(false, null, invalid));
         }
         User user = userOpt.get();
+
+        if (user.getPasswordResetToken() == null || user.getResetTokenExpiry() == null
+                || user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse<>(false, null, invalid));
+        }
+        int attempts = user.getResetAttempts() == null ? 0 : user.getResetAttempts();
+        if (attempts >= RESET_MAX_ATTEMPTS) {
+            user.setPasswordResetToken(null);
+            user.setResetTokenExpiry(null);
+            userRepository.save(user);
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(new ApiResponse<>(false, null,
+                    "Too many wrong attempts. Please request a new code"));
+        }
+        if (!passwordEncoder.matches(code.trim(), user.getPasswordResetToken())) {
+            user.setResetAttempts(attempts + 1);
+            userRepository.save(user);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse<>(false, null, invalid));
+        }
+
         user.setPassword(passwordEncoder.encode(newPassword));
+        user.setPasswordResetToken(null);
+        user.setResetTokenExpiry(null);
+        user.setResetAttempts(0);
         userRepository.save(user);
         return ResponseEntity.ok(new ApiResponse<>(true, "Success", "Password reset successfully. You can now login."));
     }

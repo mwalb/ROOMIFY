@@ -156,7 +156,7 @@ public class FurnitureController {
                     Furniture saved = repository.save(existing);
                     return ResponseEntity.ok(new ApiResponse<>(true, toDTO(saved), "Furniture updated"));
                 })
-                .orElse(ResponseEntity.status(404).bRoom managedRoomody(new ApiResponse<>(false, null, "Furniture not found")));
+                .orElse(ResponseEntity.status(404).body(new ApiResponse<>(false, null, "Furniture not found")));
     }
 
     @DeleteMapping("/{id}")
