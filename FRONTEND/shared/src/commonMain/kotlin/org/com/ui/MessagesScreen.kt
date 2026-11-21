@@ -22,6 +22,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.com.model.Conversation
+import org.com.ui.components.roomifyAmbientBackground
 
 private val PrimaryColor = Color(0xFF1A237E)
 
@@ -53,7 +54,7 @@ fun MessagesScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(Color(0xFFF8F9FA))
+                .roomifyAmbientBackground()
         ) {
             if (conversations.isEmpty()) {
                 EmptyMessagesState()

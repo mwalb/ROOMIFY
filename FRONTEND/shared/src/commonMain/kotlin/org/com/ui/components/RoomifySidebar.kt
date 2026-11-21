@@ -106,10 +106,10 @@ fun RoomifySidebar(
 
     Surface(
         modifier = Modifier.fillMaxWidth().fillMaxHeight(),
-        color = Color.White
+        color = org.com.ui.theme.RoomifyColors.Background
     ) {
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().roomifyAmbientBackground(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // 1. Header Section

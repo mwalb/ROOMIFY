@@ -38,6 +38,8 @@ import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
 import org.com.model.Booking
 import org.com.model.Room
+import org.com.ui.components.roomifyAmbientBackground
+import org.com.ui.theme.RoomifyColors
 
 private val PrimaryColor = Color(0xFF142170)
 private val PrimaryLight = Color(0xFF1A237E)
@@ -191,7 +193,7 @@ fun TenantScreen(
                 .align(Alignment.Center)
                 .padding(vertical = 8.dp),
             shape = if (isMobile) RoundedCornerShape(0.dp) else RoundedCornerShape(28.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FA)),
+            colors = CardDefaults.cardColors(containerColor = RoomifyColors.Background),
             elevation = CardDefaults.cardElevation(defaultElevation = if (isMobile) 0.dp else 16.dp)
         ) {
             Row(modifier = Modifier.fillMaxSize()) {
@@ -211,7 +213,7 @@ fun TenantScreen(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .background(Color(0xFFF8F9FA))
+                        .roomifyAmbientBackground()
                 ) {
                     // Top Bar with Menu Toggle & Search Button
                     Surface(

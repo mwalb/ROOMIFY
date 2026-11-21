@@ -32,6 +32,7 @@ import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
 import org.com.model.Booking
 import org.com.model.Room
+import org.com.ui.components.roomifyAmbientBackground
 
 private val PrimaryColor = Color(0xFF1A237E)
 private val SuccessColor = Color(0xFF4CAF50)
@@ -65,7 +66,7 @@ fun MyBookingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(Color(0xFFF8F9FA))
+                .roomifyAmbientBackground()
         ) {
             if (bookings.isEmpty()) {
                 EmptyBookingsState()

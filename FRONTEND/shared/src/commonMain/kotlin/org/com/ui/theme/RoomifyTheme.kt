@@ -21,8 +21,13 @@ object RoomifyColors {
     val Success = Color(0xFF2E7D32)
     
     val Surface = Color.White
-    val Background = Color(0xFFF5F5F5)
-    
+    val Background = Color(0xFFF3F6FE)
+    val BackgroundMiddle = Color(0xFFF7F8FC)
+    val BackgroundBottom = Color(0xFFFAF5FF)
+    val SurfaceTint = Color(0xFFEEF2FF)
+    val AmbientGlowIndigo = Color(0xFF3949AB).copy(alpha = 0.08f)
+    val AmbientGlowAmber = Color(0xFFFFB300).copy(alpha = 0.07f)
+
     val TextPrimary = Color(0xFF212121)
     val TextSecondary = Color(0xFF757575)
 
@@ -34,6 +39,16 @@ object RoomifyColors {
     val Accent = Color(0xFF03DAC5)
     val Skeleton = Color(0xFFE5E7EB)
     val SkeletonHighlight = Color(0xFFF3F4F6)
+
+    val PageBackgroundBrush: androidx.compose.ui.graphics.Brush
+        get() = androidx.compose.ui.graphics.Brush.verticalGradient(
+            listOf(Background, BackgroundMiddle, BackgroundBottom)
+        )
+
+    val HeroNavyBrush: androidx.compose.ui.graphics.Brush
+        get() = androidx.compose.ui.graphics.Brush.linearGradient(
+            listOf(Color(0xFF142170), Color(0xFF1A237E), Color(0xFF283593))
+        )
 }
 
 /** Shared spacing & corner radii so screens stay visually consistent. */

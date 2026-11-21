@@ -26,6 +26,7 @@ import org.com.model.FinancesSummary
 import org.com.model.Payment
 import org.com.model.User
 import org.com.network.RoomifyApi
+import org.com.ui.components.roomifyAmbientBackground
 
 private val PrimaryColor = Color(0xFF142170)
 private val PrimaryLight = Color(0xFF2B3A9E)
@@ -64,7 +65,7 @@ fun FinancesScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(Color(0xFFF8FAFC))
+                .roomifyAmbientBackground()
         ) {
             FinancesContent(currentUser = currentUser)
         }
@@ -100,7 +101,7 @@ fun FinancesContent(
         }
     }
 
-    BoxWithConstraints(modifier = modifier.fillMaxSize().background(Color(0xFFF8FAFC))) {
+    BoxWithConstraints(modifier = modifier.fillMaxSize().roomifyAmbientBackground()) {
         val isMobile = maxWidth < 600.dp
         val isExpanded = maxWidth >= 840.dp
 

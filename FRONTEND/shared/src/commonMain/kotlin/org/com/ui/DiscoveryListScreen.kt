@@ -24,6 +24,7 @@ import org.com.network.ApiClient
 import org.com.ui.components.EmptyState
 import org.com.ui.components.RoomifyImage
 import org.com.ui.components.SkeletonRoomList
+import org.com.ui.components.roomifyAmbientBackground
 import org.com.ui.theme.RoomifyColors
 import org.com.viewmodel.RoomViewModel
 
@@ -37,7 +38,7 @@ fun DiscoveryListScreen(
     val isLoading = viewModel.isLoading
     val error = viewModel.error
 
-    Column(modifier = Modifier.fillMaxSize().background(RoomifyColors.Background)) {
+    Column(modifier = Modifier.fillMaxSize().roomifyAmbientBackground()) {
         // Simple Top Bar
         Surface(
             modifier = Modifier.fillMaxWidth(),

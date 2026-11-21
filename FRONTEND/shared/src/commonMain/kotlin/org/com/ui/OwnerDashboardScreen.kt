@@ -46,6 +46,8 @@ import org.com.model.Booking
 import org.com.model.Conversation
 import org.com.model.User
 import org.com.network.ApiClient
+import org.com.ui.components.roomifyAmbientBackground
+import org.com.ui.theme.RoomifyColors
 
 private val PrimaryColor = Color(0xFF142170)
 private val PrimaryLight = Color(0xFF2B3A9E)
@@ -94,7 +96,7 @@ fun OwnerDashboardScreen(
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8FAFC))
+            .roomifyAmbientBackground()
     ) {
         val isExpanded = maxWidth >= 840.dp
         val isMedium = maxWidth >= 600.dp && maxWidth < 840.dp
@@ -202,7 +204,7 @@ fun OwnerDashboardScreen(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .background(Color(0xFFF8FAFC))
+                    .roomifyAmbientBackground()
             ) {
                 // Top App Bar
                 Surface(

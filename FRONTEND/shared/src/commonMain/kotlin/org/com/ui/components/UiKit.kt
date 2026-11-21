@@ -319,3 +319,84 @@ private fun LabelChip(text: String, modifier: Modifier = Modifier) {
         )
     }
 }
+
+/* ============================================================
+   BRAND AMBIENT BACKGROUND & MOTION MODIFIERS
+   ============================================================ */
+
+/**
+ * Applies the signature Roomify soft indigo-pearl gradient background with
+ * gently breathing ambient light orbs in the corners so every screen feels
+ * alive while keeping cards crisp and readable.
+ */
+fun Modifier.roomifyAmbientBackground(): Modifier = composed {
+    val transition = rememberInfiniteTransition(label = "ambientBg")
+    val drift by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 7000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "ambientDrift"
+    )
+    this
+        .background(RoomifyColors.PageBackgroundBrush)
+        .drawWithContent {
+            val topGlowCenter = Offset(
+                x = size.width * (0.85f - 0.08f * drift),
+                y = size.height * (0.10f + 0.05f * drift)
+            )
+            val bottomGlowCenter = Offset(
+                x = size.width * (0.12f + 0.08f * drift),
+                y = size.height * (0.88f - 0.05f * drift)
+            )
+            val radius = size.minDimension * 0.65f.coerceAtLeast(1f)
+            if (radius > 10f) {
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(RoomifyColors.AmbientGlowIndigo, Color.Transparent),
+                        center = topGlowCenter,
+                        radius = radius
+                    ),
+                    radius = radius,
+                    center = topGlowCenter
+                )
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(RoomifyColors.AmbientGlowAmber, Color.Transparent),
+                        center = bottomGlowCenter,
+                        radius = radius * 0.85f
+                    ),
+                    radius = radius * 0.85f,
+                    center = bottomGlowCenter
+                )
+            }
+            drawContent()
+        }
+}
+
+/**
+ * Smooth entrance fade + upward slide when a composable first enters the composition.
+ */
+@Composable
+fun AnimatedEntrance(
+    delayMillis: Int = 0,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    var visible by remember { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        if (delayMillis > 0) kotlinx.coroutines.delay(delayMillis.toLong())
+        visible = true
+    }
+    androidx.compose.animation.AnimatedVisibility(
+        visible = visible,
+        modifier = modifier,
+        enter = androidx.compose.animation.fadeIn(tween(380)) +
+                androidx.compose.animation.slideInVertically(tween(380)) { it / 14 }
+    ) {
+        content()
+    }
+}
+

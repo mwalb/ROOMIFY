@@ -1,5 +1,12 @@
 package org.com
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -589,6 +596,17 @@ fun App() {
                 color = Color.Transparent,
                 tonalElevation = 0.dp
             ) {
+                val transitionKey = if (authState is AuthState.Loading) "loading" else currentRoute
+                AnimatedContent(
+                    targetState = transitionKey,
+                    transitionSpec = {
+                        (fadeIn(animationSpec = tween(320)) +
+                                scaleIn(initialScale = 0.985f, animationSpec = tween(320)) +
+                                slideInVertically(animationSpec = tween(320)) { it / 28 })
+                            .togetherWith(fadeOut(animationSpec = tween(180)))
+                    },
+                    label = "RoomifyRouteTransition"
+                ) { _ ->
                 when {
                     authState is AuthState.Loading -> {
                         // Show loading spinner
@@ -1342,6 +1360,7 @@ fun App() {
                             currentRoute = "post_furniture"
                         }
                     )
+                }
                 }
             }
         }

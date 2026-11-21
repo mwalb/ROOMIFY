@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
 import org.com.model.Room
+import org.com.ui.components.roomifyAmbientBackground
 
 private val PrimaryColor = Color(0xFF1A237E)
 
@@ -56,7 +57,7 @@ fun FavouriteScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(Color(0xFFF8F9FA))
+                .roomifyAmbientBackground()
         ) {
             if (savedRooms.isEmpty()) {
                 EmptySavedState(onBack)

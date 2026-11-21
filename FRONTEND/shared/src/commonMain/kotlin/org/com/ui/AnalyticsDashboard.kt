@@ -1,6 +1,7 @@
 package org.com.ui
 
 import org.com.network.RoomifyApi
+import org.com.ui.components.roomifyAmbientBackground
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
@@ -82,7 +83,7 @@ fun AnalyticsScreen(onBack: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Color(0xFFF8FAFC))
+                .roomifyAmbientBackground()
         ) {
             AnalyticsContent()
         }
@@ -133,7 +134,7 @@ fun AnalyticsContent(
         }
     }
 
-    BoxWithConstraints(modifier = modifier.fillMaxSize().background(Color(0xFFF8FAFC))) {
+    BoxWithConstraints(modifier = modifier.fillMaxSize().roomifyAmbientBackground()) {
         val isExpanded = maxWidth >= 840.dp
 
         Column(modifier = Modifier.fillMaxSize()) {

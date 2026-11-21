@@ -47,11 +47,13 @@ import org.com.model.Furniture
 import org.com.model.Shop
 import org.com.model.User
 import org.com.ui.components.AIRoomArrangerDialog
+import org.com.ui.components.roomifyAmbientBackground
+import org.com.ui.theme.RoomifyColors
 
 private val BrandNavy = Color(0xFF142170)
 private val BrandIndigo = Color(0xFF283593)
 private val BrandAmber = Color(0xFFFFB300)
-private val BackgroundSurface = Color(0xFFF8FAFC)
+private val BackgroundSurface = RoomifyColors.Background
 private val BorderColor = Color(0xFFE2E8F0)
 
 private data class CategoryVectorItem(val name: String, val icon: ImageVector)
@@ -96,7 +98,7 @@ fun FurnitureDashboard(
         }
     }
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize().background(BackgroundSurface)) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize().roomifyAmbientBackground()) {
         val isCompact = maxWidth < 600.dp
         val isMedium = maxWidth >= 600.dp && maxWidth < 840.dp
         val isExpanded = maxWidth >= 840.dp

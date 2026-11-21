@@ -38,6 +38,7 @@ import org.com.model.User
 import org.com.model.isUserSuspended
 import org.com.model.isVerified
 import org.com.network.RoomifyApi
+import org.com.ui.theme.RoomifyColors
 
 // Theme Colors for Admin Portal
 private val NavySidebarBg = Color(0xFF121B6C)
@@ -45,7 +46,7 @@ private val ActivePillBg = Color(0xFF2B3A9E)
 private val PrimaryTextDark = Color(0xFF0F172A)
 private val MutedTextGray = Color(0xFF64748B)
 private val BorderGray = Color(0xFFE2E8F0)
-private val ContentBgGray = Color(0xFFF8FAFC)
+private val ContentBgGray = RoomifyColors.Background
 private val SuccessGreen = Color(0xFF16A34A)
 private val SuccessGreenLight = Color(0xFFDCFCE7)
 private val DangerRed = Color(0xFFDC2626)
