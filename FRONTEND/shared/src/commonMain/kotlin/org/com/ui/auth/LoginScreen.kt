@@ -17,6 +17,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -176,6 +182,23 @@ fun LoginScreen(
 
     val layout =
         currentLoginLayout()
+
+    // Smart auto-login: once a valid email/phone + password are entered and the user
+    // pauses typing, sign in automatically (no need to press the LOG IN button).
+    var lastAutoAttempt by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(email, password, loading, errorMessage) {
+        val id = email.trim()
+        val looksLikeEmail = id.contains("@") &&
+                id.substringAfter("@").let { it.contains(".") && !it.startsWith(".") && !it.endsWith(".") }
+        val looksLikePhone = id.length >= 9 && id.all { it.isDigit() || it == '+' }
+        val credentialsReady = (looksLikeEmail || looksLikePhone) && password.length >= 6
+        val signature = id + "\u0000" + password
+        if (credentialsReady && !loading && signature != lastAutoAttempt) {
+            delay(1200)
+            lastAutoAttempt = signature
+            onLogin(id, password)
+        }
+    }
 
     if (showForgotPasswordDialog) {
         androidx.compose.material3.AlertDialog(
@@ -676,6 +699,13 @@ private fun DesktopLoginLayout(
                             VisualTransformation.None
                         else
                             PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = { if (formValid && !loading) onLogin() }
+                    ),
                     singleLine = true,
                     enabled = !loading,
                     shape =
@@ -1245,6 +1275,13 @@ private fun LoginFormCard(
                         VisualTransformation.None
                     else
                         PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = { if (formValid && !loading) onLogin() }
+                ),
                 singleLine = true,
                 enabled = !loading,
                 shape =

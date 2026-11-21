@@ -25,6 +25,22 @@ object RoomifyColors {
     
     val TextPrimary = Color(0xFF212121)
     val TextSecondary = Color(0xFF757575)
+
+    // Shared extended palette (use these instead of per-screen raw colours)
+    val TextStrong = Color(0xFF0F172A)
+    val TextMuted = Color(0xFF64748B)
+    val Divider = Color(0xFFE2E8F0)
+    val Warning = Color(0xFFF59E0B)
+    val Accent = Color(0xFF03DAC5)
+    val Skeleton = Color(0xFFE5E7EB)
+    val SkeletonHighlight = Color(0xFFF3F4F6)
+}
+
+/** Shared spacing & corner radii so screens stay visually consistent. */
+object RoomifyDimens {
+    val ScreenPadding = androidx.compose.ui.unit.Dp(16f)
+    val CardRadius = androidx.compose.ui.unit.Dp(16f)
+    val ChipRadius = androidx.compose.ui.unit.Dp(12f)
 }
 
 @Composable

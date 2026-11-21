@@ -157,7 +157,12 @@ fun ShopDetailScreen(
                             modifier = Modifier
                                 .align(Alignment.BottomEnd)
                                 .padding(16.dp)
-                                .clickable { uriHandler.openUri(shop.getFullUrl(shop.videoUrl!!)) },
+                                .clickable {
+                                    val resolvedUrl = shop.getFullUrl(shop.videoUrl!!)
+                                    if (!org.com.openVideoPlayerModal(resolvedUrl)) {
+                                        uriHandler.openUri(resolvedUrl)
+                                    }
+                                },
                             color = Color(0xFFEF4444),
                             shape = RoundedCornerShape(12.dp),
                             shadowElevation = 4.dp

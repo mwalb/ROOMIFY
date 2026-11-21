@@ -9,3 +9,5 @@ actual fun getPlatform(): Platform = JVMPlatform()
 actual fun currentTimeMillis(): Long = System.currentTimeMillis()
 
 actual fun getPlatformBaseUrl(): String = "http://localhost:8080"
+
+actual fun openVideoPlayerModal(videoUrl: String): Boolean = false

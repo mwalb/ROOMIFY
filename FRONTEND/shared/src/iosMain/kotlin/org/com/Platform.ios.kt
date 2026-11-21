@@ -13,3 +13,5 @@ actual fun getPlatform(): Platform = IOSPlatform()
 actual fun currentTimeMillis(): Long = (NSDate().timeIntervalSince1970() * 1000).toLong()
 
 actual fun getPlatformBaseUrl(): String = "http://localhost:8080"
+
+actual fun openVideoPlayerModal(videoUrl: String): Boolean = false

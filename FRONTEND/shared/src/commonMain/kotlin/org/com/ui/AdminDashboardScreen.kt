@@ -1511,7 +1511,10 @@ fun PropertyDetailModal(room: Room, onDismiss: () -> Unit) {
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .clickable {
-                                uriHandler.openUri(room.getFullUrl(room.videoUrl!!))
+                                val resolvedUrl = room.getFullUrl(room.videoUrl!!)
+                                if (!org.com.openVideoPlayerModal(resolvedUrl)) {
+                                    uriHandler.openUri(resolvedUrl)
+                                }
                             }
                             .padding(vertical = 4.dp)
                     ) {

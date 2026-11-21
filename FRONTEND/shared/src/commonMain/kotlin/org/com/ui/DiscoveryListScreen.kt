@@ -21,6 +21,10 @@ import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
 import org.com.model.Room
 import org.com.network.ApiClient
+import org.com.ui.components.EmptyState
+import org.com.ui.components.RoomifyImage
+import org.com.ui.components.SkeletonRoomList
+import org.com.ui.theme.RoomifyColors
 import org.com.viewmodel.RoomViewModel
 
 @Composable
@@ -33,11 +37,11 @@ fun DiscoveryListScreen(
     val isLoading = viewModel.isLoading
     val error = viewModel.error
 
-    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF5F5F5))) {
+    Column(modifier = Modifier.fillMaxSize().background(RoomifyColors.Background)) {
         // Simple Top Bar
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            color = Color(0xFF1A237E),
+            color = RoomifyColors.Primary,
             shadowElevation = 4.dp
         ) {
             Row(
@@ -58,17 +62,23 @@ fun DiscoveryListScreen(
         }
 
         if (isLoading) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Color(0xFF1A237E))
-            }
+            SkeletonRoomList()
         } else if (error != null) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(error, color = Color.Red, fontWeight = FontWeight.Bold)
-            }
+            EmptyState(
+                icon = Icons.Default.CloudOff,
+                title = "Couldn't load rooms",
+                subtitle = error,
+                modifier = Modifier.fillMaxSize()
+            )
         } else if (rooms.isEmpty()) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No rooms found matching your criteria", color = Color.Gray)
-            }
+            EmptyState(
+                icon = Icons.Default.SearchOff,
+                title = "No rooms found",
+                subtitle = "Try changing your filters or searching a different area.",
+                modifier = Modifier.fillMaxSize(),
+                actionLabel = "Adjust filters",
+                onAction = { onNavigate("discovery") }
+            )
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
@@ -94,8 +104,8 @@ private fun RoomListItem(room: Room, onClick: () -> Unit) {
         Column {
             Box(modifier = Modifier.fillMaxWidth().height(200.dp)) {
                 if (room.firstImageUrl != null) {
-                    KamelImage(
-                        resource = asyncPainterResource(ApiClient.resolveUrl(room.firstImageUrl)),
+                    RoomifyImage(
+                        url = ApiClient.resolveUrl(room.firstImageUrl),
                         contentDescription = room.title,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop

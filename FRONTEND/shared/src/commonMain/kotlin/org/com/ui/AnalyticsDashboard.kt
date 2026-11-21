@@ -638,12 +638,12 @@ private fun AnimatedHorizontalBarChart(areas: List<AreaBookingAnalytics>) {
     val maxBooking = maxOf(areas.maxOfOrNull { it.bookingCount.toFloat() } ?: 1f, 1f)
 
     if (areas.isEmpty()) {
-        Box(
-            modifier = Modifier.fillMaxWidth().height(100.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text("No booking location data available yet", color = SubtitleColor, fontSize = 13.sp)
-        }
+        org.com.ui.components.EmptyState(
+            icon = Icons.Default.LocationOn,
+            title = "No booking activity yet",
+            subtitle = "Top areas will appear here once tenants start booking.",
+            modifier = Modifier.fillMaxWidth()
+        )
     } else {
         Column(
             modifier = Modifier
@@ -905,12 +905,12 @@ private fun AnimatedPriceChart(priceRanges: List<PriceRangeAnalytics>) {
     val maxCount = maxOf(priceRanges.maxOfOrNull { it.bookingCount.toFloat() } ?: 1f, 1f)
 
     if (priceRanges.isEmpty()) {
-        Box(
-            modifier = Modifier.fillMaxWidth().height(100.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text("No price range data available yet", color = SubtitleColor, fontSize = 13.sp)
-        }
+        org.com.ui.components.EmptyState(
+            icon = Icons.Default.AutoAwesome,
+            title = "No price data yet",
+            subtitle = "Price ranges build up as bookings come in.",
+            modifier = Modifier.fillMaxWidth()
+        )
     } else {
         Box(
             modifier = Modifier
@@ -944,12 +944,12 @@ private fun AnimatedPriceChart(priceRanges: List<PriceRangeAnalytics>) {
 @Composable
 private fun AnimatedAreaOccupancy(areas: List<AreaBookingAnalytics>) {
     if (areas.isEmpty()) {
-        Box(
-            modifier = Modifier.fillMaxWidth().height(100.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text("No location data available yet", color = SubtitleColor, fontSize = 13.sp)
-        }
+        org.com.ui.components.EmptyState(
+            icon = Icons.Default.LocationOn,
+            title = "No occupancy data yet",
+            subtitle = "Occupancy by area will show once properties are listed and booked.",
+            modifier = Modifier.fillMaxWidth()
+        )
     } else {
         Column(
             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),

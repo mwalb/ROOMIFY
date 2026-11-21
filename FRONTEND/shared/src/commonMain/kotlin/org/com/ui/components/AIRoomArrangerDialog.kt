@@ -50,6 +50,19 @@ val styleOptions = listOf(
     "Scandinavian", "Industrial", "Cozy"
 )
 
+private data class StyleMeta(val icon: androidx.compose.ui.graphics.vector.ImageVector, val description: String)
+
+private val styleMeta: Map<String, StyleMeta> = mapOf(
+    "Modern" to StyleMeta(Icons.Default.Weekend, "Clean lines, neutral tones, sleek pieces"),
+    "Minimalist" to StyleMeta(Icons.Default.CropSquare, "Only the essentials, lots of open space"),
+    "Student" to StyleMeta(Icons.Default.School, "Compact, practical, study-friendly"),
+    "Luxury" to StyleMeta(Icons.Default.Diamond, "Rich textures, statement furniture"),
+    "Traditional" to StyleMeta(Icons.Default.HistoryEdu, "Classic wood and timeless warmth"),
+    "Scandinavian" to StyleMeta(Icons.Default.AcUnit, "Bright, airy, light wood"),
+    "Industrial" to StyleMeta(Icons.Default.Factory, "Raw metal, dark tones, loft feel"),
+    "Cozy" to StyleMeta(Icons.Default.LocalFireDepartment, "Warm, soft, inviting")
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AIRoomArrangerDialog(
@@ -172,6 +185,7 @@ fun AIRoomArrangerDialog(
                                     currentStep++
                                 } else {
                                     isGenerating = true
+                                    errorMessage = null
                                     scope.launch {
                                         val request = AIRoomRequest(
                                             sourceImageUrl = selectedImageUrl,
@@ -199,10 +213,14 @@ fun AIRoomArrangerDialog(
                                 1 -> selectedImageUrl.isNotBlank()
                                 2 -> selectedFurniture.isNotEmpty()
                                 else -> true
-                            }
+                            } && !isGenerating
                         ) {
                             if (isGenerating) {
-                                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(20.dp))
+                                    Spacer(Modifier.width(12.dp))
+                                    Text("DESIGNING YOUR ROOM…", fontWeight = FontWeight.Bold)
+                                }
                             } else {
                                 Text(if (currentStep == 5) "✨ GENERATE AI ROOM" else "NEXT STEP")
                             }
@@ -297,19 +315,42 @@ private fun StepSelectStyle(selected: String, onSelect: (String) -> Unit) {
         Spacer(Modifier.height(16.dp))
 
         styleOptions.forEach { style ->
+            val meta = styleMeta[style]
+            val isSelected = selected == style
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 4.dp)
                     .clickable { onSelect(style) },
-                color = if (selected == style) PrimaryColor.copy(alpha = 0.05f) else Color.White,
-                shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(1.dp, if (selected == style) PrimaryColor else Color(0xFFEEEEEE))
+                color = if (isSelected) PrimaryColor.copy(alpha = 0.06f) else Color.White,
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(if (isSelected) 2.dp else 1.dp, if (isSelected) PrimaryColor else Color(0xFFE5E7EB))
             ) {
                 Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    RadioButton(selected = selected == style, onClick = { onSelect(style) })
-                    Spacer(Modifier.width(12.dp))
-                    Text(style, fontWeight = if (selected == style) FontWeight.Bold else FontWeight.Medium)
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(if (isSelected) MagicGradient else Brush.linearGradient(listOf(Color(0xFFF1F5F9), Color(0xFFF1F5F9)))),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            meta?.icon ?: Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            tint = if (isSelected) Color.White else PrimaryColor,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(14.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(style, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        if (meta != null) {
+                            Text(meta.description, color = Color(0xFF64748B), fontSize = 12.sp)
+                        }
+                    }
+                    if (isSelected) {
+                        Icon(Icons.Default.CheckCircle, contentDescription = "Selected", tint = PrimaryColor)
+                    }
                 }
             }
         }
@@ -357,7 +398,20 @@ private fun ResultScreen(originalUrl: String, result: AIRoomResponse, onBack: ()
         Text("AI Room Visualization", fontSize = 22.sp, fontWeight = FontWeight.Black, color = PrimaryColor)
         Spacer(Modifier.height(16.dp))
 
-        Box(
+        if (result.generatedImageUrl != null) {
+            BeforeAfterSlider(
+                beforeUrl = originalUrl,
+                afterUrl = result.generatedImageUrl,
+                modifier = Modifier.fillMaxWidth().height(320.dp)
+            )
+            Text(
+                "Drag the handle to compare before and after",
+                fontSize = 12.sp,
+                color = Color(0xFF64748B),
+                modifier = Modifier.padding(top = 8.dp).fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
+        } else Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(300.dp)

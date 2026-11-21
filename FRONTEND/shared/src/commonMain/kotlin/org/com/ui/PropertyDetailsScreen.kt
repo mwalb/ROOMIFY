@@ -45,6 +45,7 @@ import org.com.i18n.LocalRoomifyStrings
 import org.com.model.*
 import org.com.network.ApiClient
 import org.com.network.RoomifyApi
+import org.com.openVideoPlayerModal
 import org.com.ui.components.AIRoomArrangerDialog
 import org.com.ui.components.SpacePlannerDialog
 import kotlin.math.roundToInt
@@ -378,7 +379,12 @@ fun PropertyDetailsScreen(
                                         .fillMaxWidth()
                                         .height(200.dp)
                                         .pointerHoverIcon(PointerIcon.Hand)
-                                        .clickable { uriHandler.openUri(room.getFullUrl(room.videoUrl!!)) },
+                                        .clickable {
+                                            val resolvedUrl = room.getFullUrl(room.videoUrl!!)
+                                            if (!openVideoPlayerModal(resolvedUrl)) {
+                                                uriHandler.openUri(resolvedUrl)
+                                            }
+                                        },
                                     shape = RoundedCornerShape(16.dp),
                                     color = Color(0xFF0F172A)
                                 ) {
@@ -854,7 +860,10 @@ private fun PropertyHeroMediaGallery(
                             .size(64.dp)
                             .pointerHoverIcon(PointerIcon.Hand)
                             .clickable {
-                                uriHandler.openUri(ApiClient.resolveUrl(videoUrl))
+                                val resolvedUrl = ApiClient.resolveUrl(videoUrl)
+                                if (!openVideoPlayerModal(resolvedUrl)) {
+                                    uriHandler.openUri(resolvedUrl)
+                                }
                             },
                         shape = CircleShape,
                         color = Color.White.copy(alpha = 0.25f),
