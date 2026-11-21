@@ -25,6 +25,9 @@ public class ShopController {
     @Autowired
     private ShopRepository repository;
 
+    @Autowired
+    private com.ROOMIFY.Roomify.service.MediaStorageService mediaStorageService;
+
     @Value("${file.upload.dir:uploads}")
     private String uploadDir;
 
@@ -118,9 +121,9 @@ public class ShopController {
 
             for (MultipartFile file : files) {
                 String fileName = UUID.randomUUID().toString() + ".jpg";
-                Path filePath = uploadPath.resolve(fileName);
-                Files.write(filePath, file.getBytes());
-                imageUrls.add("/uploads/shops/" + id + "/" + fileName);
+                String fileUrl = "/uploads/shops/" + id + "/" + fileName;
+                mediaStorageService.storeMedia(fileUrl, file.getContentType(), file.getBytes());
+                imageUrls.add(fileUrl);
             }
 
             shop.getImages().addAll(imageUrls);
@@ -140,16 +143,9 @@ public class ShopController {
             Shop shop = repository.findById(id)
                     .orElseThrow(() -> new RuntimeException("Shop not found"));
 
-            Path uploadPath = getUploadBasePath().resolve("shops").resolve(String.valueOf(id)).resolve("videos");
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
-            }
-
             String fileName = UUID.randomUUID().toString() + ".mp4";
-            Path filePath = uploadPath.resolve(fileName);
-            Files.write(filePath, file.getBytes());
-
             String videoUrl = "/uploads/shops/" + id + "/videos/" + fileName;
+            mediaStorageService.storeMedia(videoUrl, file.getContentType(), file.getBytes());
             shop.setVideoUrl(videoUrl);
             shop.setHasVideo(true);
             repository.save(shop);

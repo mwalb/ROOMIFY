@@ -14,10 +14,10 @@ import java.util.*;
 @Service
 public class AIService {
 
-    @Value("${gemini.api.key:AIzaSyD7ltIeJn7lFlWw-Pqxv12ULSapm4XcTOM}")
+    @Value("${gemini.api.key:}")
     private String apiKey;
 
-    @Value("${gemini.model:gemini-1.5-flash}")
+    @Value("${gemini.model:gemini-2.5-flash-image}")
     private String model;
 
     private final RestTemplate restTemplate = new RestTemplate();
@@ -28,9 +28,6 @@ public class AIService {
             throw new RuntimeException("AI Features are currently disabled: GEMINI_API_KEY is not configured.");
         }
         String prompt = constructPrompt(request);
-        
-        // Base64 encode the image
-        String base64Image = Base64.getEncoder().encodeToString(imageBytes);
 
         // Prepare the request body for Gemini API
         Map<String, Object> body = new HashMap<>();
@@ -43,17 +40,22 @@ public class AIService {
         textPart.put("text", prompt);
         parts.add(textPart);
 
-        // Part 2: Image data
-        Map<String, Object> imagePart = new HashMap<>();
-        Map<String, String> inlineData = new HashMap<>();
-        inlineData.put("mime_type", "image/jpeg");
-        inlineData.put("data", base64Image);
-        imagePart.put("inline_data", inlineData);
-        parts.add(imagePart);
+        // Part 2: Image data (optional if no source photo was provided)
+        if (imageBytes != null && imageBytes.length > 0) {
+            String base64Image = Base64.getEncoder().encodeToString(imageBytes);
+            Map<String, Object> imagePart = new HashMap<>();
+            Map<String, String> inlineData = new HashMap<>();
+            inlineData.put("mime_type", "image/jpeg");
+            inlineData.put("data", base64Image);
+            imagePart.put("inline_data", inlineData);
+            parts.add(imagePart);
+        }
 
         content.put("parts", parts);
         contents.add(content);
         body.put("contents", contents);
+        // Ask for image output as well as text (required by image-capable Gemini models)
+        body.put("generationConfig", Map.of("responseModalities", List.of("TEXT", "IMAGE")));
 
         // Configure generation config (if needed for image generation/output)
         // Note: As of now, standard Gemini 1.5 Flash returns text. 
@@ -96,6 +98,12 @@ public class AIService {
         } catch (org.springframework.web.client.HttpClientErrorException e) {
             if (e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
                 throw new RuntimeException("AI Quota exceeded. Please wait a moment and try again.");
+            }
+            if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
+                throw new RuntimeException("AI model '" + model + "' was not found. Set GEMINI_MODEL to a supported image model (e.g. gemini-2.5-flash-image).");
+            }
+            if (e.getStatusCode() == HttpStatus.BAD_REQUEST || e.getStatusCode() == HttpStatus.FORBIDDEN) {
+                throw new RuntimeException("Gemini rejected the request (check GEMINI_API_KEY and model access): " + e.getResponseBodyAsString());
             }
             throw new RuntimeException("AI Generation failed: " + e.getMessage());
         } catch (Exception e) {
@@ -150,15 +158,21 @@ public class AIService {
             if (parts.isMissingNode()) return null;
 
             for (JsonNode part : parts) {
-                // 1. Check for inline base64 data
-                if (part.has("inline_data")) {
-                    return "data:" + part.path("inline_data").path("mime_type").asText() + ";base64," + 
-                           part.path("inline_data").path("data").asText();
+                // 1. Inline base64 data (the REST API answers in camelCase; accept snake_case too)
+                JsonNode inline = part.has("inlineData") ? part.path("inlineData")
+                        : (part.has("inline_data") ? part.path("inline_data") : null);
+                if (inline != null) {
+                    String mime = inline.has("mimeType") ? inline.path("mimeType").asText()
+                            : inline.path("mime_type").asText("image/png");
+                    return "data:" + mime + ";base64," + inline.path("data").asText();
                 }
-                
+
                 // 2. Check for URI (some models return a hosted URL)
-                if (part.has("file_data")) {
-                    return part.path("file_data").path("file_uri").asText();
+                JsonNode fileData = part.has("fileData") ? part.path("fileData")
+                        : (part.has("file_data") ? part.path("file_data") : null);
+                if (fileData != null) {
+                    return fileData.has("fileUri") ? fileData.path("fileUri").asText()
+                            : fileData.path("file_uri").asText();
                 }
 
                 // 3. Fallback: Search for anything that looks like a data URI in text

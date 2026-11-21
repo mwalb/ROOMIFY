@@ -219,12 +219,6 @@ public class AuthController {
                 }
             }
         }
-        if (!validAudiences.contains("662625007473-omvhko9nmerj4slfrsu7cibeeenl6lt7.apps.googleusercontent.com")) {
-            validAudiences.add("662625007473-omvhko9nmerj4slfrsu7cibeeenl6lt7.apps.googleusercontent.com");
-        }
-        if (!validAudiences.contains("1041914574744-evaa3p91lu43jr5crr42esqrivkha66m.apps.googleusercontent.com")) {
-            validAudiences.add("1041914574744-evaa3p91lu43jr5crr42esqrivkha66m.apps.googleusercontent.com");
-        }
 
         GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
                 GoogleNetHttpTransport.newTrustedTransport(),

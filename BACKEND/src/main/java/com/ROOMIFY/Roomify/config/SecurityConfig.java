@@ -65,6 +65,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/favorites/**").permitAll()
                         .requestMatchers("/api/notifications/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
+                        .requestMatchers("/favicon.ico").permitAll()
+                        .requestMatchers("/api/ai/**").permitAll()
                         .requestMatchers("/error").permitAll()
 
                         // Anyone can VIEW rooms
@@ -90,9 +92,6 @@ public class SecurityConfig {
 
                         // Bookings require authentication
                         .requestMatchers("/api/bookings/**").authenticated()
-
-                        // AI endpoints require authentication
-                        .requestMatchers("/api/ai/**").authenticated()
 
                         // User endpoints require authentication
                         .requestMatchers("/api/users/profile/**").authenticated()

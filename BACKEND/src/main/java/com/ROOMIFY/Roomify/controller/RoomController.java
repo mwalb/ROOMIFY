@@ -54,6 +54,9 @@ public class RoomController {
     @Autowired
     private com.ROOMIFY.Roomify.service.NotificationService notificationService;
 
+    @Autowired
+    private com.ROOMIFY.Roomify.service.MediaStorageService mediaStorageService;
+
     @Value("${file.upload.dir:uploads}")
     private String uploadDir;
 
@@ -1023,10 +1026,8 @@ public class RoomController {
                 }
                 
                 String fileName = UUID.randomUUID().toString() + fileExtension;
-                Path filePath = uploadPath.resolve(fileName);
-                Files.write(filePath, file.getBytes());
-
                 String fileUrl = "/uploads/rooms/" + roomId + "/images/" + fileName;
+                mediaStorageService.storeMedia(fileUrl, contentType, file.getBytes());
                 imageUrls.add(fileUrl);
             }
 
@@ -1092,11 +1093,9 @@ public class RoomController {
             if (originalFileName != null && originalFileName.contains(".")) {
                 fileExtension = originalFileName.substring(originalFileName.lastIndexOf("."));
             }
-            String fileName = UUID.randomUUID().toString() + fileExtension;
-            Path filePath = uploadPath.resolve(fileName);
-            Files.write(filePath, file.getBytes());
-
+            String fileName = UUID.randomUUID().toString() + (fileExtension.isEmpty() ? ".mp4" : fileExtension);
             String videoUrl = "/uploads/rooms/" + roomId + "/videos/" + fileName;
+            mediaStorageService.storeMedia(videoUrl, file.getContentType(), file.getBytes());
 
             room.setVideoUrl(videoUrl);
             room.setHasVideo(true);
@@ -1145,11 +1144,9 @@ public class RoomController {
             if (originalFileName != null && originalFileName.contains(".")) {
                 fileExtension = originalFileName.substring(originalFileName.lastIndexOf("."));
             }
-            String fileName = UUID.randomUUID().toString() + fileExtension;
-            Path filePath = uploadPath.resolve(fileName);
-            Files.write(filePath, file.getBytes());
-
+            String fileName = UUID.randomUUID().toString() + (fileExtension.isEmpty() ? ".pdf" : fileExtension);
             String contractUrl = "/uploads/rooms/" + roomId + "/contracts/" + fileName;
+            mediaStorageService.storeMedia(contractUrl, file.getContentType(), file.getBytes());
 
             room.setContractUrl(contractUrl);
             room.setHasContract(true);

@@ -3,18 +3,15 @@ package com.ROOMIFY.Roomify.controller;
 import com.ROOMIFY.Roomify.dto.ApiResponse;
 import com.ROOMIFY.Roomify.dto.ai.AIRoomRequest;
 import com.ROOMIFY.Roomify.dto.ai.AIRoomResponse;
+import com.ROOMIFY.Roomify.model.MediaAsset;
 import com.ROOMIFY.Roomify.service.AIService;
+import com.ROOMIFY.Roomify.service.MediaStorageService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/ai")
@@ -23,21 +20,22 @@ public class AIController {
     @Autowired
     private AIService aiService;
 
-    @Value("${file.upload.dir:uploads}")
-    private String uploadDir;
+    @Autowired
+    private MediaStorageService mediaStorageService;
 
     @PostMapping("/visualize")
     public ResponseEntity<ApiResponse<AIRoomResponse>> visualizeRoom(@RequestBody AIRoomRequest request) {
         try {
-            // If the request has a sourceImageUrl that points to a local file
-            byte[] imageBytes;
-            if (request.getSourceImageUrl().startsWith("/uploads/")) {
-                String relativePath = request.getSourceImageUrl().substring("/uploads/".length());
-                Path path = Paths.get(uploadDir, relativePath);
-                imageBytes = Files.readAllBytes(path);
-            } else {
-                // Fetch from remote URL if needed, but for Roomify we usually have local uploads
-                return ResponseEntity.badRequest().body(new ApiResponse<>(false, null, "Invalid image URL. Must be a local Roomify upload."));
+            byte[] imageBytes = null;
+            String sourceUrl = request.getSourceImageUrl();
+
+            if (sourceUrl != null && !sourceUrl.isBlank()) {
+                int uploadsIdx = sourceUrl.indexOf("/uploads/");
+                String normalizedPath = uploadsIdx >= 0 ? sourceUrl.substring(uploadsIdx) : sourceUrl;
+                Optional<MediaAsset> asset = mediaStorageService.findMedia(normalizedPath);
+                if (asset.isPresent()) {
+                    imageBytes = asset.get().getData();
+                }
             }
 
             AIRoomResponse response = aiService.generateRoomArrangement(request, imageBytes);

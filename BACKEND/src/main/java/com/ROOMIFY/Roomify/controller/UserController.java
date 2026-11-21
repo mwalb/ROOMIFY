@@ -29,6 +29,9 @@ public class UserController {
     @Autowired
     private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private com.ROOMIFY.Roomify.service.MediaStorageService mediaStorageService;
+
     @Value("${file.upload.dir:uploads}")
     private String uploadDir;
 
@@ -64,11 +67,6 @@ public class UserController {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            Path uploadPath = Paths.get(uploadDir, "profiles", String.valueOf(userId));
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
-            }
-
             String originalFileName = file.getOriginalFilename();
             String fileExtension = ".jpg";
             if (originalFileName != null && originalFileName.contains(".")) {
@@ -76,10 +74,8 @@ public class UserController {
             }
 
             String fileName = UUID.randomUUID().toString() + fileExtension;
-            Path filePath = uploadPath.resolve(fileName);
-            Files.write(filePath, file.getBytes());
-
             String fileUrl = "/uploads/profiles/" + userId + "/" + fileName;
+            mediaStorageService.storeMedia(fileUrl, file.getContentType(), file.getBytes());
             user.setProfileImage(fileUrl);
             userRepository.save(user);
 

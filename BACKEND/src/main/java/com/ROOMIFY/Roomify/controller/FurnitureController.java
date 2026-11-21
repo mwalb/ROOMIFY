@@ -34,6 +34,9 @@ public class FurnitureController {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private com.ROOMIFY.Roomify.service.MediaStorageService mediaStorageService;
+
     @Value("${file.upload.dir:uploads}")
     private String uploadDir;
 
@@ -153,7 +156,7 @@ public class FurnitureController {
                     Furniture saved = repository.save(existing);
                     return ResponseEntity.ok(new ApiResponse<>(true, toDTO(saved), "Furniture updated"));
                 })
-                .orElse(ResponseEntity.status(404).body(new ApiResponse<>(false, null, "Furniture not found")));
+                .orElse(ResponseEntity.status(404).bRoom managedRoomody(new ApiResponse<>(false, null, "Furniture not found")));
     }
 
     @DeleteMapping("/{id}")
@@ -199,9 +202,9 @@ public class FurnitureController {
 
             for (MultipartFile file : files) {
                 String fileName = UUID.randomUUID().toString() + ".jpg";
-                Path filePath = uploadPath.resolve(fileName);
-                Files.write(filePath, file.getBytes());
-                imageUrls.add("/uploads/furniture/" + id + "/" + fileName);
+                String fileUrl = "/uploads/furniture/" + id + "/" + fileName;
+                mediaStorageService.storeMedia(fileUrl, file.getContentType(), file.getBytes());
+                imageUrls.add(fileUrl);
             }
 
             furniture.getImages().addAll(imageUrls);
@@ -221,16 +224,9 @@ public class FurnitureController {
             Furniture furniture = repository.findById(id)
                     .orElseThrow(() -> new RuntimeException("Furniture not found"));
 
-            Path uploadPath = getUploadBasePath().resolve("furniture").resolve(String.valueOf(id));
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
-            }
-
             String fileName = "video_" + UUID.randomUUID().toString() + ".mp4";
-            Path filePath = uploadPath.resolve(fileName);
-            Files.write(filePath, file.getBytes());
-
             String videoUrl = "/uploads/furniture/" + id + "/" + fileName;
+            mediaStorageService.storeMedia(videoUrl, file.getContentType(), file.getBytes());
             furniture.setVideoUrl(videoUrl);
             furniture.setHasVideo(true);
             repository.save(furniture);
