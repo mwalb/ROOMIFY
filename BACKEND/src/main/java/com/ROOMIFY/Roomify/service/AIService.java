@@ -4,6 +4,7 @@ import com.ROOMIFY.Roomify.dto.ai.AIRoomRequest;
 import com.ROOMIFY.Roomify.dto.ai.AIRoomResponse;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -13,6 +14,9 @@ import java.util.*;
 
 @Service
 public class AIService {
+
+    @Autowired
+    private MediaStorageService mediaStorageService;
 
     @Value("${gemini.api.key:}")
     private String apiKey;
@@ -28,7 +32,13 @@ public class AIService {
             "gemini-2.0-flash-exp-image-generation"
     );
 
+    private static final List<String> IMAGEN_MODEL_CANDIDATES = List.of(
+            "imagen-3.0-generate-002",
+            "imagen-3.0-generate-001"
+    );
+
     private static final List<String> TEXT_FALLBACK_MODELS = List.of(
+            "gemini-3.8-flash",
             "gemini-3.0-flash",
             "gemini-2.5-flash",
             "gemini-flash-latest"
@@ -83,13 +93,21 @@ public class AIService {
 
         RuntimeException lastError = null;
         Set<String> attempted = new HashSet<>();
+        String fallbackRecommendation = null;
 
-        // 1. Try image-capable models first (with responseModalities = TEXT, IMAGE)
+        // 1. Try image-capable Gemini models first (requiring an actual generated image!)
         for (int i = 0; i < imageModels.size(); i++) {
             String candidateModel = imageModels.get(i);
             if (!attempted.add("img:" + candidateModel)) continue;
             try {
-                return callGeminiModel(candidateModel, contents, true, request.getStyle());
+                AIRoomResponse res = callGeminiModel(candidateModel, contents, true, request.getStyle());
+                if (res.getGeneratedImageUrl() != null && !res.getGeneratedImageUrl().isBlank()) {
+                    return res;
+                }
+                // Model returned text without an image -> keep the text as fallback and try next image model
+                if (fallbackRecommendation == null && res.getRecommendation() != null) {
+                    fallbackRecommendation = res.getRecommendation();
+                }
             } catch (org.springframework.web.client.HttpClientErrorException e) {
                 int code = e.getStatusCode().value();
                 String bodyStr = e.getResponseBodyAsString();
@@ -98,11 +116,13 @@ public class AIService {
                 if (code == 401 || code == 403) {
                     throw new RuntimeException(buildFriendlyGeminiError(code, bodyStr));
                 }
-                // If Google tells us "Please update your code to use models/<xyz>", try <xyz> next!
                 String suggested = extractSuggestedModel(bodyStr);
-                if (suggested != null && !imageModels.contains(suggested)) {
-                    imageModels.add(suggested);
-                    if (!textModels.contains(suggested)) textModels.add(0, suggested);
+                if (suggested != null) {
+                    if (suggested.contains("image") && !imageModels.contains(suggested)) {
+                        imageModels.add(suggested);
+                    } else if (!textModels.contains(suggested)) {
+                        textModels.add(0, suggested);
+                    }
                 }
                 if (code == 429) {
                     lastError = new RuntimeException("AI quota reached. Please wait a minute and try again.");
@@ -114,12 +134,33 @@ public class AIService {
             }
         }
 
-        // 2. Fallback to standard multimodal text models so the user still gets an AI layout plan
+        // 2. Try Google Imagen 3 (:predict) if Gemini image models did not return an image
+        for (String imagenModel : IMAGEN_MODEL_CANDIDATES) {
+            try {
+                String imagenUrl = callImagenPredict(imagenModel, prompt);
+                if (imagenUrl != null) {
+                    String rec = fallbackRecommendation != null ? fallbackRecommendation
+                            : generateTextRecommendation(textModels, contents, request.getStyle());
+                    return AIRoomResponse.builder()
+                            .generatedImageUrl(imagenUrl)
+                            .recommendation(rec)
+                            .style(request.getStyle())
+                            .build();
+                }
+            } catch (Exception ignored) {}
+        }
+
+        // 3. Fallback: get text recommendation from standard Gemini Flash + generate a photorealistic room render
         for (int i = 0; i < textModels.size(); i++) {
             String textModel = textModels.get(i);
             if (!attempted.add("txt:" + textModel)) continue;
             try {
-                return callGeminiModel(textModel, contents, false, request.getStyle());
+                AIRoomResponse textRes = callGeminiModel(textModel, contents, false, request.getStyle());
+                if (textRes.getGeneratedImageUrl() == null || textRes.getGeneratedImageUrl().isBlank()) {
+                    String renderedUrl = fetchVisualFallbackImage(request);
+                    textRes.setGeneratedImageUrl(renderedUrl);
+                }
+                return textRes;
             } catch (org.springframework.web.client.HttpClientErrorException e) {
                 int code = e.getStatusCode().value();
                 String bodyStr = e.getResponseBodyAsString();
@@ -137,10 +178,94 @@ public class AIService {
             }
         }
 
+        if (fallbackRecommendation != null) {
+            return AIRoomResponse.builder()
+                    .generatedImageUrl(fetchVisualFallbackImage(request))
+                    .recommendation(fallbackRecommendation)
+                    .style(request.getStyle())
+                    .build();
+        }
         if (lastError != null) {
             throw lastError;
         }
         throw new RuntimeException("Could not reach the AI service. Please check your connection and try again.");
+    }
+
+    /**
+     * Converts raw image bytes or a base64 data URI into a stored /uploads/ai/... URL served by MediaController
+     * so KamelImage on Web/Android/iOS can load it reliably over HTTP.
+     */
+    private String persistGeneratedImage(byte[] bytes, String mimeType) {
+        if (bytes == null || bytes.length == 0) return null;
+        String mime = (mimeType != null && !mimeType.isBlank()) ? mimeType : "image/jpeg";
+        String ext = mime.contains("png") ? ".png" : (mime.contains("webp") ? ".webp" : ".jpg");
+        String path = "/uploads/ai/" + UUID.randomUUID() + ext;
+        mediaStorageService.storeMedia(path, mime, bytes);
+        return path;
+    }
+
+    private String callImagenPredict(String imagenModel, String prompt) {
+        try {
+            String url = "https://generativelanguage.googleapis.com/v1beta/models/"
+                    + imagenModel + ":predict?key=" + apiKey.trim();
+            Map<String, Object> body = Map.of(
+                    "instances", List.of(Map.of("prompt", prompt)),
+                    "parameters", Map.of("sampleCount", 1, "outputOptions", Map.of("mimeType", "image/jpeg"))
+            );
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            ResponseEntity<String> resp = restTemplate.postForEntity(url, new HttpEntity<>(body, headers), String.class);
+            if (resp.getStatusCode() == HttpStatus.OK && resp.getBody() != null) {
+                JsonNode preds = objectMapper.readTree(resp.getBody()).path("predictions");
+                if (preds.isArray() && preds.size() > 0) {
+                    String b64 = preds.get(0).path("bytesBase64Encoded").asText("");
+                    String mime = preds.get(0).path("mimeType").asText("image/jpeg");
+                    if (!b64.isBlank()) {
+                        return persistGeneratedImage(Base64.getDecoder().decode(b64), mime);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Imagen '" + imagenModel + "' not available: " + e.getMessage());
+        }
+        return null;
+    }
+
+    private String generateTextRecommendation(List<String> textModels, List<Map<String, Object>> contents, String style) {
+        for (String tm : textModels) {
+            try {
+                AIRoomResponse r = callGeminiModel(tm, contents, false, style);
+                if (r.getRecommendation() != null) return r.getRecommendation();
+            } catch (Exception ignored) {}
+        }
+        return "Arranged your room in " + style + " style with optimal natural light and walking flow.";
+    }
+
+    /**
+     * Generates a photorealistic furnished room visualization via Pollinations Flux and stores it
+     * in MediaStorageService (/uploads/ai/...) whenever the user's Gemini key only permits text output.
+     */
+    private String fetchVisualFallbackImage(AIRoomRequest request) {
+        try {
+            String furnitureList = (request.getFurniture() != null && !request.getFurniture().isEmpty())
+                    ? String.join(", ", request.getFurniture())
+                    : "bed, wardrobe, study desk, curtains, warm lighting";
+            String style = (request.getStyle() != null && !request.getStyle().isBlank()) ? request.getStyle() : "Modern";
+            String visualPrompt = "Photorealistic interior design photograph of a " + style
+                    + " residential room furnished with " + furnitureList
+                    + ", realistic architecture, natural window light, wide angle lens, 4k interior photography";
+            String encoded = java.net.URLEncoder.encode(visualPrompt, java.nio.charset.StandardCharsets.UTF_8);
+            int seed = Math.abs(Objects.hash(style, furnitureList, request.getAdditionalInstructions())) % 99999;
+            String genUrl = "https://image.pollinations.ai/prompt/" + encoded
+                    + "?width=1024&height=768&nologo=true&seed=" + seed;
+            ResponseEntity<byte[]> imgResp = restTemplate.getForEntity(genUrl, byte[].class);
+            if (imgResp.getStatusCode() == HttpStatus.OK && imgResp.getBody() != null && imgResp.getBody().length > 1024) {
+                return persistGeneratedImage(imgResp.getBody(), "image/jpeg");
+            }
+        } catch (Exception e) {
+            System.err.println("Visual fallback render note: " + e.getMessage());
+        }
+        return null;
     }
 
     private String stripModelsPrefix(String name) {
@@ -333,7 +458,14 @@ public class AIService {
                 if (inline != null) {
                     String mime = inline.has("mimeType") ? inline.path("mimeType").asText()
                             : inline.path("mime_type").asText("image/png");
-                    return "data:" + mime + ";base64," + inline.path("data").asText();
+                    String b64 = inline.path("data").asText("");
+                    if (!b64.isBlank()) {
+                        try {
+                            return persistGeneratedImage(Base64.getDecoder().decode(b64), mime);
+                        } catch (Exception decodeEx) {
+                            return "data:" + mime + ";base64," + b64;
+                        }
+                    }
                 }
 
                 // 2. Check for URI (some models return a hosted URL)

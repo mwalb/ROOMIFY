@@ -443,7 +443,7 @@ private fun ResultScreen(originalUrl: String, result: AIRoomResponse, onBack: ()
         if (result.generatedImageUrl != null) {
             BeforeAfterSlider(
                 beforeUrl = originalUrl,
-                afterUrl = result.generatedImageUrl,
+                afterUrl = ApiClient.resolveUrl(result.generatedImageUrl),
                 modifier = Modifier.fillMaxWidth().height(320.dp)
             )
             Text(
@@ -461,7 +461,7 @@ private fun ResultScreen(originalUrl: String, result: AIRoomResponse, onBack: ()
                 .background(Color(0xFFF0F2F5))
         ) {
             KamelImage(
-                resource = { asyncPainterResource(if(showAfter && result.generatedImageUrl != null) result.generatedImageUrl else originalUrl) },
+                resource = { asyncPainterResource(if(showAfter && result.generatedImageUrl != null) ApiClient.resolveUrl(result.generatedImageUrl) else originalUrl) },
                 contentDescription = "AI Visualization",
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.fillMaxSize(),
