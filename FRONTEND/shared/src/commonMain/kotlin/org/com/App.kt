@@ -653,74 +653,77 @@ fun App() {
                         }
                     }
 
-                    activeRoute == "details" && pendingRoom != null -> {
-                        PropertyDetailsScreen(
-                            room = pendingRoom!!,
-                            currentUser = (authState as? AuthState.Authenticated)?.user,
-                            otherProperties = viewModel.rooms.filter { it.postedBy == pendingRoom?.postedBy && it.id != pendingRoom?.id },
-                            onBack = {
-                                pendingRoom = null
-                                postLoginDestination = null
-                                navigateBack("map")
-                            },
-                            onBookNow = { room ->
-                                withAuth("booking") {
+                    activeRoute == "details" -> {
+                        val activeRoom = pendingRoom
+                        if (activeRoom != null) {
+                            PropertyDetailsScreen(
+                                room = activeRoom,
+                                currentUser = (authState as? AuthState.Authenticated)?.user,
+                                otherProperties = viewModel.rooms.filter { it.postedBy == activeRoom.postedBy && it.id != activeRoom.id },
+                                onBack = {
+                                    postLoginDestination = null
+                                    navigateBack("map")
+                                },
+                                onBookNow = { room ->
+                                    withAuth("booking") {
+                                        pendingRoom = room
+                                        currentRoute = "booking"
+                                    }
+                                },
+                                onMessageOwner = { room ->
+                                    withAuth("chat") {
+                                        pendingRoom = room
+                                        currentRoute = "chat"
+                                    }
+                                },
+                                onShowRoute = { room ->
+                                    routingDestination = room
+                                    currentRoute = "map"
+                                },
+                                onCallOwner = { room ->
+                                    withAuth("call") {
+                                        uriHandler.openUri("tel:${room.contactPhone}")
+                                    }
+                                },
+                                onSpacePlanner = { room ->
+                                    showSpacePlanner = true
+                                },
+                                showSpacePlanner = showSpacePlanner,
+                                onDismissSpacePlanner = { showSpacePlanner = false },
+                                onAIRoomArranger = { room ->
+                                    showAIRoomArranger = true
+                                },
+                                showAIRoomArranger = showAIRoomArranger,
+                                onDismissAIRoomArranger = { showAIRoomArranger = false },
+                                onEditProperty = { room ->
+                                    postRoomViewModel.startEditing(room)
+                                    currentRoute = "postroom"
+                                },
+                                onDeleteProperty = { room ->
+                                    if (room.id != null) {
+                                        postRoomViewModel.deleteRoom(
+                                            roomId = room.id,
+                                            onSuccess = {
+                                                viewModel.loadRooms() // Refresh map
+                                                pendingRoom = null
+                                                currentRoute = "map"
+                                            },
+                                            onError = { println("Error deleting room: $it") }
+                                        )
+                                    }
+                                },
+                                onLoginRequired = {
+                                    postLoginDestination = "details"
+                                    currentRoute = "login"
+                                },
+                                onViewProperty = { room ->
                                     pendingRoom = room
-                                    currentRoute = "booking"
+                                    // Stays on details but with new room
                                 }
-                            },
-                            onMessageOwner = { room ->
-                                withAuth("chat") {
-                                    pendingRoom = room
-                                    currentRoute = "chat"
-                                }
-                            },
-                            onShowRoute = { room ->
-                                pendingRoom = null
-                                routingDestination = room
-                                currentRoute = "map"
-                            },
-                            onCallOwner = { room ->
-                                withAuth("call") {
-                                    uriHandler.openUri("tel:${room.contactPhone}")
-                                }
-                            },
-                            onSpacePlanner = { room ->
-                                showSpacePlanner = true
-                            },
-                            showSpacePlanner = showSpacePlanner,
-                            onDismissSpacePlanner = { showSpacePlanner = false },
-                            onAIRoomArranger = { room ->
-                                showAIRoomArranger = true
-                            },
-                            showAIRoomArranger = showAIRoomArranger,
-                            onDismissAIRoomArranger = { showAIRoomArranger = false },
-                            onEditProperty = { room ->
-                                postRoomViewModel.startEditing(room)
-                                currentRoute = "postroom"
-                            },
-                            onDeleteProperty = { room ->
-                                if (room.id != null) {
-                                    postRoomViewModel.deleteRoom(
-                                        roomId = room.id,
-                                        onSuccess = {
-                                            viewModel.loadRooms() // Refresh map
-                                            pendingRoom = null
-                                            currentRoute = "map"
-                                        },
-                                        onError = { println("Error deleting room: $it") }
-                                    )
-                                }
-                            },
-                            onLoginRequired = {
-                                postLoginDestination = "details"
-                                currentRoute = "login"
-                            },
-                            onViewProperty = { room ->
-                                pendingRoom = room
-                                // Stays on details but with new room
-                            }
-                        )
+                            )
+                        } else {
+                            Box(Modifier.fillMaxSize())
+                        }
                     }
 
                     activeRoute == "furniture_choice" -> {

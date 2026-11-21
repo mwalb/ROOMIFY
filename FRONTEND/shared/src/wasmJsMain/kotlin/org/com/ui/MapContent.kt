@@ -286,6 +286,7 @@ private fun List<Room>.toJsonString(): String {
  */
 
 private var globalNavigationListenerRegistered = false
+private var activeMapContentCount = 0
 
 private fun registerGlobalNavigationListener(
     onNavigate: (String) -> Unit
@@ -516,21 +517,33 @@ actual fun MapContent(
 
     /*
      * ========================================================
-     * LIFECYCLE: SHOW/HIDE MAP
+     * LIFECYCLE: SHOW/HIDE MAP (REFERENCE-COUNTED)
      * ========================================================
      */
 
     DisposableEffect(Unit) {
+        activeMapContentCount++
+        println("Roomify: MapContent mounted (activeCount=$activeMapContentCount)")
+        ensureMapContainer()
+        showMapLayerDirect()
         onDispose {
-            println("Roomify: MapContent disposed - hiding map")
-            hideMapLayer()
+            activeMapContentCount = (activeMapContentCount - 1).coerceAtLeast(0)
+            println("Roomify: MapContent disposed (activeCount=$activeMapContentCount)")
+            if (activeMapContentCount == 0) {
+                println("Roomify: MapContent disposed - hiding map")
+                hideMapLayer()
+            } else {
+                // Another MapContent instance is still active -> ensure map stays visible!
+                showMapLayerDirect()
+                triggerMapResize()
+            }
         }
     }
 
     LaunchedEffect(Unit) {
         println("Roomify: MapContent rendering - ensuring map container")
         ensureMapContainer()
-        // We wait for the map to be ready before calling showMapLayer()
+        showMapLayerDirect()
         resetStatusFilter()
         delay(100)
         triggerMapResize()
