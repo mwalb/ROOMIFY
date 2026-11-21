@@ -22,14 +22,16 @@ public class AIService {
 
     private static final List<String> IMAGE_MODEL_CANDIDATES = List.of(
             "gemini-2.5-flash-image",
+            "gemini-3.1-flash-image-preview",
+            "gemini-3.0-flash-image",
             "gemini-2.5-flash-image-preview",
-            "gemini-2.0-flash-exp-image-generation",
-            "gemini-2.0-flash-exp"
+            "gemini-2.0-flash-exp-image-generation"
     );
 
     private static final List<String> TEXT_FALLBACK_MODELS = List.of(
+            "gemini-3.0-flash",
             "gemini-2.5-flash",
-            "gemini-2.0-flash"
+            "gemini-flash-latest"
     );
 
     private final RestTemplate restTemplate = new RestTemplate();
@@ -61,18 +63,31 @@ public class AIService {
         // Build ordered model attempt list starting with configured model
         List<String> imageModels = new ArrayList<>();
         if (model != null && !model.isBlank()) {
-            imageModels.add(model.trim());
+            imageModels.add(stripModelsPrefix(model));
         }
         for (String candidate : IMAGE_MODEL_CANDIDATES) {
             if (!imageModels.contains(candidate)) {
                 imageModels.add(candidate);
             }
         }
+        List<String> textModels = new ArrayList<>(TEXT_FALLBACK_MODELS);
+
+        // Dynamically query Google's /v1beta/models catalog for this key so new models (e.g. gemini-3.x) are auto-discovered
+        for (String liveModel : discoverAvailableModels()) {
+            if (liveModel.contains("image") && !imageModels.contains(liveModel)) {
+                imageModels.add(liveModel);
+            } else if (liveModel.contains("flash") && !textModels.contains(liveModel)) {
+                textModels.add(liveModel);
+            }
+        }
 
         RuntimeException lastError = null;
+        Set<String> attempted = new HashSet<>();
 
         // 1. Try image-capable models first (with responseModalities = TEXT, IMAGE)
-        for (String candidateModel : imageModels) {
+        for (int i = 0; i < imageModels.size(); i++) {
+            String candidateModel = imageModels.get(i);
+            if (!attempted.add("img:" + candidateModel)) continue;
             try {
                 return callGeminiModel(candidateModel, contents, true, request.getStyle());
             } catch (org.springframework.web.client.HttpClientErrorException e) {
@@ -80,15 +95,19 @@ public class AIService {
                 String bodyStr = e.getResponseBodyAsString();
                 System.err.println("Gemini image model '" + candidateModel + "' failed (HTTP " + code + "): " + bodyStr);
 
-                // If 403 or invalid key, fail immediately — other models won't work with a forbidden key
                 if (code == 401 || code == 403) {
                     throw new RuntimeException(buildFriendlyGeminiError(code, bodyStr));
+                }
+                // If Google tells us "Please update your code to use models/<xyz>", try <xyz> next!
+                String suggested = extractSuggestedModel(bodyStr);
+                if (suggested != null && !imageModels.contains(suggested)) {
+                    imageModels.add(suggested);
+                    if (!textModels.contains(suggested)) textModels.add(0, suggested);
                 }
                 if (code == 429) {
                     lastError = new RuntimeException("AI quota reached. Please wait a minute and try again.");
                     continue;
                 }
-                // 404 (model not found) or 400 (modality unsupported) -> try next candidate
                 lastError = new RuntimeException(buildFriendlyGeminiError(code, bodyStr));
             } catch (RuntimeException e) {
                 lastError = e;
@@ -96,7 +115,9 @@ public class AIService {
         }
 
         // 2. Fallback to standard multimodal text models so the user still gets an AI layout plan
-        for (String textModel : TEXT_FALLBACK_MODELS) {
+        for (int i = 0; i < textModels.size(); i++) {
+            String textModel = textModels.get(i);
+            if (!attempted.add("txt:" + textModel)) continue;
             try {
                 return callGeminiModel(textModel, contents, false, request.getStyle());
             } catch (org.springframework.web.client.HttpClientErrorException e) {
@@ -105,6 +126,10 @@ public class AIService {
                 System.err.println("Gemini fallback model '" + textModel + "' failed (HTTP " + code + "): " + bodyStr);
                 if (code == 401 || code == 403) {
                     throw new RuntimeException(buildFriendlyGeminiError(code, bodyStr));
+                }
+                String suggested = extractSuggestedModel(bodyStr);
+                if (suggested != null && !textModels.contains(suggested)) {
+                    textModels.add(suggested);
                 }
                 lastError = new RuntimeException(buildFriendlyGeminiError(code, bodyStr));
             } catch (RuntimeException e) {
@@ -116,6 +141,68 @@ public class AIService {
             throw lastError;
         }
         throw new RuntimeException("Could not reach the AI service. Please check your connection and try again.");
+    }
+
+    private String stripModelsPrefix(String name) {
+        if (name == null) return "";
+        String trimmed = name.trim();
+        return trimmed.startsWith("models/") ? trimmed.substring("models/".length()) : trimmed;
+    }
+
+    /**
+     * Parses a model recommendation from Google's deprecation error message, e.g.
+     * "Please update your code to use models/gemini-3.0-flash for the latest features".
+     */
+    private String extractSuggestedModel(String errorBody) {
+        if (errorBody == null) return null;
+        int idx = errorBody.indexOf("use models/");
+        if (idx < 0) return null;
+        String tail = errorBody.substring(idx + "use models/".length());
+        int end = 0;
+        while (end < tail.length()) {
+            char c = tail.charAt(end);
+            if (Character.isLetterOrDigit(c) || c == '-' || c == '.' || c == '_') {
+                end++;
+            } else {
+                break;
+            }
+        }
+        String candidate = tail.substring(0, end).trim();
+        while (candidate.endsWith(".")) {
+            candidate = candidate.substring(0, candidate.length() - 1);
+        }
+        return candidate.isEmpty() ? null : candidate;
+    }
+
+    /**
+     * Queries Google's /v1beta/models endpoint to discover which Gemini models are currently enabled for this API key.
+     */
+    private List<String> discoverAvailableModels() {
+        List<String> discovered = new ArrayList<>();
+        try {
+            String listUrl = "https://generativelanguage.googleapis.com/v1beta/models?key=" + apiKey.trim();
+            ResponseEntity<String> resp = restTemplate.getForEntity(listUrl, String.class);
+            if (resp.getStatusCode() == HttpStatus.OK && resp.getBody() != null) {
+                JsonNode modelsNode = objectMapper.readTree(resp.getBody()).path("models");
+                for (JsonNode m : modelsNode) {
+                    String name = stripModelsPrefix(m.path("name").asText(""));
+                    if (!name.startsWith("gemini-")) continue;
+                    boolean supportsGenerate = false;
+                    for (JsonNode method : m.path("supportedGenerationMethods")) {
+                        if ("generateContent".equals(method.asText())) {
+                            supportsGenerate = true;
+                            break;
+                        }
+                    }
+                    if (supportsGenerate) {
+                        discovered.add(name);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Note: Could not list Gemini models dynamically: " + e.getMessage());
+        }
+        return discovered;
     }
 
     private AIRoomResponse callGeminiModel(
