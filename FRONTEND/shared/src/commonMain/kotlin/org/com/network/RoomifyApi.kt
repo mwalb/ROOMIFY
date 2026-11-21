@@ -36,7 +36,11 @@ object RoomifyApi {
     }
 
     suspend fun googleLogin(request: GoogleLoginRequest): AuthResponse {
-        return ApiClient.post("auth/google", request)  // ✅ Fixed
+        val response: AuthResponse = ApiClient.post("auth/google", request)
+        response.token?.let { token ->
+            ApiClient.setToken(token)
+        }
+        return response
     }
 
     suspend fun googleRegister(request: GoogleRegisterRequest): AuthResponse {

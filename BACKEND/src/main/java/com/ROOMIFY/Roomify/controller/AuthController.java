@@ -57,11 +57,6 @@ public class AuthController {
                     Map.of("success", false, "message", "Missing Google ID token")
             );
         }
-        if (googleClientId == null || googleClientId.isBlank()) {
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(
-                    Map.of("success", false, "message", "Google sign-in is not configured")
-            );
-        }
 
         try {
             GoogleIdToken verifiedToken = verifyGoogleIdToken(idTokenString);
@@ -99,11 +94,6 @@ public class AuthController {
         if (request == null || request.getIdToken() == null || request.getIdToken().isBlank()) {
             return ResponseEntity.badRequest().body(
                     Map.of("success", false, "message", "Missing Google ID token")
-            );
-        }
-        if (googleClientId == null || googleClientId.isBlank()) {
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(
-                    Map.of("success", false, "message", "Google sign-in is not configured")
             );
         }
 
