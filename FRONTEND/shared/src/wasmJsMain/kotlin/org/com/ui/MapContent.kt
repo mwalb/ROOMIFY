@@ -304,16 +304,6 @@ private fun registerGlobalNavigationListener(
 
         if (!destination.isNullOrBlank()) {
             println("Roomify: GLOBAL navigation - navigating to: $destination")
-
-            // IMPORTANT: Hide map when navigating away from map/explore
-            if (destination == "map" || destination == "explore") {
-                println("Roomify: Showing map for map/explore")
-                showMapLayerDirect()
-            } else {
-                println("Roomify: Hiding map for $destination")
-                hideMapLayer()
-            }
-
             onNavigate(destination)
         }
     }

@@ -628,17 +628,8 @@ fun App() {
                 color = Color.Transparent,
                 tonalElevation = 0.dp
             ) {
-                val transitionKey = if (authState is AuthState.Loading) "loading" else currentRoute
-                AnimatedContent(
-                    targetState = transitionKey,
-                    transitionSpec = {
-                        (fadeIn(animationSpec = tween(260)) +
-                                scaleIn(initialScale = 0.99f, animationSpec = tween(260)) +
-                                slideInVertically(animationSpec = tween(260)) { it / 32 })
-                            .togetherWith(fadeOut(animationSpec = tween(150)))
-                    },
-                    label = "RoomifyRouteTransition"
-                ) { activeRoute ->
+                val activeRoute = if (authState is AuthState.Loading) "loading" else currentRoute
+                Box(modifier = Modifier.fillMaxSize()) {
                 when {
                     activeRoute == "loading" -> {
                         // Show loading spinner

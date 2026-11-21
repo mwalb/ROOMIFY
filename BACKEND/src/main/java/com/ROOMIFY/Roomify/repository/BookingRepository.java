@@ -64,9 +64,9 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Object[]> getBookingCountsByPriceRange();
 
     @Query(value = "SELECT " +
-            "SUBSTRING_INDEX(r.address, ',', 1) as area, " +
+            "SPLIT_PART(r.address, ',', 1) as area, " +
             "COUNT(b.id), AVG(r.price), " +
-            "(COUNT(b.id) * 100.0 / (SELECT COUNT(*) FROM bookings WHERE status IN ('ACCEPTED', 'CONFIRMED'))) " +
+            "(COUNT(b.id) * 100.0 / NULLIF((SELECT COUNT(*) FROM bookings WHERE status IN ('ACCEPTED', 'CONFIRMED')), 0)) " +
             "FROM bookings b " +
             "JOIN rooms r ON b.room_id = r.id " +
             "WHERE b.status IN ('ACCEPTED', 'CONFIRMED') " +
@@ -77,13 +77,13 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Object[]> getBookingCountsByArea();
 
     @Query(value = "SELECT " +
-            "DATE_FORMAT(b.created_at, '%Y-%m') as month, " +
-            "COUNT(b.id), SUM(r.price) " +
+            "TO_CHAR(b.created_at, 'YYYY-MM') as month, " +
+            "COUNT(b.id), COALESCE(SUM(r.price), 0) " +
             "FROM bookings b " +
             "JOIN rooms r ON b.room_id = r.id " +
             "WHERE b.status IN ('ACCEPTED', 'CONFIRMED') " +
-            "AND b.created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH) " +
-            "GROUP BY DATE_FORMAT(b.created_at, '%Y-%m') " +
+            "AND b.created_at >= (CURRENT_TIMESTAMP - INTERVAL '12 months') " +
+            "GROUP BY TO_CHAR(b.created_at, 'YYYY-MM') " +
             "ORDER BY month DESC",
             nativeQuery = true)
     List<Object[]> getMonthlyBookingTrends();
@@ -100,25 +100,25 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Object[]> getMostFrequentExactPrices();
 
     @Query(value = "SELECT " +
-            "r.title, r.id, COUNT(b.id), SUM(r.price) " +
+            "r.title, r.id, COUNT(b.id), COALESCE(SUM(r.price), 0) " +
             "FROM bookings b " +
             "JOIN rooms r ON b.room_id = r.id " +
             "WHERE b.status IN ('ACCEPTED', 'CONFIRMED') " +
-            "GROUP BY r.id " +
+            "GROUP BY r.id, r.title " +
             "ORDER BY SUM(r.price) DESC " +
             "LIMIT 10",
             nativeQuery = true)
     List<Object[]> getTopRevenueRooms();
 
     @Query(value = "SELECT " +
-            "MONTHNAME(b.created_at) as month, " +
-            "SUM(r.price) " +
+            "TO_CHAR(b.created_at, 'Month') as month, " +
+            "COALESCE(SUM(r.price), 0) " +
             "FROM bookings b " +
             "JOIN rooms r ON b.room_id = r.id " +
             "WHERE b.status IN ('ACCEPTED', 'CONFIRMED') " +
-            "AND YEAR(b.created_at) = YEAR(CURDATE()) " +
-            "GROUP BY MONTH(b.created_at) " +
-            "ORDER BY MONTH(b.created_at)",
+            "AND EXTRACT(YEAR FROM b.created_at) = EXTRACT(YEAR FROM CURRENT_DATE) " +
+            "GROUP BY EXTRACT(MONTH FROM b.created_at), TO_CHAR(b.created_at, 'Month') " +
+            "ORDER BY EXTRACT(MONTH FROM b.created_at)",
             nativeQuery = true)
     List<Object[]> getMonthlyRevenueCurrentYear();
 
@@ -130,7 +130,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Object[]> getBookingStatusDistribution();
 
     @Query(value = "SELECT " +
-            "AVG(TIMESTAMPDIFF(HOUR, b.created_at, b.updated_at)) " +
+            "AVG(EXTRACT(EPOCH FROM (b.updated_at - b.created_at)) / 3600.0) " +
             "FROM bookings b " +
             "WHERE b.status IN ('ACCEPTED', 'CONFIRMED')",
             nativeQuery = true)
@@ -141,30 +141,30 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             "FROM bookings b " +
             "JOIN users u ON b.user_id = u.id " +
             "WHERE b.status IN ('ACCEPTED', 'CONFIRMED') " +
-            "GROUP BY u.id " +
+            "GROUP BY u.id, u.name, u.email " +
             "ORDER BY COUNT(b.id) DESC " +
             "LIMIT 5",
             nativeQuery = true)
     List<Object[]> getTopActiveUsers();
 
     @Query(value = "SELECT " +
-            "DAYNAME(b.created_at) as day_of_week, " +
+            "TO_CHAR(b.created_at, 'Day') as day_of_week, " +
             "COUNT(b.id) " +
             "FROM bookings b " +
             "WHERE b.status IN ('ACCEPTED', 'CONFIRMED') " +
-            "GROUP BY DAYOFWEEK(b.created_at) " +
+            "GROUP BY EXTRACT(DOW FROM b.created_at), TO_CHAR(b.created_at, 'Day') " +
             "ORDER BY COUNT(b.id) DESC",
             nativeQuery = true)
     List<Object[]> getBookingsByDayOfWeek();
 
     @Query(value = "SELECT " +
-            "(SELECT COUNT(*) FROM bookings WHERE status = 'CANCELLED') * 100.0 / COUNT(*) " +
+            "(SELECT COUNT(*) FROM bookings WHERE status = 'CANCELLED') * 100.0 / NULLIF(COUNT(*), 0) " +
             "FROM bookings",
             nativeQuery = true)
     Double getCancellationRate();
 
     @Query(value = "SELECT " +
-            "SUBSTRING_INDEX(r.address, ',', 1) as area, " +
+            "SPLIT_PART(r.address, ',', 1) as area, " +
             "AVG(r.price), COUNT(b.id) " +
             "FROM bookings b " +
             "JOIN rooms r ON b.room_id = r.id " +
