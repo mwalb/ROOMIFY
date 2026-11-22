@@ -345,7 +345,8 @@ fun App() {
 
 
     fun withAuth(destination: String, action: () -> Unit) {
-        if (isLoggedIn) {
+        // Always read live auth state from authManager to avoid stale closures
+        if (authManager.authState.value is AuthState.Authenticated) {
             action()
         } else {
             postLoginDestination = destination
@@ -476,7 +477,7 @@ fun App() {
     }
 
     fun getRoleHomeRoute(): String {
-        val user = (authState as? AuthState.Authenticated)?.user ?: return "map"
+        val user = (authManager.authState.value as? AuthState.Authenticated)?.user ?: return "map"
         return when {
             user.role.equals("OWNER", ignoreCase = true) -> "ownerdashboard"
             user.role.equals("DALALI", ignoreCase = true) -> "dalalidashboard"
@@ -521,7 +522,7 @@ fun App() {
                 }
             }
             "analytics" -> {
-                val user = (authState as? AuthState.Authenticated)?.user
+                val user = (authManager.authState.value as? AuthState.Authenticated)?.user
                 postLoginDestination = when {
                     user?.role?.equals("TENANT", ignoreCase = true) == true -> "tenant"
                     user?.role?.equals("OWNER", ignoreCase = true) == true || user?.role?.equals("DALALI", ignoreCase = true) == true -> "ownerdashboard"
@@ -567,6 +568,9 @@ fun App() {
             }
             "postroom" -> {
                 withAuth("postroom") {
+                    if (postRoomViewModel.uiState.value.isSuccess) {
+                        postRoomViewModel.reset()
+                    }
                     currentRoute = "postroom"
                 }
             }
@@ -986,6 +990,13 @@ fun App() {
                         // ================================================
                         val user = (authState as AuthState.Authenticated).user
                         when (activeRoute) {
+                                "login", "register" -> {
+                                    LaunchedEffect(activeRoute, postLoginDestination) {
+                                        val dest = postLoginDestination ?: getRoleHomeRoute()
+                                        postLoginDestination = null
+                                        currentRoute = dest
+                                    }
+                                }
                                 "discovery" -> {
                                     currentRoute = "map"
                                 }

@@ -286,13 +286,16 @@ private fun List<Room>.toJsonString(): String {
  */
 
 private var globalNavigationListenerRegistered = false
+private var latestGlobalOnNavigate: ((String) -> Unit)? = null
 private var activeMapContentCount = 0
 
 private fun registerGlobalNavigationListener(
     onNavigate: (String) -> Unit
 ) {
+    // Always refresh the active navigation callback so post-login closures are never stale
+    latestGlobalOnNavigate = onNavigate
+
     if (globalNavigationListenerRegistered) {
-        println("Roomify: Global navigation listener already registered")
         return
     }
 
@@ -304,7 +307,7 @@ private fun registerGlobalNavigationListener(
 
         if (!destination.isNullOrBlank()) {
             println("Roomify: GLOBAL navigation - navigating to: $destination")
-            onNavigate(destination)
+            latestGlobalOnNavigate?.invoke(destination)
         }
     }
 
@@ -538,6 +541,10 @@ actual fun MapContent(
      * REGISTER GLOBAL NAVIGATION LISTENER
      * ========================================================
      */
+
+    SideEffect {
+        latestGlobalOnNavigate = onNavigate
+    }
 
     LaunchedEffect(Unit) {
         registerGlobalNavigationListener(onNavigate)
