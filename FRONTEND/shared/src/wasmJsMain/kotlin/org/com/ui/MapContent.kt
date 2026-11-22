@@ -502,7 +502,7 @@ actual fun MapContent(
                     dest.latitude,
                     dest.longitude,
                     dest.title ?: "Selected Property",
-                    dest.address ?: ""
+                    dest.locationSummary
                 )
             }
         }

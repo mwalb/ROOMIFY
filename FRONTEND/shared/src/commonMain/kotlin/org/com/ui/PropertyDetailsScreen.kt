@@ -90,6 +90,7 @@ fun PropertyDetailsScreen(
 
     var reviews by remember { mutableStateOf<List<Review>>(emptyList()) }
     var showWriteReviewDialog by remember { mutableStateOf(false) }
+    var showRouteChoiceDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(room.id) {
         try {
@@ -474,7 +475,7 @@ fun PropertyDetailsScreen(
                                         }
 
                                         Button(
-                                            onClick = { onShowRoute(room) },
+                                            onClick = { showRouteChoiceDialog = true },
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .height(42.dp),
@@ -649,7 +650,7 @@ fun PropertyDetailsScreen(
                                     modifier = Modifier
                                         .weight(1f)
                                         .height(44.dp)
-                                        .clickable { onShowRoute(room) },
+                                        .clickable { showRouteChoiceDialog = true },
                                     shape = RoundedCornerShape(12.dp),
                                     color = PrimaryColor
                                 ) {
@@ -809,6 +810,155 @@ fun PropertyDetailsScreen(
             initialIndex = selectedImageIndex!!,
             onDismiss = { selectedImageIndex = null }
         )
+    }
+
+    // Navigation Choice Dialog: In-Map Route vs Google Maps App
+    if (showRouteChoiceDialog) {
+        Dialog(onDismissRequest = { showRouteChoiceDialog = false }) {
+            Surface(
+                shape = RoundedCornerShape(22.dp),
+                color = Color.White,
+                tonalElevation = 8.dp,
+                shadowElevation = 16.dp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 420.dp)
+            ) {
+                Column(modifier = Modifier.padding(22.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(Color(0xFFEEF2FF), RoundedCornerShape(12.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Rounded.Directions, null, tint = PrimaryColor, modifier = Modifier.size(22.dp))
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "Choose Navigation Mode",
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color(0xFF0F172A)
+                                )
+                                Text(
+                                    text = room.title ?: "Selected Property",
+                                    fontSize = 12.sp,
+                                    color = Color(0xFF64748B),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                        IconButton(
+                            onClick = { showRouteChoiceDialog = false },
+                            modifier = Modifier.size(30.dp)
+                        ) {
+                            Icon(Icons.Default.Close, "Close", tint = Color(0xFF64748B), modifier = Modifier.size(18.dp))
+                        }
+                    }
+
+                    Spacer(Modifier.height(18.dp))
+
+                    // Option 1: Navigate Inside Roomify Map
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .pointerHoverIcon(PointerIcon.Hand)
+                            .clickable {
+                                showRouteChoiceDialog = false
+                                onShowRoute(room)
+                            },
+                        shape = RoundedCornerShape(14.dp),
+                        color = Color(0xFFEEF2FF),
+                        border = BorderStroke(1.5.dp, Color(0xFFC7D2FE))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .background(PrimaryColor, RoundedCornerShape(11.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.Map, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Navigate Inside Roomify Map",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = PrimaryColor
+                                )
+                                Text(
+                                    text = "Interactive road route, Drive & Walk times, and turn-by-turn steps inside the map",
+                                    fontSize = 11.sp,
+                                    color = Color(0xFF475569),
+                                    lineHeight = 15.sp
+                                )
+                            }
+                            Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = PrimaryColor, modifier = Modifier.size(18.dp))
+                        }
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    // Option 2: Navigate via Google Maps App
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .pointerHoverIcon(PointerIcon.Hand)
+                            .clickable {
+                                showRouteChoiceDialog = false
+                                val url = "https://www.google.com/maps/dir/?api=1&destination=${room.latitude},${room.longitude}&travelmode=driving"
+                                uriHandler.openUri(url)
+                            },
+                        shape = RoundedCornerShape(14.dp),
+                        color = Color(0xFFECFDF5),
+                        border = BorderStroke(1.5.dp, Color(0xFFA7F3D0))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .background(Color(0xFF059669), RoundedCornerShape(11.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Rounded.Navigation, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Open in Google Maps App",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF065F46)
+                                )
+                                Text(
+                                    text = "Launch full voice-guided GPS navigation in the external Google Maps app",
+                                    fontSize = 11.sp,
+                                    color = Color(0xFF475569),
+                                    lineHeight = 15.sp
+                                )
+                            }
+                            Icon(Icons.AutoMirrored.Filled.OpenInNew, null, tint = Color(0xFF059669), modifier = Modifier.size(18.dp))
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

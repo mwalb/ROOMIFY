@@ -2919,6 +2919,15 @@
             '<div class="roomify-popup-price-label" style="margin-top:6px;">SELECTABLE UNITS</div>' +
             chipsHtml +
 
+            '<div style="display:flex;gap:8px;margin-top:6px;">' +
+                '<button type="button" style="flex:1;height:36px;border-radius:10px;border:1px solid #C7D2FE;background:#EEF2FF;color:#142170;font-size:11px;font-weight:800;cursor:pointer;" onclick="event.stopPropagation(); window.roomifyStartRouteForRoomId(\'' + primaryRoomId + '\', \'inmap\');">' +
+                    '🗺️ In-Map Route' +
+                '</button>' +
+                '<button type="button" style="flex:1;height:36px;border-radius:10px;border:1px solid #BBF7D0;background:#ECFDF5;color:#047857;font-size:11px;font-weight:800;cursor:pointer;" onclick="event.stopPropagation(); window.roomifyStartRouteForRoomId(\'' + primaryRoomId + '\', \'google\');">' +
+                    '↗ Google Maps' +
+                '</button>' +
+            '</div>' +
+
             '<button class="roomify-popup-button" style="cursor:pointer;" onclick="window.roomifyOnViewDetailsClick(\'' + primaryRoomId + '\', event);">' +
             'View Units & Details' +
             '</button>' +
@@ -3678,6 +3687,15 @@
             '</div>' +
 
             featuresHtml +
+
+            '<div style="display:flex;gap:8px;margin-top:8px;">' +
+                '<button type="button" style="flex:1;height:36px;border-radius:10px;border:1px solid #C7D2FE;background:#EEF2FF;color:#142170;font-size:11px;font-weight:800;cursor:pointer;" onclick="event.stopPropagation(); window.roomifyStartRouteForRoomId(\'' + safeRoomId + '\', \'inmap\');">' +
+                    '🗺️ In-Map Route' +
+                '</button>' +
+                '<button type="button" style="flex:1;height:36px;border-radius:10px;border:1px solid #BBF7D0;background:#ECFDF5;color:#047857;font-size:11px;font-weight:800;cursor:pointer;" onclick="event.stopPropagation(); window.roomifyStartRouteForRoomId(\'' + safeRoomId + '\', \'google\');">' +
+                    '↗ Google Maps' +
+                '</button>' +
+            '</div>' +
 
             '<button class="roomify-popup-button" ' + buttonStyle +
             ' onclick="window.roomifyOnViewDetailsClick(\'' + safeRoomId + '\', event);"' +
@@ -4691,7 +4709,9 @@
 
     window.roomifyDirectionsRenderer = null;
     window.roomifyRoutePolyline = null;
+    window.roomifyRouteOutlinePolyline = null;
     window.roomifyOriginMarker = null;
+    window.roomifyActiveRouteState = null;
 
     function haversineKm(lat1, lng1, lat2, lng2) {
         var R = 6371.0;
@@ -4704,46 +4724,185 @@
         return R * c;
     }
 
-    function renderNativeRouteBanner(originLat, originLng, destLat, destLng, destTitle, destAddress) {
+    function formatDurationMinutes(mins) {
+        var m = Math.max(1, Math.round(mins));
+        if (m < 60) return m + " min";
+        var h = Math.floor(m / 60);
+        var rem = m % 60;
+        return rem > 0 ? (h + " hr " + rem + " min") : (h + " hr");
+    }
+
+    window.roomifyOpenGoogleMapsRoute = function(originLat, originLng, destLat, destLng, travelMode) {
+        var mode = (String(travelMode || "DRIVING").toUpperCase() === "WALKING") ? "walking" : "driving";
+        var url = "https://www.google.com/maps/dir/?api=1";
+        if (isFinite(Number(originLat)) && isFinite(Number(originLng)) && Number(originLat) !== 0 && Number(originLng) !== 0) {
+            url += "&origin=" + encodeURIComponent(Number(originLat) + "," + Number(originLng));
+        }
+        url += "&destination=" + encodeURIComponent(Number(destLat) + "," + Number(destLng));
+        url += "&travelmode=" + mode;
+        window.open(url, "_blank", "noopener,noreferrer");
+    };
+
+    window.roomifyStartRouteForRoomId = function(roomId, modeChoice) {
+        var targetRoom = null;
+        if (Array.isArray(window.roomifyAllRooms)) {
+            targetRoom = window.roomifyAllRooms.find(function(r) { return String(r.id) === String(roomId); });
+        }
+        if (!targetRoom && Array.isArray(window.roomifyMarkers)) {
+            var entry = window.roomifyMarkers.find(function(m) { return m && m.room && String(m.room.id) === String(roomId); });
+            if (entry) targetRoom = entry.room;
+        }
+        if (!targetRoom) return;
+
+        var destLat = targetRoom.latitude !== undefined ? Number(targetRoom.latitude) : Number(targetRoom.lat);
+        var destLng = targetRoom.longitude !== undefined ? Number(targetRoom.longitude) : Number(targetRoom.lng);
+        if (!isFinite(destLat) || !isFinite(destLng) || destLat === 0 || destLng === 0) return;
+
+        if (window.roomifyInfoOverlay) {
+            window.roomifyInfoOverlay.hide();
+        }
+        window.roomifyPopupPinned = false;
+
+        var resolveAndRun = function(oLat, oLng) {
+            if (modeChoice === "google") {
+                window.roomifyOpenGoogleMapsRoute(oLat, oLng, destLat, destLng, "DRIVING");
+            } else {
+                var cleanAddr = formatLocationDisplayJs(targetRoom.address, targetRoom);
+                window.showRoute(oLat, oLng, destLat, destLng, targetRoom.title || "Selected Property", cleanAddr, "DRIVING");
+            }
+        };
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function(pos) { resolveAndRun(pos.coords.latitude, pos.coords.longitude); },
+                function() { resolveAndRun(-6.7924, 39.2083); },
+                { enableHighAccuracy: true, timeout: 6000 }
+            );
+        } else {
+            resolveAndRun(-6.7924, 39.2083);
+        }
+    };
+
+    function renderNativeRouteBanner(state) {
         var existing = document.getElementById("roomify-native-route-card");
         if (existing) existing.remove();
 
         var mapContainer = document.getElementById("google-map-container") || document.body;
-        var straightKm = haversineKm(Number(originLat), Number(originLng), Number(destLat), Number(destLng));
-        var roadKm = straightKm * 1.28;
-        var distLabel = roadKm < 1 ? Math.round(roadKm * 1000) + " m" : roadKm.toFixed(1) + " km";
-        var driveMins = Math.max(1, Math.round((roadKm / 28.0) * 60));
-        var walkMins = Math.max(1, Math.round((roadKm / 4.8) * 60));
+        var originLat = Number(state.originLat);
+        var originLng = Number(state.originLng);
+        var destLat = Number(state.destLat);
+        var destLng = Number(state.destLng);
+        var travelMode = state.travelMode || "DRIVING";
+
+        var straightKm = haversineKm(originLat, originLng, destLat, destLng);
+        var roadKm = state.distanceKm || (straightKm * 1.28);
+        var distLabel = state.distanceText || (roadKm < 1 ? Math.round(roadKm * 1000) + " m" : roadKm.toFixed(1) + " km");
+        var driveMins = state.driveMins || Math.max(1, Math.round((roadKm / 28.0) * 60));
+        var walkMins = state.walkMins || Math.max(1, Math.round((roadKm / 4.8) * 60));
+        var driveLabel = state.driveText || ("~" + formatDurationMinutes(driveMins));
+        var walkLabel = state.walkText || ("~" + formatDurationMinutes(walkMins));
+
+        var cleanSubtitle = state.destAddress || "";
+        if (!cleanSubtitle || /^Coordinates:/i.test(cleanSubtitle.trim()) || /^-?\d+(\.\d+)?,[\s]*-?\d+(\.\d+)?$/.test(cleanSubtitle.trim())) {
+            cleanSubtitle = "Dar es Salaam, Tanzania • " + destLat.toFixed(4) + ", " + destLng.toFixed(4);
+        }
+
+        var isDriving = travelMode === "DRIVING";
+        var routeSourceBadge = state.routeSource === "ROAD" ? "ROAD ROUTE" : "LIVE ROUTE";
 
         var card = document.createElement("div");
         card.id = "roomify-native-route-card";
-        card.style.cssText = "position:fixed;bottom:24px;right:24px;width:min(360px,calc(100vw - 32px));background:#FFFFFF;border-radius:20px;box-shadow:0 12px 32px rgba(20,33,112,0.22);border:1px solid #D5E0F0;z-index:10002;font-family:'Inter',Arial,sans-serif;overflow:hidden;";
+        card.style.cssText = "position:fixed;bottom:24px;right:24px;width:min(380px,calc(100vw - 32px));background:#FFFFFF;border-radius:20px;box-shadow:0 16px 38px rgba(20,33,112,0.26);border:1px solid #D5E0F0;z-index:10002;font-family:'Inter',Arial,sans-serif;overflow:hidden;";
 
         var header = document.createElement("div");
         header.style.cssText = "background:linear-gradient(90deg,#142170,#283593);padding:12px 16px;color:#FFFFFF;display:flex;align-items:center;justify-content:space-between;";
-        header.innerHTML = '<div style="display:flex;align-items:center;gap:8px;"><span style="width:8px;height:8px;border-radius:50%;background:#4ADE80;display:inline-block;"></span><span style="font-size:11px;font-weight:800;letter-spacing:0.8px;">LIVE ROUTE PREVIEW</span></div><span style="font-size:12px;font-weight:800;background:rgba(255,255,255,0.16);padding:3px 10px;border-radius:12px;">' + distLabel + '</span>';
+        header.innerHTML =
+            '<div style="display:flex;align-items:center;gap:8px;">' +
+                '<span style="width:8px;height:8px;border-radius:50%;background:#4ADE80;box-shadow:0 0 8px #4ADE80;display:inline-block;"></span>' +
+                '<span style="font-size:11px;font-weight:800;letter-spacing:0.8px;">' + routeSourceBadge + ' • IN-MAP NAVIGATION</span>' +
+            '</div>' +
+            '<span style="font-size:12px;font-weight:800;background:rgba(255,255,255,0.18);padding:3px 10px;border-radius:12px;">' + distLabel + '</span>';
 
         var body = document.createElement("div");
         body.style.cssText = "padding:14px 16px;";
-        body.innerHTML =
-            '<div style="font-size:14px;font-weight:800;color:#0F172A;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (destTitle || "Selected Property") + '</div>' +
-            '<div style="font-size:12px;color:#64748B;margin-bottom:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (destAddress || "Destination") + '</div>' +
-            '<div style="display:flex;gap:8px;margin-bottom:12px;">' +
-                '<div style="flex:1;background:#EFF6FF;padding:8px 10px;border-radius:10px;font-size:12px;font-weight:700;color:#1D4ED8;text-align:center;">Drive ~' + driveMins + ' min</div>' +
-                '<div style="flex:1;background:#ECFDF5;padding:8px 10px;border-radius:10px;font-size:12px;font-weight:700;color:#047857;text-align:center;">Walk ~' + walkMins + ' min</div>' +
-            '</div>';
+
+        var titleInfo = document.createElement("div");
+        titleInfo.innerHTML =
+            '<div style="font-size:15px;font-weight:800;color:#0F172A;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(state.destTitle || "Selected Property") + '</div>' +
+            '<div style="font-size:12px;color:#64748B;margin-bottom:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📍 ' + escapeHtml(cleanSubtitle) + '</div>';
+        body.appendChild(titleInfo);
+
+        // Interactive Travel Mode Switcher (Drive vs Walk inside map)
+        var modeRow = document.createElement("div");
+        modeRow.style.cssText = "display:flex;gap:8px;margin-bottom:10px;";
+
+        var driveTab = document.createElement("button");
+        driveTab.type = "button";
+        driveTab.innerHTML = '🚗 Drive ' + driveLabel;
+        driveTab.style.cssText = "flex:1;padding:9px 10px;border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;border:" +
+            (isDriving ? "1.5px solid #1D4ED8;background:#DBEAFE;color:#1E40AF;" : "1px solid #E2E8F0;background:#F8FAFC;color:#475569;");
+        driveTab.onclick = function() {
+            if (travelMode !== "DRIVING") {
+                window.showRoute(originLat, originLng, destLat, destLng, state.destTitle, state.destAddress, "DRIVING");
+            }
+        };
+
+        var walkTab = document.createElement("button");
+        walkTab.type = "button";
+        walkTab.innerHTML = '🚶 Walk ' + walkLabel;
+        walkTab.style.cssText = "flex:1;padding:9px 10px;border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;border:" +
+            (!isDriving ? "1.5px solid #047857;background:#D1FAE5;color:#065F46;" : "1px solid #E2E8F0;background:#F8FAFC;color:#475569;");
+        walkTab.onclick = function() {
+            if (travelMode !== "WALKING") {
+                window.showRoute(originLat, originLng, destLat, destLng, state.destTitle, state.destAddress, "WALKING");
+            }
+        };
+
+        modeRow.appendChild(driveTab);
+        modeRow.appendChild(walkTab);
+        body.appendChild(modeRow);
+
+        // Turn-by-turn steps preview if available
+        if (Array.isArray(state.steps) && state.steps.length > 0) {
+            var stepsBox = document.createElement("div");
+            stepsBox.style.cssText = "max-height:88px;overflow-y:auto;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:8px 10px;margin-bottom:10px;font-size:11px;color:#334155;";
+            state.steps.slice(0, 4).forEach(function(st, idx) {
+                var row = document.createElement("div");
+                row.style.cssText = "display:flex;justify-content:space-between;gap:8px;padding:3px 0;" + (idx > 0 ? "border-top:1px dashed #E2E8F0;" : "");
+                row.innerHTML = '<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;">' + (idx + 1) + '. ' + escapeHtml(st.instruction) + '</span><span style="color:#64748B;flex-shrink:0;font-weight:700;">' + escapeHtml(st.distance || "") + '</span>';
+                stepsBox.appendChild(row);
+            });
+            body.appendChild(stepsBox);
+        }
+
+        // Primary External Option: Open in Google Maps App / Web
+        var gmapsBtn = document.createElement("button");
+        gmapsBtn.type = "button";
+        gmapsBtn.innerHTML = '↗ Navigate in Google Maps App';
+        gmapsBtn.style.cssText = "width:100%;height:38px;border-radius:10px;border:1.5px solid #142170;background:#EEF2FF;color:#142170;font-weight:800;font-size:12px;cursor:pointer;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px;";
+        gmapsBtn.onclick = function() {
+            window.roomifyOpenGoogleMapsRoute(originLat, originLng, destLat, destLng, travelMode);
+        };
+        body.appendChild(gmapsBtn);
 
         var actions = document.createElement("div");
         actions.style.cssText = "display:flex;gap:8px;";
 
         var recenterBtn = document.createElement("button");
+        recenterBtn.type = "button";
         recenterBtn.textContent = "Recenter";
         recenterBtn.style.cssText = "flex:1;height:38px;border-radius:10px;border:none;background:#142170;color:#FFFFFF;font-weight:700;font-size:12px;cursor:pointer;";
         recenterBtn.onclick = function() {
-            window.showRoute(originLat, originLng, destLat, destLng, destTitle, destAddress);
+            if (window.roomifyMap && window.google && window.google.maps) {
+                var b = new google.maps.LatLngBounds();
+                b.extend(new google.maps.LatLng(originLat, originLng));
+                b.extend(new google.maps.LatLng(destLat, destLng));
+                window.roomifyMap.fitBounds(b, { top: 80, right: 80, bottom: 260, left: 80 });
+            }
         };
 
         var endBtn = document.createElement("button");
+        endBtn.type = "button";
         endBtn.textContent = "End Route";
         endBtn.style.cssText = "flex:1;height:38px;border-radius:10px;border:none;background:#FEE2E2;color:#DC2626;font-weight:700;font-size:12px;cursor:pointer;";
         endBtn.onclick = function() {
@@ -4759,15 +4918,111 @@
         mapContainer.appendChild(card);
     }
 
-    window.showRoute = function(originLat, originLng, destLat, destLng, destTitle, destAddress) {
+    function drawRoadCoordinatesOnMap(latLngArray, origin, dest, travelMode) {
+        if (!window.roomifyMap || !window.google || !window.google.maps) return;
+        var isWalking = travelMode === "WALKING";
+
+        // Outer casing line for high contrast on map roads
+        window.roomifyRouteOutlinePolyline = new google.maps.Polyline({
+            path: latLngArray,
+            geodesic: true,
+            strokeColor: "#FFFFFF",
+            strokeOpacity: 0.95,
+            strokeWeight: 9,
+            zIndex: 9990,
+            map: window.roomifyMap
+        });
+
+        // Inner active road route line
+        window.roomifyRoutePolyline = new google.maps.Polyline({
+            path: latLngArray,
+            geodesic: true,
+            strokeColor: isWalking ? "#059669" : "#2563EB",
+            strokeOpacity: 0.95,
+            strokeWeight: 5,
+            zIndex: 9991,
+            map: window.roomifyMap
+        });
+
+        var bounds = new google.maps.LatLngBounds();
+        latLngArray.forEach(function(pt) { bounds.extend(pt); });
+        bounds.extend(origin);
+        bounds.extend(dest);
+        window.roomifyMap.fitBounds(bounds, { top: 80, right: 80, bottom: 260, left: 80 });
+    }
+
+    function fetchOsrmRoadRoute(originLat, originLng, destLat, destLng, travelMode, onSuccess, onFailure) {
+        var profile = (travelMode === "WALKING") ? "foot" : "driving";
+        var url = "https://router.project-osrm.org/route/v1/" + profile + "/" +
+            Number(originLng) + "," + Number(originLat) + ";" +
+            Number(destLng) + "," + Number(destLat) +
+            "?overview=full&geometries=geojson&steps=true";
+
+        fetch(url)
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (data && data.code === "Ok" && Array.isArray(data.routes) && data.routes.length > 0) {
+                    var route = data.routes[0];
+                    var coords = (route.geometry && Array.isArray(route.geometry.coordinates)) ? route.geometry.coordinates : [];
+                    if (coords.length >= 2) {
+                        var path = coords.map(function(c) {
+                            return new google.maps.LatLng(Number(c[1]), Number(c[0]));
+                        });
+                        var distKm = (Number(route.distance) || 0) / 1000.0;
+                        var durMins = Math.max(1, Math.round((Number(route.duration) || 0) / 60.0));
+                        var steps = [];
+                        if (Array.isArray(route.legs) && route.legs[0] && Array.isArray(route.legs[0].steps)) {
+                            route.legs[0].steps.forEach(function(s) {
+                                var name = s.name || "road";
+                                var type = (s.maneuver && s.maneuver.type) ? s.maneuver.type : "Continue";
+                                var mod = (s.maneuver && s.maneuver.modifier) ? (" " + s.maneuver.modifier) : "";
+                                var stepDist = s.distance ? (s.distance < 1000 ? Math.round(s.distance) + " m" : (s.distance / 1000).toFixed(1) + " km") : "";
+                                if (type !== "arrive") {
+                                    steps.push({
+                                        instruction: (type.charAt(0).toUpperCase() + type.slice(1) + mod + (name ? " onto " + name : "")),
+                                        distance: stepDist
+                                    });
+                                }
+                            });
+                        }
+                        onSuccess({
+                            path: path,
+                            distanceKm: distKm,
+                            durationMins: durMins,
+                            steps: steps
+                        });
+                        return;
+                    }
+                }
+                onFailure();
+            })
+            .catch(function() {
+                onFailure();
+            });
+    }
+
+    window.showRoute = function(originLat, originLng, destLat, destLng, destTitle, destAddress, requestedMode) {
         if (!window.roomifyMap || !window.google || !window.google.maps) return;
 
+        var travelMode = (String(requestedMode || "DRIVING").toUpperCase() === "WALKING") ? "WALKING" : "DRIVING";
         window.clearRoute();
 
         var origin = new google.maps.LatLng(Number(originLat), Number(originLng));
         var dest = new google.maps.LatLng(Number(destLat), Number(destLng));
 
-        renderNativeRouteBanner(originLat, originLng, destLat, destLng, destTitle, destAddress);
+        var routeState = {
+            originLat: Number(originLat),
+            originLng: Number(originLng),
+            destLat: Number(destLat),
+            destLng: Number(destLng),
+            destTitle: destTitle || "Selected Property",
+            destAddress: destAddress || "",
+            travelMode: travelMode,
+            routeSource: "LIVE",
+            steps: []
+        };
+        window.roomifyActiveRouteState = routeState;
+        renderNativeRouteBanner(routeState);
 
         var originSvg =
             '<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">' +
@@ -4778,7 +5033,7 @@
         window.roomifyOriginMarker = new google.maps.Marker({
             position: origin,
             map: window.roomifyMap,
-            title: "Your Location",
+            title: "Your Current Location",
             icon: {
                 url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(originSvg),
                 scaledSize: new google.maps.Size(36, 36),
@@ -4787,51 +5042,93 @@
             zIndex: 99999
         });
 
+        var useOsrmFallback = function() {
+            fetchOsrmRoadRoute(
+                originLat,
+                originLng,
+                destLat,
+                destLng,
+                travelMode,
+                function(osrmResult) {
+                    drawRoadCoordinatesOnMap(osrmResult.path, origin, dest, travelMode);
+                    routeState.routeSource = "ROAD";
+                    routeState.distanceKm = osrmResult.distanceKm;
+                    routeState.distanceText = osrmResult.distanceKm < 1
+                        ? Math.round(osrmResult.distanceKm * 1000) + " m"
+                        : osrmResult.distanceKm.toFixed(1) + " km";
+                    if (travelMode === "WALKING") {
+                        routeState.walkMins = osrmResult.durationMins;
+                        routeState.driveMins = Math.max(1, Math.round((osrmResult.distanceKm / 28.0) * 60));
+                    } else {
+                        routeState.driveMins = osrmResult.durationMins;
+                        routeState.walkMins = Math.max(1, Math.round((osrmResult.distanceKm / 4.8) * 60));
+                    }
+                    routeState.steps = osrmResult.steps;
+                    renderNativeRouteBanner(routeState);
+                },
+                function() {
+                    drawRoadCoordinatesOnMap([origin, dest], origin, dest, travelMode);
+                }
+            );
+        };
+
         if (typeof google.maps.DirectionsService === "function") {
             var directionsService = new google.maps.DirectionsService();
-            window.roomifyDirectionsRenderer = new google.maps.DirectionsRenderer({
-                map: window.roomifyMap,
-                suppressMarkers: false,
-                polylineOptions: {
-                    strokeColor: "#142170",
-                    strokeWeight: 5,
-                    strokeOpacity: 0.9
-                }
-            });
+            var gMode = (travelMode === "WALKING")
+                ? google.maps.TravelMode.WALKING
+                : google.maps.TravelMode.DRIVING;
 
             directionsService.route({
                 origin: origin,
                 destination: dest,
-                travelMode: google.maps.TravelMode.DRIVING
+                travelMode: gMode
             }, function(response, status) {
-                if (status === "OK" && window.roomifyDirectionsRenderer) {
+                if (status === "OK" && response && Array.isArray(response.routes) && response.routes.length > 0) {
+                    window.roomifyDirectionsRenderer = new google.maps.DirectionsRenderer({
+                        map: window.roomifyMap,
+                        suppressMarkers: true,
+                        polylineOptions: {
+                            strokeColor: (travelMode === "WALKING") ? "#059669" : "#2563EB",
+                            strokeWeight: 6,
+                            strokeOpacity: 0.95
+                        }
+                    });
                     window.roomifyDirectionsRenderer.setDirections(response);
+
+                    var leg = (response.routes[0].legs && response.routes[0].legs[0]) ? response.routes[0].legs[0] : null;
+                    if (leg) {
+                        routeState.routeSource = "ROAD";
+                        if (leg.distance && leg.distance.text) {
+                            routeState.distanceText = leg.distance.text;
+                            routeState.distanceKm = (Number(leg.distance.value) || 0) / 1000.0;
+                        }
+                        if (leg.duration && leg.duration.text) {
+                            if (travelMode === "WALKING") {
+                                routeState.walkText = leg.duration.text;
+                            } else {
+                                routeState.driveText = leg.duration.text;
+                            }
+                        }
+                        if (Array.isArray(leg.steps)) {
+                            routeState.steps = leg.steps.map(function(s) {
+                                var cleanInst = String(s.instructions || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+                                return {
+                                    instruction: cleanInst,
+                                    distance: (s.distance && s.distance.text) ? s.distance.text : ""
+                                };
+                            }).filter(function(s) { return s.instruction.length > 0; });
+                        }
+                        renderNativeRouteBanner(routeState);
+                    }
                 } else {
-                    console.warn("Roomify: DirectionsService failed (" + status + "), drawing polyline fallback");
-                    drawPolylineFallback(origin, dest);
+                    console.warn("Roomify: Google DirectionsService status=" + status + ", switching to OSRM real road route");
+                    useOsrmFallback();
                 }
             });
         } else {
-            drawPolylineFallback(origin, dest);
+            useOsrmFallback();
         }
     };
-
-    function drawPolylineFallback(origin, dest) {
-        var path = [origin, dest];
-        window.roomifyRoutePolyline = new google.maps.Polyline({
-            path: path,
-            geodesic: true,
-            strokeColor: '#142170',
-            strokeOpacity: 0.9,
-            strokeWeight: 5,
-            map: window.roomifyMap
-        });
-
-        var bounds = new google.maps.LatLngBounds();
-        bounds.extend(origin);
-        bounds.extend(dest);
-        window.roomifyMap.fitBounds(bounds);
-    }
 
     window.clearRoute = function() {
         var existingCard = document.getElementById("roomify-native-route-card");
@@ -4845,10 +5142,15 @@
             window.roomifyRoutePolyline.setMap(null);
             window.roomifyRoutePolyline = null;
         }
+        if (window.roomifyRouteOutlinePolyline) {
+            window.roomifyRouteOutlinePolyline.setMap(null);
+            window.roomifyRouteOutlinePolyline = null;
+        }
         if (window.roomifyOriginMarker) {
             window.roomifyOriginMarker.setMap(null);
             window.roomifyOriginMarker = null;
         }
+        window.roomifyActiveRouteState = null;
     };
 
     window.roomifyShowToast = function(message) {
