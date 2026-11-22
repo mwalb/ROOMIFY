@@ -377,36 +377,152 @@
 
             .roomify-autocomplete-dropdown {
                 position: absolute;
-                top: 100%;
+                top: calc(100% + 4px);
                 left: 0;
                 right: 0;
-                background: white;
-                border-radius: 0 0 18px 18px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                border: 1px solid #BDBDBD;
-                border-top: none;
+                background: #FFFFFF;
+                border-radius: 16px;
+                box-shadow: 0 14px 36px rgba(20, 33, 112, 0.18), 0 2px 8px rgba(15, 23, 42, 0.08);
+                border: 1px solid #D5E0F0;
                 z-index: 10002;
-                max-height: 250px;
+                max-height: 390px;
                 overflow-y: auto;
                 display: none;
+                padding: 6px 0;
+                font-family: 'Inter', Arial, sans-serif;
+            }
+
+            .roomify-ac-section {
+                padding: 8px 16px 4px 16px;
+                font-size: 10px;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: 0.7px;
+                color: #64748B;
+                background: #F8FAFC;
+                border-top: 1px solid #EEF2F6;
+                border-bottom: 1px solid #EEF2F6;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+
+            .roomify-ac-section:first-child {
+                border-top: none;
+                margin-top: -6px;
+                padding-top: 10px;
             }
 
             .roomify-autocomplete-item {
-                padding: 12px 16px;
+                padding: 10px 14px;
                 cursor: pointer;
-                border-bottom: 1px solid #F5F5F5;
-                color: #1A237E;
+                border-bottom: 1px solid #F1F5F9;
+                color: #0F172A;
                 font-weight: 500;
                 display: flex;
                 align-items: center;
+                gap: 11px;
+                transition: background-color 0.12s ease;
             }
 
-            .roomify-autocomplete-item:hover {
-                background: #F0F2F5;
+            .roomify-autocomplete-item:hover,
+            .roomify-autocomplete-item.ac-active {
+                background: #EEF2FF;
             }
 
             .roomify-autocomplete-item:last-child {
                 border-bottom: none;
+            }
+
+            .roomify-ac-icon {
+                width: 32px;
+                height: 32px;
+                border-radius: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 15px;
+                flex-shrink: 0;
+                background: #F1F5F9;
+            }
+
+            .roomify-ac-icon.is-area {
+                background: #EEF2FF;
+            }
+
+            .roomify-ac-icon.is-related {
+                background: #FEF3C7;
+            }
+
+            .roomify-ac-icon.is-property {
+                background: #DCFCE7;
+            }
+
+            .roomify-ac-icon.is-google {
+                background: #E0F2FE;
+            }
+
+            .roomify-ac-body {
+                display: flex;
+                flex-direction: column;
+                min-width: 0;
+                flex: 1;
+            }
+
+            .roomify-ac-title {
+                font-size: 13.5px;
+                font-weight: 700;
+                color: #0F172A;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                line-height: 1.3;
+            }
+
+            .roomify-ac-subtitle {
+                font-size: 11.5px;
+                color: #64748B;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                line-height: 1.3;
+                margin-top: 1px;
+            }
+
+            .roomify-ac-match {
+                color: #142170;
+                background: #E0E7FF;
+                border-radius: 3px;
+                padding: 0 2px;
+                font-weight: 800;
+            }
+
+            .roomify-ac-badges {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                flex-shrink: 0;
+            }
+
+            .roomify-ac-badge {
+                font-size: 10.5px;
+                font-weight: 800;
+                padding: 3px 8px;
+                border-radius: 999px;
+                background: #DCFCE7;
+                color: #166534;
+                white-space: nowrap;
+            }
+
+            .roomify-ac-badge.is-tag {
+                background: #F1F5F9;
+                color: #475569;
+                font-weight: 700;
+            }
+
+            .roomify-ac-badge.is-related {
+                background: #FEF3C7;
+                color: #92400E;
             }
 
             .roomify-search-icon {
@@ -416,6 +532,7 @@
                 flex-shrink: 0;
                 color: #1A237E;
                 opacity: 0.78;
+                cursor: pointer;
             }
 
             .roomify-search-input {
@@ -1440,6 +1557,125 @@
         var autocompleteServiceInstance = null;
         var geocoderInstance = null;
         var autocompleteDebounceTimer = null;
+        var autocompleteRequestSeq = 0;
+        var currentDropdownEntries = [];
+        var activeDropdownIndex = -1;
+
+        // Curated Tanzania & Dar es Salaam place/district/sub-area/landmark knowledge graph
+        // Enables instant, zero-latency matching AND related nearby area discovery while typing
+        var ROOMIFY_PLACE_GRAPH = [
+            // Kinondoni District & Peninsula
+            { name: "Kinondoni", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7834, lng: 39.2665, cat: "district", tags: ["kinondoni studio", "kinondoni manyanya", "kinondoni biafra", "kinondoni mkwajuni", "mikocheni", "msasani", "masaki", "oysterbay", "ada estate", "hana nasif", "mwananyamala", "kijitonyama", "makumbusho", "mwenge", "kawe", "mbezi beach"] },
+            { name: "Kinondoni Studio", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7892, lng: 39.2683, cat: "subarea", tags: ["kinondoni", "manyanya", "biafra", "morocco", "ada estate", "kawawa road"] },
+            { name: "Kinondoni Manyanya", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7858, lng: 39.2636, cat: "subarea", tags: ["kinondoni", "studio", "mwananyamala", "mkwajuni", "kawawa road"] },
+            { name: "Ada Estate", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7819, lng: 39.2728, cat: "area", tags: ["kinondoni", "oysterbay", "morocco", "msasani", "ali hassan mwinyi"] },
+            { name: "Morocco", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7826, lng: 39.2643, cat: "area", tags: ["kinondoni", "bagamoyo road", "brt", "airtel", "makumbusho", "ada estate", "kijitonyama"] },
+            { name: "Mwananyamala", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7848, lng: 39.2549, cat: "area", tags: ["kinondoni", "hospital", "makumbusho", "kijitonyama", "tandale", "manyanya"] },
+            { name: "Hana Nasif", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7944, lng: 39.2634, cat: "area", tags: ["kinondoni", "mkwajuni", "magomeni", "studio"] },
+
+            // Mikocheni & Sub-areas & Landmarks
+            { name: "Mikocheni", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7689, lng: 39.2512, cat: "area", tags: ["mikocheni a", "mikocheni b", "kinondoni", "msasani", "kijitonyama", "mwenge", "kawe", "shoppers plaza", "palm village", "kairuki", "old bagamoyo", "mwai kibaki", "regent estate"] },
+            { name: "Mikocheni A", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7712, lng: 39.2564, cat: "subarea", tags: ["mikocheni", "kinondoni", "kairuki hospital", "shoppers plaza", "regent estate", "victoria", "msasani"] },
+            { name: "Mikocheni B", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7618, lng: 39.2454, cat: "subarea", tags: ["mikocheni", "kinondoni", "palm village", "mwenge", "kawe", "cocacola", "mwai kibaki", "kijitonyama"] },
+            { name: "Regent Estate, Mikocheni", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7745, lng: 39.2598, cat: "subarea", tags: ["mikocheni", "mikocheni a", "victoria", "kijitonyama", "morocco", "kinondoni"] },
+            { name: "Palm Village, Mikocheni", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7575, lng: 39.2535, cat: "landmark", tags: ["mikocheni", "mikocheni b", "mall", "msasani", "kawe", "mwai kibaki", "kinondoni"] },
+            { name: "Shoppers Plaza, Mikocheni", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7694, lng: 39.2615, cat: "landmark", tags: ["mikocheni", "mikocheni a", "mall", "supermarket", "kairuki", "mwai kibaki", "msasani"] },
+            { name: "Kairuki Hospital, Mikocheni", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7720, lng: 39.2571, cat: "landmark", tags: ["mikocheni", "hospital", "university", "hkmu", "kijitonyama", "shoppers plaza"] },
+
+            // Msasani, Masaki, Oysterbay
+            { name: "Msasani", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7614, lng: 39.2708, cat: "area", tags: ["msasani peninsula", "masaki", "oysterbay", "mikocheni", "namanga", "kimweri", "slipway", "beach", "kinondoni"] },
+            { name: "Masaki", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7518, lng: 39.2798, cat: "area", tags: ["peninsula", "msasani", "oysterbay", "chole road", "haile selassie", "slipway", "sea cliff", "toure drive", "beach", "kinondoni"] },
+            { name: "Oysterbay", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7764, lng: 39.2792, cat: "area", tags: ["msasani", "masaki", "coco beach", "ada estate", "namanga", "toure drive", "kinondoni"] },
+            { name: "Namanga", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7747, lng: 39.2699, cat: "subarea", tags: ["msasani", "oysterbay", "mikocheni", "ali hassan mwinyi", "kinondoni"] },
+
+            // Kijitonyama, Makumbusho, Victoria, Mwenge
+            { name: "Kijitonyama", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7785, lng: 39.2422, cat: "area", tags: ["kinondoni", "sinza", "makumbusho", "mikocheni", "mwenge", "sayansi", "costech", "victoria", "dar village", "village museum"] },
+            { name: "Makumbusho", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7834, lng: 39.2471, cat: "area", tags: ["kinondoni", "bus stand", "kijitonyama", "mwananyamala", "victoria", "village museum", "sinza"] },
+            { name: "Victoria", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7793, lng: 39.2546, cat: "area", tags: ["kinondoni", "new bagamoyo", "kijitonyama", "mikocheni", "regent estate", "morocco", "makumbusho"] },
+            { name: "Mwenge", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7689, lng: 39.2286, cat: "area", tags: ["kinondoni", "mwenge market", "mlimani city", "survey", "udsm", "sinza", "kijitonyama", "mikocheni", "kawe", "lugalo", "makongo"] },
+
+            // Sinza & Sub-areas
+            { name: "Sinza", district: "Ubungo", city: "Dar es Salaam", lat: -6.7866, lng: 39.2275, cat: "area", tags: ["sinza mori", "sinza palestina", "sinza mugabe", "sinza kijiweni", "sinza kwa remmy", "sinza kumekucha", "sinza madukani", "sinza afrikasana", "ubungo", "kijitonyama", "mwenge", "mlimani city", "udsm", "shekilango"] },
+            { name: "Sinza Mori", district: "Ubungo", city: "Dar es Salaam", lat: -6.7824, lng: 39.2341, cat: "subarea", tags: ["sinza", "kijitonyama", "shekilango", "afrikasana", "ubungo"] },
+            { name: "Sinza Palestina", district: "Ubungo", city: "Dar es Salaam", lat: -6.7885, lng: 39.2268, cat: "subarea", tags: ["sinza", "hospital", "mugabe", "kijiweni", "ubungo"] },
+            { name: "Sinza Mugabe", district: "Ubungo", city: "Dar es Salaam", lat: -6.7908, lng: 39.2225, cat: "subarea", tags: ["sinza", "palestina", "ubungo", "shekilango", "maweni"] },
+            { name: "Sinza Kijiweni", district: "Ubungo", city: "Dar es Salaam", lat: -6.7848, lng: 39.2252, cat: "subarea", tags: ["sinza", "kwa remmy", "madukani", "mlimani city", "mwenge"] },
+            { name: "Sinza Kwa Remmy", district: "Ubungo", city: "Dar es Salaam", lat: -6.7832, lng: 39.2289, cat: "subarea", tags: ["sinza", "kijiweni", "mori", "mlimani city", "kijitonyama"] },
+
+            // Universities & Mlimani / Survey / Makongo
+            { name: "University of Dar es Salaam (UDSM)", district: "Ubungo", city: "Dar es Salaam", lat: -6.7795, lng: 39.2055, cat: "university", tags: ["udsm", "chuo kikuu", "mlimani", "survey", "mwenge", "sinza", "ubungo", "makongo juu", "changanyikeni", "ardhi", "hostel", "student", "main campus"] },
+            { name: "Mlimani City", district: "Ubungo", city: "Dar es Salaam", lat: -6.7731, lng: 39.2212, cat: "landmark", tags: ["mall", "sam nujoma", "survey", "udsm", "mwenge", "sinza", "ubungo", "ardhi university"] },
+            { name: "Survey", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7681, lng: 39.2165, cat: "area", tags: ["ardhi university", "aru", "udsm", "mlimani city", "mwenge", "makongo", "changanyikeni", "student", "hostel"] },
+            { name: "Ardhi University (ARU)", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7644, lng: 39.2131, cat: "university", tags: ["aru", "survey", "udsm", "makongo juu", "mwenge", "mlimani city", "student", "hostel"] },
+            { name: "Makongo Juu", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7485, lng: 39.2006, cat: "area", tags: ["makongo", "ardhi", "survey", "udsm", "changanyikeni", "goba", "mwenge", "lugalo", "kawe"] },
+            { name: "Changanyikeni", district: "Ubungo", city: "Dar es Salaam", lat: -6.7597, lng: 39.1932, cat: "area", tags: ["udsm", "makongo juu", "survey", "ardhi", "goba", "ubungo", "student"] },
+
+            // Kawe, Mbezi Beach, Goba, Tegeta, Boko, Bunju, Kunduchi
+            { name: "Kawe", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7379, lng: 39.2289, cat: "area", tags: ["kinondoni", "kawe beach", "lugalo", "mbezi beach", "mikocheni", "mwenge", "makongo", "tanganyika packers"] },
+            { name: "Mbezi Beach", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7068, lng: 39.2148, cat: "area", tags: ["mbezi", "mbezi beach africana", "mbezi makonde", "mbezi jogoo", "mbezi tanki bovu", "kawe", "goba", "tegeta", "kunduchi", "salasala", "kinondoni", "beach"] },
+            { name: "Mbezi Beach Africana", district: "Kinondoni", city: "Dar es Salaam", lat: -6.6956, lng: 39.2124, cat: "subarea", tags: ["mbezi beach", "mbezi", "salasala", "kunduchi", "tegeta", "kinondoni"] },
+            { name: "Mbezi Tanki Bovu", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7224, lng: 39.2185, cat: "subarea", tags: ["mbezi beach", "mbezi", "kawe", "goba", "makonde", "kinondoni"] },
+            { name: "Goba", district: "Ubungo", city: "Dar es Salaam", lat: -6.7166, lng: 39.1674, cat: "area", tags: ["goba center", "goba njia nne", "mbezi beach", "makongo juu", "madale", "salasala", "kimara", "mbezi luis", "ubungo"] },
+            { name: "Salasala", district: "Kinondoni", city: "Dar es Salaam", lat: -6.6902, lng: 39.1886, cat: "area", tags: ["mbezi beach", "africana", "tegeta", "goba", "madale", "kinondoni"] },
+            { name: "Tegeta", district: "Kinondoni", city: "Dar es Salaam", lat: -6.6552, lng: 39.1932, cat: "area", tags: ["tegeta kibaoni", "tegeta nyuki", "kunduchi", "boko", "bahari beach", "salasala", "mbezi beach", "wazo", "madale", "kinondoni"] },
+            { name: "Kunduchi", district: "Kinondoni", city: "Dar es Salaam", lat: -6.6665, lng: 39.2178, cat: "area", tags: ["kunduchi beach", "tegeta", "mbezi beach", "bahari beach", "ununi", "kinondoni"] },
+            { name: "Bahari Beach", district: "Kinondoni", city: "Dar es Salaam", lat: -6.6479, lng: 39.2121, cat: "area", tags: ["tegeta", "kunduchi", "boko", "ununio", "beach", "kinondoni"] },
+            { name: "Boko", district: "Kinondoni", city: "Dar es Salaam", lat: -6.6258, lng: 39.1765, cat: "area", tags: ["tegeta", "bunju", "bahari beach", "ununio", "basihaya", "kinondoni"] },
+            { name: "Bunju", district: "Kinondoni", city: "Dar es Salaam", lat: -6.5889, lng: 39.1462, cat: "area", tags: ["bunju a", "bunju b", "boko", "mabwepande", "bagamoyo road", "kinondoni"] },
+            { name: "Madale", district: "Kinondoni", city: "Dar es Salaam", lat: -6.6805, lng: 39.1419, cat: "area", tags: ["wazo", "goba", "salasala", "tegeta", "kinondoni"] },
+
+            // Ubungo, Kimara, Mbezi Luis, Magomeni, Manzese, Mabibo
+            { name: "Ubungo", district: "Ubungo", city: "Dar es Salaam", lat: -6.7924, lng: 39.2083, cat: "district", tags: ["ubungo plaza", "ubungo riverside", "ubungo external", "sinza", "kimara", "manzese", "mabibo", "udsm", "mlimani city", "mbezi luis", "goba", "morogoro road"] },
+            { name: "Ubungo Riverside", district: "Ubungo", city: "Dar es Salaam", lat: -6.8001, lng: 39.2055, cat: "subarea", tags: ["ubungo", "external", "mabibo", "mandela road", "kimara"] },
+            { name: "Kimara", district: "Ubungo", city: "Dar es Salaam", lat: -6.7918, lng: 39.1665, cat: "area", tags: ["kimara mwisho", "kimara korogwe", "kimara baruti", "kimara suka", "kimara bucha", "ubungo", "mbezi luis", "goba", "tabata", "morogoro road"] },
+            { name: "Kimara Korogwe", district: "Ubungo", city: "Dar es Salaam", lat: -6.7926, lng: 39.1815, cat: "subarea", tags: ["kimara", "ubungo", "baruti", "mwisho", "morogoro road"] },
+            { name: "Mbezi Luis (Mbezi Mwisho)", district: "Ubungo", city: "Dar es Salaam", lat: -6.7867, lng: 39.1128, cat: "area", tags: ["mbezi", "mbezi mwisho", "magufuli bus terminal", "kimara", "kibamba", "goba", "msakuzi", "ubungo", "morogoro road"] },
+            { name: "Kibamba", district: "Ubungo", city: "Dar es Salaam", lat: -6.7896, lng: 39.0672, cat: "area", tags: ["mbezi luis", "kiluvya", "luguruni", "ubungo", "morogoro road"] },
+            { name: "Mabibo", district: "Ubungo", city: "Dar es Salaam", lat: -6.8034, lng: 39.2227, cat: "area", tags: ["mabibo hostel", "nit", "national institute of transport", "ubungo", "manzese", "sinza", "kigogo", "udsm"] },
+            { name: "Manzese", district: "Ubungo", city: "Dar es Salaam", lat: -6.8012, lng: 39.2368, cat: "area", tags: ["ubungo", "sinza", "magomeni", "mabibo", "tandale", "morogoro road"] },
+            { name: "Magomeni", district: "Kinondoni", city: "Dar es Salaam", lat: -6.8065, lng: 39.2545, cat: "area", tags: ["magomeni mapipa", "magomeni kagera", "magomeni mwembechai", "kinondoni", "kariakoo", "manzese", "upanga", "morogoro road"] },
+
+            // Ilala, Posta, Kariakoo, Upanga, Tabata, Segerea, Airport
+            { name: "Ilala", district: "Ilala", city: "Dar es Salaam", lat: -6.8277, lng: 39.2571, cat: "district", tags: ["ilala boma", "kariakoo", "upanga", "posta", "cbd", "kisutu", "buguruni", "tabata", "segerea", "kinyerezi", "ukonga", "gerezani", "muhimbili"] },
+            { name: "Posta (Dar es Salaam CBD)", district: "Ilala", city: "Dar es Salaam", lat: -6.8161, lng: 39.2894, cat: "area", tags: ["cbd", "city center", "posta mpya", "kisutu", "kivukoni", "ifm", "cbe", "dit", "upanga", "kariakoo", "ferry", "ilala"] },
+            { name: "Kariakoo", district: "Ilala", city: "Dar es Salaam", lat: -6.8211, lng: 39.2747, cat: "area", tags: ["ilala", "market", "gerezani", "mnazi mmoja", "upanga", "posta", "jangwani", "magomeni", "dit"] },
+            { name: "Upanga", district: "Ilala", city: "Dar es Salaam", lat: -6.8068, lng: 39.2798, cat: "area", tags: ["upanga east", "upanga west", "muhimbili", "muhas", "aga khan", "palm beach", "sea view", "posta", "kariakoo", "kisutu", "ilala"] },
+            { name: "Muhimbili (MUHAS)", district: "Ilala", city: "Dar es Salaam", lat: -6.8066, lng: 39.2740, cat: "university", tags: ["muhas", "hospital", "upanga", "ilala", "kariakoo", "fire", "student", "medical"] },
+            { name: "Kisutu", district: "Ilala", city: "Dar es Salaam", lat: -6.8168, lng: 39.2839, cat: "area", tags: ["posta", "cbd", "upanga", "kariakoo", "mnazi mmoja", "ilala"] },
+            { name: "Tabata", district: "Ilala", city: "Dar es Salaam", lat: -6.8286, lng: 39.2163, cat: "area", tags: ["tabata bima", "tabata segerea", "tabata relini", "tabata kimanga", "tabata liwiti", "tabata kisiwani", "tabata sanene", "kinyerezi", "buguruni", "ilala", "ubungo"] },
+            { name: "Tabata Segerea", district: "Ilala", city: "Dar es Salaam", lat: -6.8351, lng: 39.1932, cat: "subarea", tags: ["tabata", "segerea", "kinyerezi", "ukonga", "ilala"] },
+            { name: "Kinyerezi", district: "Ilala", city: "Dar es Salaam", lat: -6.8469, lng: 39.1704, cat: "area", tags: ["tabata", "segerea", "kisukuru", "kimara", "ukonga", "ilala"] },
+            { name: "Buguruni", district: "Ilala", city: "Dar es Salaam", lat: -6.8339, lng: 39.2471, cat: "area", tags: ["ilala", "tabata", "vingunguti", "tazara", "malapa", "rozana"] },
+            { name: "Ukonga", district: "Ilala", city: "Dar es Salaam", lat: -6.8672, lng: 39.1818, cat: "area", tags: ["airport", "jnia", "gongo la mboto", "banana", "segerea", "kinyerezi", "ilala"] },
+            { name: "Julius Nyerere Airport (JNIA)", district: "Ilala", city: "Dar es Salaam", lat: -6.8781, lng: 39.2026, cat: "landmark", tags: ["airport", "kipawa", "ukonga", "banana", "gongo la mboto", "jet lumo", "ilala"] },
+            { name: "Gongo la Mboto", district: "Ilala", city: "Dar es Salaam", lat: -6.8834, lng: 39.1539, cat: "area", tags: ["ukonga", "airport", "kiu", "kampala university", "pugu", "chanika", "ilala"] },
+
+            // Temeke & Kigamboni
+            { name: "Temeke", district: "Temeke", city: "Dar es Salaam", lat: -6.8604, lng: 39.2618, cat: "district", tags: ["changombe", "kurasini", "tandika", "mbagala", "yombo", "chamazi", "kijichi", "benjamin mkapa stadium", "taifa", "duuce", "tia"] },
+            { name: "Chang'ombe", district: "Temeke", city: "Dar es Salaam", lat: -6.8473, lng: 39.2675, cat: "area", tags: ["temeke", "duce", "dar es salaam university college", "taifa", "stadium", "kurasini", "mgulani", "student"] },
+            { name: "Kurasini", district: "Temeke", city: "Dar es Salaam", lat: -6.8548, lng: 39.2861, cat: "area", tags: ["temeke", "tia", "bandari", "port", "changombe", "kigamboni bridge", "mgulani"] },
+            { name: "Mbagala", district: "Temeke", city: "Dar es Salaam", lat: -6.9061, lng: 39.2654, cat: "area", tags: ["mbagala rangi tatu", "mbagala zakhem", "mbagala kuu", "chamazi", "kijichi", "charambe", "temeke", "kilwa road"] },
+            { name: "Kigamboni", district: "Kigamboni", city: "Dar es Salaam", lat: -6.8428, lng: 39.3264, cat: "district", tags: ["ferry", "kivukoni", "kibada", "mjimwema", "gezaulole", "kisota", "tuangoma", "dege", "kigamboni bridge", "beach", "south beach", "tungi", "vijibweni", "mnma", "mwalimu nyerere"] },
+            { name: "Kigamboni Ferry", district: "Kigamboni", city: "Dar es Salaam", lat: -6.8246, lng: 39.3029, cat: "subarea", tags: ["kigamboni", "kivukoni", "posta", "tungi", "vijibweni", "mjimwema", "mnma"] },
+            { name: "Kibada, Kigamboni", district: "Kigamboni", city: "Dar es Salaam", lat: -6.8856, lng: 39.3324, cat: "area", tags: ["kigamboni", "kisota", "tuangoma", "mjimwema", "gezaulole", "bridge"] },
+            { name: "Mjimwema, Kigamboni", district: "Kigamboni", city: "Dar es Salaam", lat: -6.8567, lng: 39.3547, cat: "area", tags: ["kigamboni", "beach", "ferry", "gezaulole", "kibada", "dege"] },
+            { name: "Gezaulole, Kigamboni", district: "Kigamboni", city: "Dar es Salaam", lat: -6.8794, lng: 39.3924, cat: "area", tags: ["kigamboni", "mjimwema", "kibada", "beach", "south beach"] },
+
+            // Major Tanzania Cities & Key Neighborhoods
+            { name: "Arusha", district: "Arusha", city: "Arusha", lat: -3.3869, lng: 36.6830, cat: "city", tags: ["clock tower", "njiro", "sakina", "uzunguni", "ngaramtoni", "usa river", "moshono", "kijenge", "iaa", "arusha city"] },
+            { name: "Njiro, Arusha", district: "Arusha", city: "Arusha", lat: -3.4041, lng: 36.7068, cat: "area", tags: ["arusha", "iaa", "kijenge", "moshono"] },
+            { name: "Dodoma", district: "Dodoma", city: "Dodoma", lat: -6.1630, lng: 35.7516, cat: "city", tags: ["capital", "udom", "area d", "area c", "kisasa", "makulu", "iyumbu", "nzuguni", "cbe", "st john", "mipango"] },
+            { name: "UDOM (University of Dodoma)", district: "Dodoma", city: "Dodoma", lat: -6.2151, lng: 35.8058, cat: "university", tags: ["dodoma", "iyumbu", "chimwaga", "ng'ong'ona", "student", "hostel"] },
+            { name: "Mwanza", district: "Nyamagana", city: "Mwanza", lat: -2.5164, lng: 32.9175, cat: "city", tags: ["rock city", "nyamagana", "ilemela", "capri point", "buzuruga", "nyegezi", "saut", "bugando", "kirumba", "pasiansi"] },
+            { name: "Zanzibar (Stone Town)", district: "Mjini", city: "Zanzibar", lat: -6.1659, lng: 39.1990, cat: "city", tags: ["unguja", "stone town", "mbweni", "chukwani", "nungwi", "paje", "kendwa", "fumba", "suza", "beach"] },
+            { name: "Morogoro", district: "Morogoro", city: "Morogoro", lat: -6.8278, lng: 37.6591, cat: "city", tags: ["sua", "mzumbe", "kihonda", "mazimbu", "msamvu", "kigurunyembe", "forest"] },
+            { name: "Mbeya", district: "Mbeya", city: "Mbeya", lat: -8.9094, lng: 33.4608, cat: "city", tags: ["must", "uyole", "forest", "mwanjelwa", "kabisa", "iyunga", "sae"] },
+            { name: "Moshi", district: "Moshi", city: "Kilimanjaro", lat: -3.3349, lng: 37.3404, cat: "city", tags: ["kilimanjaro", "kcmc", "shanty town", "mocu", "majengo", "pasua", "soweto"] },
+            { name: "Tanga", district: "Tanga", city: "Tanga", lat: -5.0689, lng: 39.0988, cat: "city", tags: ["raskazone", "chumbageni", "donge", "ngamiani", "mabawa", "coastal"] },
+            { name: "Bagamoyo", district: "Bagamoyo", city: "Pwani", lat: -6.4422, lng: 38.9042, cat: "city", tags: ["pwani", "kaole", "kiromo", "beach", "dar es salaam"] },
+            { name: "Kibaha", district: "Kibaha", city: "Pwani", lat: -6.7667, lng: 38.9167, cat: "city", tags: ["pwani", "maili moja", "tumbi", "kongowe", "picha ya ndege", "morogoro road"] }
+        ];
+        window.ROOMIFY_PLACE_GRAPH = ROOMIFY_PLACE_GRAPH;
 
         function ensureGoogleLocationServices() {
             if (!window.google || !window.google.maps) return false;
@@ -1457,6 +1693,322 @@
             return true;
         }
 
+        function levenshteinLimited(a, b, maxDist) {
+            if (Math.abs(a.length - b.length) > maxDist) return maxDist + 1;
+            var prev = [];
+            var curr = [];
+            for (var j = 0; j <= b.length; j++) prev[j] = j;
+            for (var i = 1; i <= a.length; i++) {
+                curr[0] = i;
+                var rowMin = i;
+                for (var k = 1; k <= b.length; k++) {
+                    var cost = a.charCodeAt(i - 1) === b.charCodeAt(k - 1) ? 0 : 1;
+                    curr[k] = Math.min(prev[k] + 1, curr[k - 1] + 1, prev[k - 1] + cost);
+                    if (curr[k] < rowMin) rowMin = curr[k];
+                }
+                if (rowMin > maxDist) return maxDist + 1;
+                var tmp = prev; prev = curr; curr = tmp;
+            }
+            return prev[b.length];
+        }
+
+        function isSubsequence(needle, haystack) {
+            var ni = 0;
+            for (var hi = 0; hi < haystack.length && ni < needle.length; hi++) {
+                if (haystack.charCodeAt(hi) === needle.charCodeAt(ni)) ni++;
+            }
+            return ni === needle.length;
+        }
+
+        function highlightMatchedText(text, query) {
+            var safeText = escapeHtml(text || "");
+            var q = String(query || "").trim();
+            if (!q) return safeText;
+            var tokens = q.split(/\s+/).filter(function(t) { return t.length >= 1; });
+            if (tokens.length === 0) return safeText;
+            var escapedTokens = tokens.map(function(t) {
+                return t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            });
+            try {
+                var re = new RegExp("(" + escapedTokens.join("|") + ")", "gi");
+                return safeText.replace(re, '<span class="roomify-ac-match">$1</span>');
+            } catch (e) {
+                return safeText;
+            }
+        }
+
+        function countRoomsForPlace(place) {
+            var rooms = window.roomifyAllRooms || [];
+            if (rooms.length === 0) return 0;
+            var nameLower = String(place.name || "").split(",")[0].split("(")[0].trim().toLowerCase();
+            var count = 0;
+            for (var i = 0; i < rooms.length; i++) {
+                var r = rooms[i];
+                if (!r) continue;
+                var rLat = Number(r.latitude !== undefined ? r.latitude : r.lat);
+                var rLng = Number(r.longitude !== undefined ? r.longitude : r.lng);
+                var nearByCoords = false;
+                if (place.lat && place.lng && isFinite(rLat) && isFinite(rLng) && rLat !== 0 && rLng !== 0) {
+                    var radiusKm = place.cat === "city" ? 18 : (place.cat === "district" ? 7 : 3.2);
+                    nearByCoords = haversineKm(place.lat, place.lng, rLat, rLng) <= radiusKm;
+                }
+                if (nearByCoords) {
+                    count++;
+                    continue;
+                }
+                if (nameLower.length >= 3) {
+                    var neigh = Array.isArray(r.neighbourhoodPlaces) ? r.neighbourhoodPlaces.join(" ") : "";
+                    var searchable = [r.title, r.address, r.city, r.areaName, r.location, neigh].filter(Boolean).join(" ").toLowerCase();
+                    if (searchable.indexOf(nameLower) !== -1) count++;
+                }
+            }
+            return count;
+        }
+
+        function computeSmartPlaceMatches(rawQuery) {
+            var q = String(rawQuery || "").trim().toLowerCase();
+            var rooms = window.roomifyAllRooms || [];
+
+            // Empty query -> Show popular & active areas immediately on focus
+            if (!q) {
+                var popular = ROOMIFY_PLACE_GRAPH
+                    .map(function(p) {
+                        var rc = countRoomsForPlace(p);
+                        var isPopularHub = ["Mikocheni", "Sinza", "Masaki", "Mwenge", "Mbezi Beach", "University of Dar es Salaam (UDSM)", "Kariakoo", "Kigamboni", "Kinondoni", "Ubungo"].indexOf(p.name) !== -1;
+                        return {
+                            type: "place",
+                            name: p.name,
+                            subtitle: p.district === p.city ? (p.city + ", Tanzania") : (p.district + ", " + p.city),
+                            lat: p.lat,
+                            lng: p.lng,
+                            cat: p.cat,
+                            roomCount: rc,
+                            score: (rc > 0 ? 100 + rc * 10 : 0) + (isPopularHub ? 40 : 0)
+                        };
+                    })
+                    .filter(function(item) { return item.score > 0; })
+                    .sort(function(a, b) { return b.score - a.score; })
+                    .slice(0, 7);
+
+                return {
+                    primary: popular,
+                    related: [],
+                    properties: [],
+                    isPopularMode: true
+                };
+            }
+
+            var tokens = q.split(/[\s,]+/).filter(Boolean);
+            var primaryMatches = [];
+            var seenNames = {};
+
+            // 1. Score all curated places & sub-areas & landmarks
+            for (var i = 0; i < ROOMIFY_PLACE_GRAPH.length; i++) {
+                var p = ROOMIFY_PLACE_GRAPH[i];
+                var nameL = p.name.toLowerCase();
+                var distL = (p.district || "").toLowerCase();
+                var cityL = (p.city || "").toLowerCase();
+                var tagsL = (p.tags || []).join(" ").toLowerCase();
+                var nameWords = nameL.split(/[\s,()\-]+/).filter(Boolean);
+                var combinedL = nameL + " " + distL + " " + cityL + " " + tagsL;
+
+                var score = 0;
+                var matchReason = "";
+
+                if (nameL === q) {
+                    score = 130;
+                    matchReason = "exact";
+                } else if (nameL.indexOf(q) === 0) {
+                    score = 105;
+                    matchReason = "prefix";
+                } else if (nameWords.some(function(w) { return w.indexOf(q) === 0; })) {
+                    score = 92;
+                    matchReason = "word-prefix";
+                } else if (nameL.indexOf(q) !== -1) {
+                    score = 80;
+                    matchReason = "substring";
+                } else if (tokens.length > 1 && tokens.every(function(t) { return combinedL.indexOf(t) !== -1; })) {
+                    score = 78;
+                    matchReason = "multi-token";
+                } else if (distL.indexOf(q) === 0 || cityL.indexOf(q) === 0) {
+                    score = 68;
+                    matchReason = "district";
+                } else if (tagsL.indexOf(q) !== -1) {
+                    // Distinguish direct tag prefix vs general tag match
+                    var tagPrefix = (p.tags || []).some(function(tg) { return tg.toLowerCase().indexOf(q) === 0; });
+                    score = tagPrefix ? 65 : 56;
+                    matchReason = "related-tag";
+                } else if (q.length >= 4) {
+                    // Typo tolerance against area name words (e.g. "mikoceni" -> "Mikocheni")
+                    var maxErr = q.length >= 6 ? 2 : 1;
+                    var bestDist = 99;
+                    for (var wi = 0; wi < nameWords.length; wi++) {
+                        var w = nameWords[wi];
+                        if (w.length < 3) continue;
+                        var cmp = w.length > q.length + 1 ? w.slice(0, q.length + 1) : w;
+                        var d = levenshteinLimited(q, cmp, maxErr);
+                        if (d < bestDist) bestDist = d;
+                    }
+                    if (bestDist <= maxErr) {
+                        score = 52 - bestDist * 8;
+                        matchReason = "fuzzy";
+                    } else if (q.length >= 3 && isSubsequence(q, nameL.replace(/\s+/g, ""))) {
+                        score = 38;
+                        matchReason = "subsequence";
+                    }
+                }
+
+                if (score > 0) {
+                    var rc = countRoomsForPlace(p);
+                    var boostedScore = score + Math.min(18, rc * 4);
+                    seenNames[nameL] = true;
+                    primaryMatches.push({
+                        type: "place",
+                        name: p.name,
+                        subtitle: p.district === p.city ? (p.city + ", Tanzania") : (p.district + ", " + p.city),
+                        lat: p.lat,
+                        lng: p.lng,
+                        cat: p.cat,
+                        district: p.district,
+                        tags: p.tags || [],
+                        roomCount: rc,
+                        score: boostedScore,
+                        matchReason: matchReason
+                    });
+                }
+            }
+
+            // 2. Include dynamic backend/room areas not already in curated graph
+            var dynamicAreas = window.roomifyAreaSuggestions || [];
+            for (var ai = 0; ai < dynamicAreas.length; ai++) {
+                var areaStr = String(dynamicAreas[ai] || "").trim();
+                if (!areaStr) continue;
+                var areaL = areaStr.toLowerCase();
+                if (seenNames[areaL]) continue;
+                var aScore = 0;
+                if (areaL === q) aScore = 115;
+                else if (areaL.indexOf(q) === 0) aScore = 90;
+                else if (areaL.indexOf(q) !== -1) aScore = 72;
+                else if (tokens.length > 1 && tokens.every(function(t) { return areaL.indexOf(t) !== -1; })) aScore = 66;
+                if (aScore > 0) {
+                    seenNames[areaL] = true;
+                    var dynCount = countRoomsForPlace({ name: areaStr });
+                    primaryMatches.push({
+                        type: "area-text",
+                        name: areaStr,
+                        subtitle: "Roomify Active Area",
+                        lat: null,
+                        lng: null,
+                        cat: "area",
+                        roomCount: dynCount,
+                        score: aScore + Math.min(14, dynCount * 3),
+                        matchReason: "dynamic-area"
+                    });
+                }
+            }
+
+            primaryMatches.sort(function(a, b) { return b.score - a.score; });
+
+            // Separate direct matches vs related-tag/district matches cleanly
+            var directList = [];
+            var relatedList = [];
+            var relatedSeen = {};
+
+            for (var pi = 0; pi < primaryMatches.length; pi++) {
+                var m = primaryMatches[pi];
+                if (m.matchReason === "related-tag" || (m.matchReason === "district" && directList.length >= 2)) {
+                    if (!relatedSeen[m.name.toLowerCase()]) {
+                        relatedSeen[m.name.toLowerCase()] = true;
+                        relatedList.push(m);
+                    }
+                } else {
+                    directList.push(m);
+                }
+            }
+
+            // 3. Geographic & Tag Expansion: Pull nearby sibling areas around the top direct match!
+            // Example: typing "Mikocheni" also surfaces Msasani, Kijitonyama, Mwenge, Kawe, Sinza
+            var anchor = directList[0] || relatedList[0];
+            if (anchor && anchor.lat && anchor.lng) {
+                var directNames = {};
+                directList.forEach(function(d) { directNames[d.name.toLowerCase()] = true; });
+                var anchorTags = (anchor.tags || []).map(function(t) { return t.toLowerCase(); });
+
+                var nearbyCandidates = [];
+                for (var gi = 0; gi < ROOMIFY_PLACE_GRAPH.length; gi++) {
+                    var cand = ROOMIFY_PLACE_GRAPH[gi];
+                    var candL = cand.name.toLowerCase();
+                    if (directNames[candL] || relatedSeen[candL]) continue;
+
+                    var distKm = haversineKm(anchor.lat, anchor.lng, cand.lat, cand.lng);
+                    var sharesTag = anchorTags.indexOf(candL) !== -1 ||
+                        (cand.tags || []).some(function(ct) { return ct.toLowerCase() === anchor.name.toLowerCase(); });
+                    var sameDistrict = anchor.district && cand.district && anchor.district === cand.district;
+
+                    if (distKm <= 4.2 || sharesTag || (anchor.cat === "district" && sameDistrict)) {
+                        var relScore = (sharesTag ? 40 : 0) + (sameDistrict ? 20 : 0) + Math.max(0, 30 - distKm * 6);
+                        var candRooms = countRoomsForPlace(cand);
+                        nearbyCandidates.push({
+                            type: "place",
+                            name: cand.name,
+                            subtitle: (distKm < 1 ? "< 1 km" : distKm.toFixed(1) + " km") + " from " + anchor.name.split(",")[0].split("(")[0].trim() + " · " + cand.district,
+                            lat: cand.lat,
+                            lng: cand.lng,
+                            cat: cand.cat,
+                            roomCount: candRooms,
+                            score: relScore + Math.min(12, candRooms * 3),
+                            matchReason: "nearby"
+                        });
+                    }
+                }
+
+                nearbyCandidates.sort(function(a, b) { return b.score - a.score; });
+                nearbyCandidates.slice(0, 5).forEach(function(nc) {
+                    if (!relatedSeen[nc.name.toLowerCase()]) {
+                        relatedSeen[nc.name.toLowerCase()] = true;
+                        relatedList.push(nc);
+                    }
+                });
+            }
+
+            // 4. Matching Roomify properties (by title, address, or neighbourhood)
+            var matchingProperties = [];
+            if (q.length >= 2 && rooms.length > 0) {
+                var propSeen = {};
+                for (var ri = 0; ri < rooms.length; ri++) {
+                    var rm = rooms[ri];
+                    if (!rm || !rm.title) continue;
+                    var titleL = String(rm.title).toLowerCase();
+                    var addrL = String(rm.address || rm.areaName || "").toLowerCase();
+                    if (titleL.indexOf(q) !== -1 || (tokens.length > 1 && tokens.every(function(t) { return (titleL + " " + addrL).indexOf(t) !== -1; }))) {
+                        var key = titleL + "|" + (rm.latitude || rm.lat);
+                        if (propSeen[key]) continue;
+                        propSeen[key] = true;
+                        var rLat = Number(rm.latitude !== undefined ? rm.latitude : rm.lat);
+                        var rLng = Number(rm.longitude !== undefined ? rm.longitude : rm.lng);
+                        matchingProperties.push({
+                            type: "property",
+                            name: rm.title,
+                            subtitle: (rm.address && !String(rm.address).startsWith("Coordinates:")) ? rm.address : (rm.areaName || "Dar es Salaam"),
+                            priceLabel: rm.price ? (Number(rm.price).toLocaleString() + " TZS") : "",
+                            lat: isFinite(rLat) ? rLat : null,
+                            lng: isFinite(rLng) ? rLng : null,
+                            room: rm
+                        });
+                        if (matchingProperties.length >= 3) break;
+                    }
+                }
+            }
+
+            return {
+                primary: directList.slice(0, 6),
+                related: relatedList.slice(0, 5),
+                properties: matchingProperties,
+                isPopularMode: false
+            };
+        }
+        window.roomifyComputeSmartPlaces = computeSmartPlaceMatches;
+
         function panToGooglePrediction(prediction) {
             ensureGoogleLocationServices();
             if (prediction.place_id && placesServiceInstance) {
@@ -1467,159 +2019,356 @@
                             var loc = place.geometry.location;
                             filterRoomsByPlaceOrLocation(place.name || prediction.description, loc.lat(), loc.lng(), place.geometry.viewport);
                         } else {
-                            filterRooms(prediction.description);
+                            geocodeAndMoveMapToLocation(prediction.description);
                         }
                     }
                 );
             } else {
-                filterRooms(prediction.description);
+                geocodeAndMoveMapToLocation(prediction.description);
             }
         }
 
-        input.addEventListener(
-            "input",
-            function () {
-                var query = input.value.trim();
-                window.roomifySearchQuery = query;
-                clear.style.display = query.length > 0 ? "flex" : "none";
+        function selectDropdownEntry(entry) {
+            if (!entry) return;
+            input.value = entry.name;
+            window.roomifySearchQuery = entry.name;
+            clear.style.display = entry.name.length > 0 ? "flex" : "none";
+            dropdown.style.display = "none";
+            activeDropdownIndex = -1;
 
-                if (autocompleteDebounceTimer) clearTimeout(autocompleteDebounceTimer);
-                autocompleteDebounceTimer = setTimeout(function() {
-                    updateAutocompleteDropdown(query);
-                }, 160);
+            if (entry.type === "google") {
+                panToGooglePrediction(entry.prediction);
+            } else if (entry.type === "osm" || entry.type === "place") {
+                if (entry.lat && entry.lng) {
+                    filterRoomsByPlaceOrLocation(entry.name, entry.lat, entry.lng, null);
+                } else {
+                    filterRooms(entry.name);
+                }
+            } else if (entry.type === "property") {
+                if (entry.lat && entry.lng) {
+                    filterRoomsByPlaceOrLocation(entry.name, entry.lat, entry.lng, null);
+                } else {
+                    filterRooms(entry.name);
+                }
+            } else {
+                filterRooms(entry.name);
             }
-        );
+        }
 
-        function renderAutocompleteItems(localMatches, googlePredictions) {
+        function updateActiveDropdownHighlight() {
+            var nodes = dropdown.querySelectorAll(".roomify-autocomplete-item");
+            for (var i = 0; i < nodes.length; i++) {
+                if (i === activeDropdownIndex) {
+                    nodes[i].classList.add("ac-active");
+                    if (typeof nodes[i].scrollIntoView === "function") {
+                        nodes[i].scrollIntoView({ block: "nearest" });
+                    }
+                } else {
+                    nodes[i].classList.remove("ac-active");
+                }
+            }
+        }
+
+        function renderSmartAutocomplete(query, localResult, externalPlaces) {
             dropdown.innerHTML = "";
-            var totalCount = 0;
+            currentDropdownEntries = [];
+            activeDropdownIndex = -1;
 
-            localMatches.forEach(function(area) {
-                var item = document.createElement("div");
-                item.className = "roomify-autocomplete-item";
-                item.innerHTML =
-                    '<span style="margin-right:10px;font-size:15px;">🏠</span>' +
-                    '<div style="display:flex;flex-direction:column;min-width:0;">' +
-                        '<span style="font-weight:700;color:#142170;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(area) + '</span>' +
-                        '<span style="font-size:10px;color:#64748B;">Roomify Property Area</span>' +
-                    '</div>';
-                item.onclick = function() {
-                    input.value = area;
-                    window.roomifySearchQuery = area;
-                    dropdown.style.display = "none";
-                    filterRooms(area);
-                };
-                dropdown.appendChild(item);
-                totalCount++;
-            });
+            var renderedKeys = {};
 
-            googlePredictions.forEach(function(pred) {
-                var mainText = (pred.structured_formatting && pred.structured_formatting.main_text)
-                    ? pred.structured_formatting.main_text
-                    : pred.description;
-                var secondaryText = (pred.structured_formatting && pred.structured_formatting.secondary_text)
-                    ? pred.structured_formatting.secondary_text
-                    : "Google Maps Location";
+            function appendSectionHeader(label, rightHint) {
+                var header = document.createElement("div");
+                header.className = "roomify-ac-section";
+                header.innerHTML =
+                    '<span>' + escapeHtml(label) + '</span>' +
+                    (rightHint ? '<span style="font-weight:600;color:#94A3B8;text-transform:none;letter-spacing:0;">' + escapeHtml(rightHint) + '</span>' : '');
+                dropdown.appendChild(header);
+            }
+
+            function appendItem(entry, iconChar, iconClass, badgeHtml) {
+                var idx = currentDropdownEntries.length;
+                currentDropdownEntries.push(entry);
 
                 var item = document.createElement("div");
                 item.className = "roomify-autocomplete-item";
+                item.setAttribute("data-ac-index", String(idx));
                 item.innerHTML =
-                    '<span style="margin-right:10px;font-size:15px;">📍</span>' +
-                    '<div style="display:flex;flex-direction:column;min-width:0;">' +
-                        '<span style="font-weight:700;color:#0F172A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(mainText) + '</span>' +
-                        '<span style="font-size:11px;color:#64748B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(secondaryText) + '</span>' +
-                    '</div>';
-                item.onclick = function() {
-                    input.value = mainText;
-                    window.roomifySearchQuery = mainText;
-                    dropdown.style.display = "none";
-                    panToGooglePrediction(pred);
-                };
+                    '<div class="roomify-ac-icon ' + iconClass + '">' + iconChar + '</div>' +
+                    '<div class="roomify-ac-body">' +
+                        '<div class="roomify-ac-title">' + highlightMatchedText(entry.name, query) + '</div>' +
+                        '<div class="roomify-ac-subtitle">' + highlightMatchedText(entry.subtitle || "", query) + '</div>' +
+                    '</div>' +
+                    (badgeHtml ? '<div class="roomify-ac-badges">' + badgeHtml + '</div>' : '');
+
+                item.addEventListener("mousedown", function(e) {
+                    // mousedown fires before blur so clicking always selects cleanly
+                    e.preventDefault();
+                    selectDropdownEntry(entry);
+                });
+                item.addEventListener("mouseenter", function() {
+                    activeDropdownIndex = idx;
+                    updateActiveDropdownHighlight();
+                });
+
                 dropdown.appendChild(item);
-                totalCount++;
+            }
+
+            // 1. Primary Matching Places & Areas (or Popular Areas when empty)
+            if (localResult.primary && localResult.primary.length > 0) {
+                appendSectionHeader(
+                    localResult.isPopularMode ? "Popular Areas in Tanzania" : "Matching Areas & Places",
+                    localResult.isPopularMode ? "Tap to explore" : ""
+                );
+                localResult.primary.forEach(function(p) {
+                    var key = p.name.toLowerCase().split(",")[0].trim();
+                    renderedKeys[key] = true;
+                    var icon = p.cat === "university" ? "🎓" : (p.cat === "landmark" ? "🏬" : (p.cat === "district" ? "🗺️" : (p.cat === "city" ? "🌆" : "📍")));
+                    var badge = "";
+                    if (p.roomCount > 0) {
+                        badge = '<span class="roomify-ac-badge">' + p.roomCount + (p.roomCount === 1 ? " room" : " rooms") + '</span>';
+                    } else if (p.cat === "district" || p.cat === "city") {
+                        badge = '<span class="roomify-ac-badge is-tag">' + (p.cat === "district" ? "District" : "City") + '</span>';
+                    }
+                    appendItem(p, icon, "is-area", badge);
+                });
+            }
+
+            // 2. Related & Nearby Areas (shows all corresponding neighborhoods around the typed place/district)
+            if (localResult.related && localResult.related.length > 0) {
+                appendSectionHeader("Related & Nearby Areas", "Corresponding areas");
+                localResult.related.forEach(function(r) {
+                    var key = r.name.toLowerCase().split(",")[0].trim();
+                    renderedKeys[key] = true;
+                    var icon = r.cat === "university" ? "🎓" : (r.cat === "landmark" ? "🏬" : "🏘️");
+                    var badge = r.roomCount > 0
+                        ? '<span class="roomify-ac-badge">' + r.roomCount + (r.roomCount === 1 ? " room" : " rooms") + '</span>'
+                        : '<span class="roomify-ac-badge is-related">Nearby</span>';
+                    appendItem(r, icon, "is-related", badge);
+                });
+            }
+
+            // 3. Matching Roomify Properties
+            if (localResult.properties && localResult.properties.length > 0) {
+                appendSectionHeader("Matching Properties", "Roomify");
+                localResult.properties.forEach(function(prop) {
+                    var badge = prop.priceLabel
+                        ? '<span class="roomify-ac-badge">' + escapeHtml(prop.priceLabel) + '</span>'
+                        : '<span class="roomify-ac-badge">Listing</span>';
+                    appendItem(prop, "🏠", "is-property", badge);
+                });
+            }
+
+            // 4. Live External Map Places (Google Places / Nominatim), deduplicated
+            var dedupExternal = (externalPlaces || []).filter(function(ext) {
+                var key = String(ext.name || "").toLowerCase().split(",")[0].trim();
+                if (!key || renderedKeys[key]) return false;
+                renderedKeys[key] = true;
+                return true;
             });
 
-            dropdown.style.display = totalCount > 0 ? "block" : "none";
+            if (dedupExternal.length > 0) {
+                appendSectionHeader("More Locations on Map", "Live search");
+                dedupExternal.slice(0, 5).forEach(function(ext) {
+                    appendItem(ext, "🧭", "is-google", '<span class="roomify-ac-badge is-tag">Map</span>');
+                });
+            }
+
+            dropdown.style.display = currentDropdownEntries.length > 0 ? "block" : "none";
         }
 
-        function updateAutocompleteDropdown(query) {
-            if (query.length < 2) {
-                dropdown.style.display = "none";
+        function fetchNominatimSuggestions(query, reqSeq, localResult) {
+            if (query.length < 3) return;
+            fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&countrycodes=tz&limit=5&q=" + encodeURIComponent(query))
+                .then(function(r) { return r.json(); })
+                .then(function(list) {
+                    if (reqSeq !== autocompleteRequestSeq) return;
+                    if (!Array.isArray(list) || list.length === 0) return;
+                    var osmEntries = list.map(function(item) {
+                        var parts = String(item.display_name || query).split(",").map(function(s) { return s.trim(); }).filter(Boolean);
+                        var main = item.name || parts[0] || query;
+                        var sub = parts.slice(1, 3).join(", ") || "Tanzania";
+                        return {
+                            type: "osm",
+                            name: main,
+                            subtitle: sub,
+                            lat: Number(item.lat),
+                            lng: Number(item.lon)
+                        };
+                    });
+                    renderSmartAutocomplete(query, localResult, osmEntries);
+                })
+                .catch(function() {});
+        }
+
+        function updateAutocompleteDropdown(query, showPopularIfEmpty) {
+            var reqSeq = ++autocompleteRequestSeq;
+
+            if (!query) {
+                if (showPopularIfEmpty) {
+                    var popRes = computeSmartPlaceMatches("");
+                    renderSmartAutocomplete("", popRes, []);
+                } else {
+                    dropdown.style.display = "none";
+                }
                 return;
             }
 
-            var localFiltered = (window.roomifyAreaSuggestions || []).filter(function(area) {
-                return area && area.toLowerCase().includes(query.toLowerCase()) && area.toLowerCase() !== query.toLowerCase();
-            }).slice(0, 3);
+            // Phase 1 (0ms Instant): Smart fuzzy + related-area + active listings match
+            var localResult = computeSmartPlaceMatches(query);
+            renderSmartAutocomplete(query, localResult, []);
 
-            ensureGoogleLocationServices();
+            // Phase 2 (Debounced Live): Enrich with Google Places Autocomplete (biased to map viewport), fallback to Nominatim
+            if (query.length < 2) return;
+            if (autocompleteDebounceTimer) clearTimeout(autocompleteDebounceTimer);
+            autocompleteDebounceTimer = setTimeout(function() {
+                if (reqSeq !== autocompleteRequestSeq) return;
+                ensureGoogleLocationServices();
 
-            if (autocompleteServiceInstance) {
-                autocompleteServiceInstance.getPlacePredictions(
-                    {
+                if (autocompleteServiceInstance) {
+                    var reqOptions = {
                         input: query,
                         componentRestrictions: { country: "tz" }
-                    },
-                    function(predictions, status) {
-                        var validPreds = (status === google.maps.places.PlacesServiceStatus.OK && Array.isArray(predictions))
-                            ? predictions.slice(0, 5)
-                            : [];
-                        renderAutocompleteItems(localFiltered, validPreds);
-                    }
-                );
-            } else {
-                renderAutocompleteItems(localFiltered, []);
-            }
+                    };
+                    try {
+                        if (window.roomifyMap && typeof window.roomifyMap.getCenter === "function") {
+                            reqOptions.location = window.roomifyMap.getCenter();
+                            reqOptions.radius = 25000;
+                        }
+                    } catch (e) {}
+
+                    autocompleteServiceInstance.getPlacePredictions(
+                        reqOptions,
+                        function(predictions, status) {
+                            if (reqSeq !== autocompleteRequestSeq) return;
+                            if (status === google.maps.places.PlacesServiceStatus.OK && Array.isArray(predictions) && predictions.length > 0) {
+                                var googleEntries = predictions.slice(0, 6).map(function(pred) {
+                                    var mainText = (pred.structured_formatting && pred.structured_formatting.main_text)
+                                        ? pred.structured_formatting.main_text
+                                        : pred.description;
+                                    var secondaryText = (pred.structured_formatting && pred.structured_formatting.secondary_text)
+                                        ? pred.structured_formatting.secondary_text
+                                        : "Tanzania";
+                                    return {
+                                        type: "google",
+                                        name: mainText,
+                                        subtitle: secondaryText,
+                                        prediction: pred
+                                    };
+                                });
+                                renderSmartAutocomplete(query, localResult, googleEntries);
+                            } else {
+                                fetchNominatimSuggestions(query, reqSeq, localResult);
+                            }
+                        }
+                    );
+                } else {
+                    fetchNominatimSuggestions(query, reqSeq, localResult);
+                }
+            }, 130);
+        }
+
+        input.addEventListener("input", function () {
+            var query = input.value.trim();
+            window.roomifySearchQuery = query;
+            clear.style.display = query.length > 0 ? "flex" : "none";
+            updateAutocompleteDropdown(query, true);
+        });
+
+        input.addEventListener("focus", function () {
+            updateAutocompleteDropdown(input.value.trim(), true);
+        });
+
+        var searchIconEl = wrapper.querySelector(".roomify-search-icon");
+        if (searchIconEl) {
+            searchIconEl.addEventListener("click", function() {
+                var q = input.value.trim();
+                dropdown.style.display = "none";
+                if (q) {
+                    filterRooms(q);
+                } else {
+                    input.focus();
+                }
+            });
         }
 
         // Close dropdown when clicking outside
         document.addEventListener("click", function(e) {
             if (!wrapper.contains(e.target)) {
                 dropdown.style.display = "none";
+                activeDropdownIndex = -1;
             }
         });
-
 
         clear.addEventListener(
             "click",
             function (event) {
-
                 event.preventDefault();
                 event.stopPropagation();
 
                 input.value = "";
-
-                window.roomifySearchQuery =
-                    "";
-
-                clear.style.display =
-                    "none";
-
+                window.roomifySearchQuery = "";
+                clear.style.display = "none";
                 dropdown.style.display = "none";
+                activeDropdownIndex = -1;
+
+                if (window.roomifySearchMarker) {
+                    window.roomifySearchMarker.setMap(null);
+                    window.roomifySearchMarker = null;
+                }
 
                 filterRooms("");
             }
         );
 
-
         /*
-         * Enter key: filter rooms by name/area AND geocode via Google Places/Geocoder if needed
+         * Keyboard navigation: ArrowDown / ArrowUp / Enter / Escape
          */
-
         input.addEventListener(
             "keydown",
             function (event) {
+                var isOpen = dropdown.style.display === "block" && currentDropdownEntries.length > 0;
 
-                if (
-                    event.key === "Enter"
-                ) {
+                if (event.key === "ArrowDown") {
+                    if (isOpen) {
+                        event.preventDefault();
+                        activeDropdownIndex = (activeDropdownIndex + 1) % currentDropdownEntries.length;
+                        updateActiveDropdownHighlight();
+                    }
+                    return;
+                }
 
-                    event.preventDefault();
+                if (event.key === "ArrowUp") {
+                    if (isOpen) {
+                        event.preventDefault();
+                        activeDropdownIndex = activeDropdownIndex <= 0
+                            ? currentDropdownEntries.length - 1
+                            : activeDropdownIndex - 1;
+                        updateActiveDropdownHighlight();
+                    }
+                    return;
+                }
+
+                if (event.key === "Escape") {
                     dropdown.style.display = "none";
+                    activeDropdownIndex = -1;
+                    return;
+                }
 
-                    filterRooms(
-                        input.value.trim()
-                    );
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    if (isOpen && activeDropdownIndex >= 0 && currentDropdownEntries[activeDropdownIndex]) {
+                        selectDropdownEntry(currentDropdownEntries[activeDropdownIndex]);
+                    } else {
+                        var typed = input.value.trim();
+                        dropdown.style.display = "none";
+                        // If typed query matches a known curated place cleanly, zoom directly to it!
+                        var topMatch = currentDropdownEntries[0];
+                        if (topMatch && topMatch.type === "place" && topMatch.name.toLowerCase() === typed.toLowerCase() && topMatch.lat && topMatch.lng) {
+                            selectDropdownEntry(topMatch);
+                        } else {
+                            filterRooms(typed);
+                        }
+                    }
                 }
             }
         );
@@ -1990,8 +2739,9 @@
                         <div style="font-size: 16px; font-weight: bold; color: #111827; margin-bottom: 16px;">Preferences</div>
 
                         <!-- Location Field (Placeholder "Location", no separate heading above) -->
-                        <div style="margin-bottom: 16px;">
-                            <input type="text" id="sidebar-search-input" placeholder="Location" style="width: 100%; height: 48px; border: 1px solid #CBD5E1; border-radius: 14px; padding: 0 14px; outline: none; font-size: 14px; background: #ffffff;">
+                        <div id="sidebar-search-wrapper" style="margin-bottom: 16px; position: relative;">
+                            <input type="text" id="sidebar-search-input" autocomplete="off" placeholder="Location (e.g. Mikocheni, Sinza, UDSM...)" style="width: 100%; height: 48px; border: 1px solid #CBD5E1; border-radius: 14px; padding: 0 14px; outline: none; font-size: 14px; background: #ffffff;">
+                            <div id="sidebar-autocomplete-dropdown" class="roomify-autocomplete-dropdown" style="max-height: 300px;"></div>
                         </div>
 
                         <!-- What are you looking for? -->
@@ -2062,33 +2812,192 @@
 
         document.body.appendChild(sidebar);
 
-        // Wire Google Places Autocomplete and Enter key on sidebar location input
+        // Wire Smart Related-Area + Google Places + Nominatim autocomplete on sidebar location input
         const quickSearchInput = document.getElementById("sidebar-search-input");
-        if (quickSearchInput) {
-            if (window.google && window.google.maps && window.google.maps.places && typeof google.maps.places.Autocomplete === "function") {
-                try {
-                    const sidebarAutocomplete = new google.maps.places.Autocomplete(quickSearchInput, {
-                        componentRestrictions: { country: "tz" },
-                        fields: ["name", "geometry", "formatted_address"]
-                    });
-                    sidebarAutocomplete.addListener("place_changed", function() {
-                        const place = sidebarAutocomplete.getPlace();
-                        if (place && place.geometry && place.geometry.location) {
-                            const placeName = place.name || (place.formatted_address ? place.formatted_address.split(",")[0] : quickSearchInput.value.trim());
-                            quickSearchInput.value = placeName;
-                            filterRoomsByPlaceOrLocation(placeName, place.geometry.location.lat(), place.geometry.location.lng(), place.geometry.viewport);
-                            if (window.innerWidth < 900) closeSidebar();
-                        }
-                    });
-                } catch (err) {
-                    console.warn("Roomify: Sidebar Places Autocomplete init skipped:", err);
+        const sidebarDropdown = document.getElementById("sidebar-autocomplete-dropdown");
+        const sidebarSearchWrapper = document.getElementById("sidebar-search-wrapper");
+        if (quickSearchInput && sidebarDropdown) {
+            var sbAcSeq = 0;
+            var sbAcTimer = null;
+            var sbEntries = [];
+            var sbActiveIdx = -1;
+            var sbAutocompleteSvc = null;
+            var sbPlacesSvc = null;
+
+            function selectSidebarEntry(entry) {
+                if (!entry) return;
+                quickSearchInput.value = entry.name;
+                sidebarDropdown.style.display = "none";
+                sbActiveIdx = -1;
+                if (entry.type === "google" && entry.prediction && entry.prediction.place_id) {
+                    if (!sbPlacesSvc && window.google && window.google.maps && window.google.maps.places && window.roomifyMap) {
+                        sbPlacesSvc = new google.maps.places.PlacesService(window.roomifyMap);
+                    }
+                    if (sbPlacesSvc) {
+                        sbPlacesSvc.getDetails(
+                            { placeId: entry.prediction.place_id, fields: ["name", "geometry", "formatted_address"] },
+                            function(place, status) {
+                                if (status === google.maps.places.PlacesServiceStatus.OK && place && place.geometry && place.geometry.location) {
+                                    filterRoomsByPlaceOrLocation(place.name || entry.name, place.geometry.location.lat(), place.geometry.location.lng(), place.geometry.viewport);
+                                } else {
+                                    geocodeAndMoveMapToLocation(entry.name);
+                                }
+                            }
+                        );
+                    } else {
+                        geocodeAndMoveMapToLocation(entry.name);
+                    }
+                } else if (entry.lat && entry.lng) {
+                    filterRoomsByPlaceOrLocation(entry.name, entry.lat, entry.lng, null);
+                } else {
+                    applySidebarFilters();
                 }
+                if (window.innerWidth < 900) closeSidebar();
             }
+
+            function renderSidebarDropdown(query, localRes, extList) {
+                sidebarDropdown.innerHTML = "";
+                sbEntries = [];
+                sbActiveIdx = -1;
+                var seen = {};
+
+                function addHeader(title) {
+                    var h = document.createElement("div");
+                    h.className = "roomify-ac-section";
+                    h.innerHTML = "<span>" + escapeHtml(title) + "</span>";
+                    sidebarDropdown.appendChild(h);
+                }
+
+                function addRow(entry, icon, cls, badgeText, badgeCls) {
+                    var idx = sbEntries.length;
+                    sbEntries.push(entry);
+                    var row = document.createElement("div");
+                    row.className = "roomify-autocomplete-item";
+                    row.innerHTML =
+                        '<div class="roomify-ac-icon ' + cls + '">' + icon + '</div>' +
+                        '<div class="roomify-ac-body">' +
+                            '<div class="roomify-ac-title">' + escapeHtml(entry.name) + '</div>' +
+                            '<div class="roomify-ac-subtitle">' + escapeHtml(entry.subtitle || "") + '</div>' +
+                        '</div>' +
+                        (badgeText ? '<div class="roomify-ac-badges"><span class="roomify-ac-badge ' + (badgeCls || "") + '">' + escapeHtml(badgeText) + '</span></div>' : '');
+                    row.addEventListener("mousedown", function(e) {
+                        e.preventDefault();
+                        selectSidebarEntry(entry);
+                    });
+                    sidebarDropdown.appendChild(row);
+                }
+
+                if (localRes && localRes.primary && localRes.primary.length > 0) {
+                    addHeader(localRes.isPopularMode ? "Popular Areas" : "Matching Areas");
+                    localRes.primary.slice(0, 5).forEach(function(p) {
+                        seen[p.name.toLowerCase().split(",")[0].trim()] = true;
+                        var b = p.roomCount > 0 ? (p.roomCount + (p.roomCount === 1 ? " room" : " rooms")) : "";
+                        addRow(p, p.cat === "university" ? "🎓" : "📍", "is-area", b, "");
+                    });
+                }
+
+                if (localRes && localRes.related && localRes.related.length > 0) {
+                    addHeader("Related & Nearby Areas");
+                    localRes.related.slice(0, 4).forEach(function(r) {
+                        seen[r.name.toLowerCase().split(",")[0].trim()] = true;
+                        var b = r.roomCount > 0 ? (r.roomCount + (r.roomCount === 1 ? " room" : " rooms")) : "Nearby";
+                        addRow(r, "🏘️", "is-related", b, r.roomCount > 0 ? "" : "is-related");
+                    });
+                }
+
+                var extFiltered = (extList || []).filter(function(ext) {
+                    var k = String(ext.name || "").toLowerCase().split(",")[0].trim();
+                    if (!k || seen[k]) return false;
+                    seen[k] = true;
+                    return true;
+                });
+                if (extFiltered.length > 0) {
+                    addHeader("More Map Locations");
+                    extFiltered.slice(0, 4).forEach(function(ext) {
+                        addRow(ext, "🧭", "is-google", "Map", "is-tag");
+                    });
+                }
+
+                sidebarDropdown.style.display = sbEntries.length > 0 ? "block" : "none";
+            }
+
+            function refreshSidebarAutocomplete(q) {
+                var seq = ++sbAcSeq;
+                var localRes = (typeof window.roomifyComputeSmartPlaces === "function")
+                    ? window.roomifyComputeSmartPlaces(q)
+                    : { primary: [], related: [], properties: [], isPopularMode: false };
+                renderSidebarDropdown(q, localRes, []);
+
+                if (!q || q.length < 2) return;
+                if (sbAcTimer) clearTimeout(sbAcTimer);
+                sbAcTimer = setTimeout(function() {
+                    if (seq !== sbAcSeq) return;
+                    if (!sbAutocompleteSvc && window.google && window.google.maps && window.google.maps.places && typeof google.maps.places.AutocompleteService === "function") {
+                        sbAutocompleteSvc = new google.maps.places.AutocompleteService();
+                    }
+                    if (sbAutocompleteSvc) {
+                        sbAutocompleteSvc.getPlacePredictions(
+                            { input: q, componentRestrictions: { country: "tz" } },
+                            function(preds, status) {
+                                if (seq !== sbAcSeq) return;
+                                if (status === google.maps.places.PlacesServiceStatus.OK && Array.isArray(preds) && preds.length > 0) {
+                                    var gList = preds.slice(0, 4).map(function(pr) {
+                                        return {
+                                            type: "google",
+                                            name: (pr.structured_formatting && pr.structured_formatting.main_text) || pr.description,
+                                            subtitle: (pr.structured_formatting && pr.structured_formatting.secondary_text) || "Tanzania",
+                                            prediction: pr
+                                        };
+                                    });
+                                    renderSidebarDropdown(q, localRes, gList);
+                                }
+                            }
+                        );
+                    }
+                }, 140);
+            }
+
+            quickSearchInput.addEventListener("input", function() {
+                refreshSidebarAutocomplete(quickSearchInput.value.trim());
+            });
+            quickSearchInput.addEventListener("focus", function() {
+                refreshSidebarAutocomplete(quickSearchInput.value.trim());
+            });
+            document.addEventListener("click", function(e) {
+                if (sidebarSearchWrapper && !sidebarSearchWrapper.contains(e.target)) {
+                    sidebarDropdown.style.display = "none";
+                    sbActiveIdx = -1;
+                }
+            });
             quickSearchInput.addEventListener("keydown", function(e) {
+                var open = sidebarDropdown.style.display === "block" && sbEntries.length > 0;
+                if (e.key === "ArrowDown" && open) {
+                    e.preventDefault();
+                    sbActiveIdx = (sbActiveIdx + 1) % sbEntries.length;
+                    var rows = sidebarDropdown.querySelectorAll(".roomify-autocomplete-item");
+                    rows.forEach(function(r, idx) { r.classList.toggle("ac-active", idx === sbActiveIdx); });
+                    return;
+                }
+                if (e.key === "ArrowUp" && open) {
+                    e.preventDefault();
+                    sbActiveIdx = sbActiveIdx <= 0 ? sbEntries.length - 1 : sbActiveIdx - 1;
+                    var rows = sidebarDropdown.querySelectorAll(".roomify-autocomplete-item");
+                    rows.forEach(function(r, idx) { r.classList.toggle("ac-active", idx === sbActiveIdx); });
+                    return;
+                }
+                if (e.key === "Escape") {
+                    sidebarDropdown.style.display = "none";
+                    return;
+                }
                 if (e.key === "Enter") {
                     e.preventDefault();
-                    applySidebarFilters();
-                    if (window.innerWidth < 900) closeSidebar();
+                    if (open && sbActiveIdx >= 0 && sbEntries[sbActiveIdx]) {
+                        selectSidebarEntry(sbEntries[sbActiveIdx]);
+                    } else {
+                        sidebarDropdown.style.display = "none";
+                        applySidebarFilters();
+                        if (window.innerWidth < 900) closeSidebar();
+                    }
                 }
             });
         }
@@ -2673,6 +3582,53 @@
      * ============================================================
      */
 
+    window.roomifySearchMarker = null;
+
+    function zoomToSearchedLocation(lat, lng, placeLabel, targetZoom) {
+        if (!window.roomifyMap || !window.google || !window.google.maps) return;
+        var numLat = Number(lat);
+        var numLng = Number(lng);
+        if (!isFinite(numLat) || !isFinite(numLng) || numLat === 0 || numLng === 0) return;
+
+        var target = new google.maps.LatLng(numLat, numLng);
+
+        if (window.roomifySearchMarker) {
+            window.roomifySearchMarker.setMap(null);
+            window.roomifySearchMarker = null;
+        }
+
+        var pinSvg =
+            '<svg xmlns="http://www.w3.org/2000/svg" width="38" height="46" viewBox="0 0 38 46">' +
+            '<path d="M19 2C10.16 2 3 9.16 3 18c0 11.2 16 26 16 26s16-14.8 16-26C35 9.16 27.84 2 19 2z" fill="#142170" stroke="#FFFFFF" stroke-width="2.5"/>' +
+            '<circle cx="19" cy="18" r="6.5" fill="#F59E0B"/>' +
+            '</svg>';
+
+        window.roomifySearchMarker = new google.maps.Marker({
+            position: target,
+            map: window.roomifyMap,
+            title: placeLabel || "Searched Location",
+            animation: google.maps.Animation.DROP,
+            icon: {
+                url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(pinSvg),
+                scaledSize: new google.maps.Size(34, 42),
+                anchor: new google.maps.Point(17, 42)
+            },
+            zIndex: 99998
+        });
+
+        window.roomifyMap.panTo(target);
+        var zoomLevel = targetZoom || 16;
+        window.roomifyMap.setZoom(zoomLevel);
+        setTimeout(function() {
+            if (window.roomifyMap) {
+                window.roomifyMap.panTo(target);
+                if (window.roomifyMap.getZoom() < zoomLevel - 1) {
+                    window.roomifyMap.setZoom(zoomLevel);
+                }
+            }
+        }, 120);
+    }
+
     function filterRoomsByPlaceOrLocation(placeLabel, lat, lng, viewport) {
         if (!window.roomifyMap || !window.google || !window.google.maps) return;
 
@@ -2700,34 +3656,35 @@
         if (nearby.length > 0) {
             updateVisibleMarkers(nearby);
             showSearchCount(nearby.length, window.roomifyAllRooms.length);
-
-            var bounds = new google.maps.LatLngBounds();
-            bounds.extend(new google.maps.LatLng(Number(lat), Number(lng)));
-            nearby.forEach(function(r) {
-                var rLat = Number(r.latitude !== undefined ? r.latitude : r.lat);
-                var rLng = Number(r.longitude !== undefined ? r.longitude : r.lng);
-                bounds.extend(new google.maps.LatLng(rLat, rLng));
-            });
-            window.roomifyMap.fitBounds(bounds);
-            if (window.roomifyMap.getZoom() > 16) window.roomifyMap.setZoom(16);
+            zoomToSearchedLocation(lat, lng, placeLabel, nearby.length === 1 ? 16 : 15);
         } else {
             // Keep all markers visible on the map so the user can explore the area around the searched place
             updateVisibleMarkers(window.roomifyAllRooms);
             showSearchCount(0, window.roomifyAllRooms.length);
-            if (viewport) {
-                window.roomifyMap.fitBounds(viewport);
-            } else {
-                window.roomifyMap.setCenter(new google.maps.LatLng(Number(lat), Number(lng)));
-                window.roomifyMap.setZoom(15);
-            }
+            zoomToSearchedLocation(lat, lng, placeLabel, 16);
             if (typeof window.roomifyShowToast === "function") {
-                window.roomifyShowToast("Moved to " + (placeLabel || "location") + " (no exact property listings within 3.5 km yet)");
+                window.roomifyShowToast("Zoomed to " + (placeLabel || "location") + " (no exact property listings within 3.5 km yet)");
             }
         }
     }
 
     function geocodeAndMoveMapToLocation(queryText) {
         if (!window.roomifyMap || !window.google || !window.google.maps || !queryText) return;
+
+        var searchWithNominatim = function() {
+            fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=" + encodeURIComponent(queryText + ", Tanzania"))
+                .then(function(r) { return r.json(); })
+                .then(function(list) {
+                    if (Array.isArray(list) && list.length > 0) {
+                        var item = list[0];
+                        var label = (item.display_name || queryText).split(",").slice(0, 2).join(",").trim();
+                        filterRoomsByPlaceOrLocation(label, Number(item.lat), Number(item.lon), null);
+                    } else if (typeof window.roomifyShowToast === "function") {
+                        window.roomifyShowToast("Location '" + queryText + "' not found. Try adding area or city name.");
+                    }
+                })
+                .catch(function() {});
+        };
 
         var searchWithPlaces = function() {
             if (google.maps.places && typeof google.maps.places.PlacesService === "function") {
@@ -2741,9 +3698,13 @@
                         if (pStatus === google.maps.places.PlacesServiceStatus.OK && pResults && pResults[0] && pResults[0].geometry && pResults[0].geometry.location) {
                             var loc = pResults[0].geometry.location;
                             filterRoomsByPlaceOrLocation(pResults[0].name || queryText, loc.lat(), loc.lng(), pResults[0].geometry.viewport);
+                        } else {
+                            searchWithNominatim();
                         }
                     }
                 );
+            } else {
+                searchWithNominatim();
             }
         };
 
@@ -2769,6 +3730,10 @@
         var normalized = String(query || "").trim().toLowerCase();
 
         if (!normalized) {
+            if (window.roomifySearchMarker) {
+                window.roomifySearchMarker.setMap(null);
+                window.roomifySearchMarker = null;
+            }
             updateVisibleMarkers(window.roomifyAllRooms);
             hideSearchCount();
             return;
@@ -2859,7 +3824,7 @@
             if (validRooms.length === 1) {
                 var lat = Number(validRooms[0].latitude !== undefined ? validRooms[0].latitude : validRooms[0].lat);
                 var lng = Number(validRooms[0].longitude !== undefined ? validRooms[0].longitude : validRooms[0].lng);
-                window.roomifyMap.setCenter(new google.maps.LatLng(lat, lng));
+                window.roomifyMap.panTo(new google.maps.LatLng(lat, lng));
                 window.roomifyMap.setZoom(16);
             } else if (validRooms.length > 1) {
                 var bounds = new google.maps.LatLngBounds();
@@ -2869,8 +3834,15 @@
                     bounds.extend(new google.maps.LatLng(lat, lng));
                 });
                 if (!bounds.isEmpty()) {
-                    window.roomifyMap.fitBounds(bounds);
+                    window.roomifyMap.fitBounds(bounds, { top: 90, right: 60, bottom: 80, left: 60 });
+                    google.maps.event.addListenerOnce(window.roomifyMap, "idle", function() {
+                        var z = window.roomifyMap.getZoom();
+                        if (z < 14) window.roomifyMap.setZoom(14);
+                        else if (z > 16) window.roomifyMap.setZoom(16);
+                    });
                 }
+            } else if (locationTerms.length > 0) {
+                geocodeAndMoveMapToLocation(locationTerms.join(" "));
             }
         }
     }

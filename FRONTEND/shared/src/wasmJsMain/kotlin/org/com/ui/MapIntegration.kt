@@ -553,8 +553,11 @@ actual fun PlatformLocationMap(
                     <button id="${mapId}_close" style="background: #F1F5F9; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 22px; cursor: pointer; color: #334155; display: flex; align-items: center; justify-content: center;">&times;</button>
                 </div>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <input id="${mapId}_search_input" type="text" value="$safeInitialSearch" placeholder="Type place name (e.g. Mikocheni, Sinza, Mlimani City, Kariakoo)..." 
-                        style="flex: 1; min-width: 220px; height: 44px; padding: 0 16px; border: 1.5px solid #CBD5E1; border-radius: 10px; font-family: 'Inter', sans-serif; font-size: 14px; outline: none; color: #0F172A; font-weight: 600;">
+                    <div id="${mapId}_search_wrap" style="flex: 1; min-width: 220px; position: relative;">
+                        <input id="${mapId}_search_input" type="text" autocomplete="off" value="$safeInitialSearch" placeholder="Type place name (e.g. Mikocheni, Sinza, Mlimani City, Kariakoo)..." 
+                            style="width: 100%; height: 44px; padding: 0 16px; border: 1.5px solid #CBD5E1; border-radius: 10px; font-family: 'Inter', sans-serif; font-size: 14px; outline: none; color: #0F172A; font-weight: 600;">
+                        <div id="${mapId}_ac_dropdown" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #FFFFFF; border: 1px solid #D5E0F0; border-radius: 12px; box-shadow: 0 14px 32px rgba(20,33,112,0.18); max-height: 320px; overflow-y: auto; z-index: 41000; font-family: 'Inter', sans-serif;"></div>
+                    </div>
                     <button id="${mapId}_search_btn" 
                         style="height: 44px; padding: 0 20px; background: #142170; color: white; border: none; border-radius: 10px; font-weight: 800; font-size: 13px; cursor: pointer;">
                         Search Place
@@ -588,7 +591,9 @@ actual fun PlatformLocationMap(
                 const addressText = document.getElementById('${mapId}_address');
                 const coordsText = document.getElementById('${mapId}_coords');
                 const closeBtn = document.getElementById('${mapId}_close');
+                const searchWrap = document.getElementById('${mapId}_search_wrap');
                 const searchInput = document.getElementById('${mapId}_search_input');
+                const acDropdown = document.getElementById('${mapId}_ac_dropdown');
                 const searchBtn = document.getElementById('${mapId}_search_btn');
                 const gpsBtn = document.getElementById('${mapId}_gps_btn');
                 const searchStatus = document.getElementById('${mapId}_search_status');
@@ -615,31 +620,175 @@ actual fun PlatformLocationMap(
                 });
 
                 const geocoder = new google.maps.Geocoder();
+                const placesService = (google.maps.places && typeof google.maps.places.PlacesService === "function")
+                    ? new google.maps.places.PlacesService(map)
+                    : null;
+                const acService = (google.maps.places && typeof google.maps.places.AutocompleteService === "function")
+                    ? new google.maps.places.AutocompleteService()
+                    : null;
 
-                // Attach Google Places Autocomplete directly to the search input
-                if (google.maps.places && typeof google.maps.places.Autocomplete === "function") {
-                    const autocomplete = new google.maps.places.Autocomplete(searchInput, {
-                        fields: ["name", "geometry", "formatted_address", "address_components", "place_id"]
-                    });
-                    autocomplete.bindTo("bounds", map);
-                    autocomplete.addListener("place_changed", function() {
-                        const place = autocomplete.getPlace();
-                        if (!place || !place.geometry || !place.geometry.location) {
-                            performSearch();
-                            return;
-                        }
-                        if (place.geometry.viewport) {
-                            map.fitBounds(place.geometry.viewport);
-                        } else {
-                            map.setCenter(place.geometry.location);
-                            map.setZoom(17);
-                        }
-                        const displayTitle = place.name || (place.formatted_address ? place.formatted_address.split(",")[0] : searchInput.value.trim());
-                        const fullAddr = place.formatted_address || displayTitle;
-                        searchStatus.style.display = "none";
-                        updateLocation(place.geometry.location, false, displayTitle, fullAddr);
-                    });
+                let acReqSeq = 0;
+                let acTimer = null;
+
+                function escText(str) {
+                    return String(str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
                 }
+
+                function pickSuggestion(item) {
+                    acDropdown.style.display = "none";
+                    if (!item) return;
+                    if (item.type === "google" && item.placeId && placesService) {
+                        searchStatus.innerText = "Moving pin to " + item.name + "...";
+                        searchStatus.style.display = "block";
+                        placesService.getDetails(
+                            { placeId: item.placeId, fields: ["name", "geometry", "formatted_address"] },
+                            function(place, status) {
+                                searchStatus.style.display = "none";
+                                if (status === google.maps.places.PlacesServiceStatus.OK && place && place.geometry && place.geometry.location) {
+                                    if (place.geometry.viewport) map.fitBounds(place.geometry.viewport);
+                                    else { map.setCenter(place.geometry.location); map.setZoom(17); }
+                                    const title = place.name || item.name;
+                                    updateLocation(place.geometry.location, false, title, place.formatted_address || title);
+                                } else {
+                                    searchInput.value = item.name;
+                                    performSearch();
+                                }
+                            }
+                        );
+                        return;
+                    }
+                    if (item.lat && item.lng) {
+                        const pos = { lat: Number(item.lat), lng: Number(item.lng) };
+                        map.setCenter(pos);
+                        map.setZoom(16);
+                        searchStatus.style.display = "none";
+                        const fullLabel = item.subtitle ? (item.name + ", " + item.subtitle) : item.name;
+                        updateLocation(pos, false, item.name, fullLabel);
+                    } else {
+                        searchInput.value = item.name;
+                        performSearch();
+                    }
+                }
+
+                function renderPickerDropdown(query, localRes, extItems) {
+                    acDropdown.innerHTML = "";
+                    const seen = {};
+                    let count = 0;
+
+                    function addSec(label) {
+                        const h = document.createElement("div");
+                        h.style.cssText = "padding:6px 14px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.6px;color:#64748B;background:#F8FAFC;border-bottom:1px solid #EEF2F6;";
+                        h.textContent = label;
+                        acDropdown.appendChild(h);
+                    }
+
+                    function addOpt(item, icon, tagText) {
+                        count++;
+                        const el = document.createElement("div");
+                        el.style.cssText = "padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;border-bottom:1px solid #F1F5F9;";
+                        el.innerHTML =
+                            '<span style="font-size:15px;">' + icon + '</span>' +
+                            '<div style="flex:1;min-width:0;">' +
+                                '<div style="font-size:13.5px;font-weight:700;color:#0F172A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escText(item.name) + '</div>' +
+                                '<div style="font-size:11.5px;color:#64748B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escText(item.subtitle || "Tanzania") + '</div>' +
+                            '</div>' +
+                            (tagText ? '<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px;background:#EEF2FF;color:#142170;">' + escText(tagText) + '</span>' : '');
+                        el.addEventListener("mouseenter", function() { el.style.background = "#EEF2FF"; });
+                        el.addEventListener("mouseleave", function() { el.style.background = "#FFFFFF"; });
+                        el.addEventListener("mousedown", function(e) {
+                            e.preventDefault();
+                            pickSuggestion(item);
+                        });
+                        acDropdown.appendChild(el);
+                    }
+
+                    if (localRes && localRes.primary && localRes.primary.length > 0) {
+                        addSec(localRes.isPopularMode ? "Popular Areas in Tanzania" : "Matching Areas & Places");
+                        localRes.primary.slice(0, 5).forEach(function(p) {
+                            seen[p.name.toLowerCase().split(",")[0].trim()] = true;
+                            addOpt(p, p.cat === "university" ? "🎓" : "📍", p.cat === "district" ? "District" : "");
+                        });
+                    }
+
+                    if (localRes && localRes.related && localRes.related.length > 0) {
+                        addSec("Related & Nearby Areas");
+                        localRes.related.slice(0, 4).forEach(function(r) {
+                            seen[r.name.toLowerCase().split(",")[0].trim()] = true;
+                            addOpt(r, "🏘️", "Nearby");
+                        });
+                    }
+
+                    const filteredExt = (extItems || []).filter(function(ex) {
+                        const k = String(ex.name || "").toLowerCase().split(",")[0].trim();
+                        if (!k || seen[k]) return false;
+                        seen[k] = true;
+                        return true;
+                    });
+                    if (filteredExt.length > 0) {
+                        addSec("More Locations on Map");
+                        filteredExt.slice(0, 5).forEach(function(ex) {
+                            addOpt(ex, "🧭", "Map");
+                        });
+                    }
+
+                    acDropdown.style.display = count > 0 ? "block" : "none";
+                }
+
+                function updatePickerAutocomplete(q) {
+                    const seq = ++acReqSeq;
+                    const localRes = (typeof window.roomifyComputeSmartPlaces === "function")
+                        ? window.roomifyComputeSmartPlaces(q)
+                        : { primary: [], related: [], isPopularMode: false };
+                    renderPickerDropdown(q, localRes, []);
+
+                    if (!q || q.length < 2) return;
+                    if (acTimer) clearTimeout(acTimer);
+                    acTimer = setTimeout(function() {
+                        if (seq !== acReqSeq) return;
+                        if (acService) {
+                            acService.getPlacePredictions(
+                                { input: q, componentRestrictions: { country: "tz" } },
+                                function(preds, status) {
+                                    if (seq !== acReqSeq) return;
+                                    if (status === google.maps.places.PlacesServiceStatus.OK && Array.isArray(preds) && preds.length > 0) {
+                                        const gItems = preds.slice(0, 5).map(function(pr) {
+                                            return {
+                                                type: "google",
+                                                name: (pr.structured_formatting && pr.structured_formatting.main_text) || pr.description,
+                                                subtitle: (pr.structured_formatting && pr.structured_formatting.secondary_text) || "Tanzania",
+                                                placeId: pr.place_id
+                                            };
+                                        });
+                                        renderPickerDropdown(q, localRes, gItems);
+                                    } else if (q.length >= 3) {
+                                        fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=tz&limit=4&q=" + encodeURIComponent(q))
+                                            .then(function(r) { return r.json(); })
+                                            .then(function(list) {
+                                                if (seq !== acReqSeq || !Array.isArray(list)) return;
+                                                const osmItems = list.map(function(o) {
+                                                    const parts = String(o.display_name || q).split(",").map(function(s) { return s.trim(); });
+                                                    return { type: "osm", name: o.name || parts[0] || q, subtitle: parts.slice(1, 3).join(", "), lat: Number(o.lat), lng: Number(o.lon) };
+                                                });
+                                                renderPickerDropdown(q, localRes, osmItems);
+                                            }).catch(function() {});
+                                    }
+                                }
+                            );
+                        }
+                    }, 130);
+                }
+
+                searchInput.addEventListener("input", function() {
+                    updatePickerAutocomplete(searchInput.value.trim());
+                });
+                searchInput.addEventListener("focus", function() {
+                    updatePickerAutocomplete(searchInput.value.trim());
+                });
+                document.addEventListener("click", function(e) {
+                    if (searchWrap && !searchWrap.contains(e.target)) {
+                        acDropdown.style.display = "none";
+                    }
+                });
 
                 function updateLocation(latLng, skipGeocode = false, providedName = null, providedFormattedAddress = null) {
                     selectedPos = latLng;

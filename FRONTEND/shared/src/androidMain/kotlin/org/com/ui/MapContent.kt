@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -861,6 +862,37 @@ actual fun MapContent(
             onMenuClick = onMenuClick,
             onSearchChange = { searchQuery = it },
             onSearchClick = { searchFocusRequester.requestFocus() },
+            onZoomToLocationName = { locationName ->
+                if (locationName.isNotBlank()) {
+                    mapScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                        try {
+                            val geocoder = android.location.Geocoder(context, java.util.Locale.getDefault())
+                            @Suppress("DEPRECATION")
+                            val results = geocoder.getFromLocationName("$locationName, Tanzania", 1)
+                                ?.takeIf { it.isNotEmpty() }
+                                ?: geocoder.getFromLocationName(locationName, 1)
+                            if (!results.isNullOrEmpty()) {
+                                val target = LatLng(results[0].latitude, results[0].longitude)
+                                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                    cameraPositionState.animate(
+                                        update = CameraUpdateFactory.newLatLngZoom(target, 15.5f),
+                                        durationMs = 900
+                                    )
+                                }
+                            }
+                        } catch (_: Exception) {
+                        }
+                    }
+                }
+            },
+            onZoomToCoordinates = { targetLat, targetLng ->
+                mapScope.launch {
+                    cameraPositionState.animate(
+                        update = CameraUpdateFactory.newLatLngZoom(LatLng(targetLat, targetLng), 15.5f),
+                        durationMs = 850
+                    )
+                }
+            },
             searchFocusRequester = searchFocusRequester
         )
 
@@ -990,13 +1022,32 @@ private fun MapHeader(
     onMenuClick: () -> Unit,
     onSearchChange: (String) -> Unit,
     onSearchClick: () -> Unit,
+    onZoomToLocationName: (String) -> Unit = {},
+    onZoomToCoordinates: (Double, Double) -> Unit = { _, _ -> },
     searchFocusRequester: FocusRequester
 ) {
     val strings = LocalRoomifyStrings.current
+    var showSuggestions by remember { mutableStateOf(false) }
+
+    val suggestionBundle = remember(searchQuery) {
+        if (searchQuery.isNotBlank()) PlaceSuggestionEngine.suggest(searchQuery)
+        else PlaceSuggestionBundle(emptyList(), emptyList(), false)
+    }
 
     val triggerFilter = {
+        showSuggestions = false
         val (area, price, type) = parseSearchQuery(searchQuery)
         onFiltersChange(type, area, price, currentStatusFilter)
+        if (!area.isNullOrBlank()) {
+            val topExact = suggestionBundle.primary.firstOrNull {
+                it.name.equals(area, ignoreCase = true)
+            }
+            if (topExact != null) {
+                onZoomToCoordinates(topExact.lat, topExact.lng)
+            } else {
+                onZoomToLocationName(area)
+            }
+        }
     }
 
     Column(
@@ -1032,14 +1083,19 @@ private fun MapHeader(
                         imageVector = Icons.Default.Search,
                         contentDescription = "Search",
                         tint = RoomifyGradientStart.copy(alpha = 0.78f),
-                        modifier = Modifier.size(22.dp)
+                        modifier = Modifier
+                            .size(22.dp)
+                            .clickable { triggerFilter() }
                     )
 
                     Spacer(modifier = Modifier.width(10.dp))
 
                     BasicTextField(
                         value = searchQuery,
-                        onValueChange = onSearchChange,
+                        onValueChange = {
+                            onSearchChange(it)
+                            showSuggestions = it.isNotBlank()
+                        },
                         modifier = Modifier
                             .weight(1f)
                             .focusRequester(searchFocusRequester)
@@ -1074,6 +1130,7 @@ private fun MapHeader(
                                 .size(32.dp)
                                 .clip(CircleShape)
                                 .clickable {
+                                    showSuggestions = false
                                     onSearchChange("")
                                     onFiltersChange(null, null, null, currentStatusFilter)
                                 },
@@ -1085,6 +1142,131 @@ private fun MapHeader(
                                 tint = RoomifyGradientStart.copy(alpha = 0.70f),
                                 modifier = Modifier.size(18.dp)
                             )
+                        }
+                    }
+                }
+            }
+        }
+
+        val hasSuggestions = suggestionBundle.primary.isNotEmpty() || suggestionBundle.related.isNotEmpty()
+        if (showSuggestions && hasSuggestions) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 6.dp)
+                    .heightIn(max = 320.dp)
+                    .shadow(elevation = 10.dp, shape = RoundedCornerShape(16.dp)),
+                shape = RoundedCornerShape(16.dp),
+                color = Color.White,
+                border = BorderStroke(1.dp, Color(0xFFD5E0F0))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(vertical = 6.dp)
+                ) {
+                    if (suggestionBundle.primary.isNotEmpty()) {
+                        Text(
+                            text = "MATCHING AREAS & PLACES",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF64748B),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFFF8FAFC))
+                                .padding(horizontal = 14.dp, vertical = 6.dp)
+                        )
+                        suggestionBundle.primary.forEach { item ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        showSuggestions = false
+                                        onSearchChange(item.name)
+                                        onFiltersChange(null, item.name, null, currentStatusFilter)
+                                        onZoomToCoordinates(item.lat, item.lng)
+                                    }
+                                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.LocationOn,
+                                    contentDescription = null,
+                                    tint = RoomifyGradientStart,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = item.name,
+                                        fontSize = 13.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF0F172A),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = item.subtitle,
+                                        fontSize = 11.5.sp,
+                                        color = Color(0xFF64748B),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    if (suggestionBundle.related.isNotEmpty()) {
+                        Text(
+                            text = "RELATED & NEARBY AREAS",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF92400E),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFFFFFBEB))
+                                .padding(horizontal = 14.dp, vertical = 6.dp)
+                        )
+                        suggestionBundle.related.forEach { item ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        showSuggestions = false
+                                        onSearchChange(item.name)
+                                        onFiltersChange(null, item.name, null, currentStatusFilter)
+                                        onZoomToCoordinates(item.lat, item.lng)
+                                    }
+                                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.LocationOn,
+                                    contentDescription = null,
+                                    tint = Color(0xFFD97706),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = item.name,
+                                        fontSize = 13.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF0F172A),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = item.subtitle,
+                                        fontSize = 11.5.sp,
+                                        color = Color(0xFF64748B),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
                         }
                     }
                 }
