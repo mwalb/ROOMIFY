@@ -128,8 +128,8 @@ private external fun updateSidebarUser(role: String?, name: String?, email: Stri
 private external fun updateSidebarLocalization(localizationJson: String)
 
 @OptIn(ExperimentalWasmJsInterop::class)
-@JsFun("(originLat, originLng, destLat, destLng) => { if (typeof window.showRoute === 'function') { window.showRoute(originLat, originLng, destLat, destLng); } }")
-private external fun showRoute(originLat: Double, originLng: Double, destLat: Double, destLng: Double)
+@JsFun("(originLat, originLng, destLat, destLng, destTitle, destAddress) => { if (typeof window.showRoute === 'function') { window.showRoute(originLat, originLng, destLat, destLng, destTitle, destAddress); } }")
+private external fun showRoute(originLat: Double, originLng: Double, destLat: Double, destLng: Double, destTitle: String, destAddress: String)
 
 @OptIn(ExperimentalWasmJsInterop::class)
 @JsFun("() => { if (typeof window.clearRoute === 'function') { window.clearRoute(); } }")
@@ -487,48 +487,42 @@ actual fun MapContent(
         }
     }
 
-    var userLocation by remember { mutableStateOf<Pair<Double, Double>?>(null) }
-
     LaunchedEffect(routingDestination?.id) {
         if (routingDestination == null) {
             clearRoute()
-            userLocation = null
             return@LaunchedEffect
         }
 
         val dest = routingDestination
         if (dest.latitude != 0.0 && dest.longitude != 0.0) {
             fetchBrowserLocation { lat, lng ->
-                userLocation = Pair(lat, lng)
-                showRoute(lat, lng, dest.latitude, dest.longitude)
+                showRoute(
+                    lat,
+                    lng,
+                    dest.latitude,
+                    dest.longitude,
+                    dest.title ?: "Selected Property",
+                    dest.address ?: ""
+                )
             }
+        }
+    }
+
+    DisposableEffect(onClearRoute) {
+        val routeClearedListener: (Event) -> Unit = {
+            onClearRoute()
+        }
+        document.addEventListener("roomifyRouteCleared", routeClearedListener)
+        onDispose {
+            document.removeEventListener("roomifyRouteCleared", routeClearedListener)
         }
     }
 
     /*
      * ========================================================
-     * LIFECYCLE: SHOW/HIDE MAP (REFERENCE-COUNTED)
+     * LIFECYCLE: SHOW MAP ON MOUNT (VISIBILITY CONTROLLED BY APP ROUTE SYNC)
      * ========================================================
      */
-
-    DisposableEffect(Unit) {
-        activeMapContentCount++
-        println("Roomify: MapContent mounted (activeCount=$activeMapContentCount)")
-        ensureMapContainer()
-        showMapLayerDirect()
-        onDispose {
-            activeMapContentCount = (activeMapContentCount - 1).coerceAtLeast(0)
-            println("Roomify: MapContent disposed (activeCount=$activeMapContentCount)")
-            if (activeMapContentCount == 0) {
-                println("Roomify: MapContent disposed - hiding map")
-                hideMapLayer()
-            } else {
-                // Another MapContent instance is still active -> ensure map stays visible!
-                showMapLayerDirect()
-                triggerMapResize()
-            }
-        }
-    }
 
     LaunchedEffect(Unit) {
         println("Roomify: MapContent rendering - ensuring map container")
@@ -851,7 +845,7 @@ actual fun MapContent(
 
     /*
      * ========================================================
-     * TRANSPARENT COMPOSE LAYER
+     * NATIVE GOOGLE MAPS LAYER (ZERO COMPOSE OVERLAY)
      * ========================================================
      */
 
@@ -866,47 +860,10 @@ actual fun MapContent(
 
     LaunchedEffect(mapIsReady) {
         if (mapIsReady) {
-            println("Roomify: Map is ready - showing layer")
+            println("Roomify: Map is ready - showing native JS layer")
             showMapLayer()
             delay(100)
             triggerMapResize()
-        }
-    }
-
-    if (routingDestination != null) {
-        val dest = routingDestination
-        val (userLat, userLng) = userLocation ?: Pair(-6.7924, 39.2083)
-
-        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            val isExpanded = maxWidth >= 840.dp
-            val cardModifier = if (isExpanded) {
-                Modifier
-                    .align(Alignment.TopStart)
-                    .padding(top = 80.dp, start = 24.dp)
-                    .width(380.dp)
-            } else {
-                Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(16.dp)
-                    .fillMaxWidth()
-            }
-
-            LiveRouteSummaryCard(
-                originLabel = "Your Current Location",
-                destinationRoom = dest,
-                originLat = userLat,
-                originLng = userLng,
-                destLat = dest.latitude,
-                destLng = dest.longitude,
-                onRecenter = {
-                    showRoute(userLat, userLng, dest.latitude, dest.longitude)
-                },
-                onEndRoute = {
-                    clearRoute()
-                    onClearRoute()
-                },
-                modifier = cardModifier
-            )
         }
     }
 }

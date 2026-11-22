@@ -14,3 +14,6 @@ expect fun openVideoPlayerModal(videoUrl: String): Boolean
 
 expect fun syncWebMapLayer(isMapRoute: Boolean)
 
+expect fun showNativeWebMapToast(message: String): Boolean
+
+

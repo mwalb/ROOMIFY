@@ -18,3 +18,6 @@ actual fun openVideoPlayerModal(videoUrl: String): Boolean = false
 
 actual fun syncWebMapLayer(isMapRoute: Boolean) {}
 
+actual fun showNativeWebMapToast(message: String): Boolean = false
+
+

@@ -1536,20 +1536,33 @@ private fun AppMapContainer(
     onNavigate: (String) -> Unit
 ) {
     val user = (authState as? AuthState.Authenticated)?.user
-    val isAndroid = getPlatform().name.contains("Android", ignoreCase = true)
+    val platformName = getPlatform().name
+    val isAndroid = platformName.contains("Android", ignoreCase = true)
+    val isWasmWeb = platformName.contains("Wasm", ignoreCase = true)
     val strings = LocalRoomifyStrings.current
     val feedbackKey = viewModel.filterFeedbackKey
     val feedbackArea = viewModel.filterFeedbackArea
 
     LaunchedEffect(feedbackKey) {
         if (feedbackKey != null) {
+            if (isWasmWeb) {
+                val message = when (feedbackKey) {
+                    is MapViewModel.FilterFeedback.NoMatches -> {
+                        if (!feedbackArea.isNullOrBlank()) strings.noMatchingPropertiesIn(feedbackArea!!)
+                        else strings.noMatchingProperties
+                    }
+                    is MapViewModel.FilterFeedback.InvalidCoordinates -> strings.invalidCoordinatesWarning
+                }
+                showNativeWebMapToast(message)
+            }
             delay(4000)
             viewModel.clearFeedback()
         }
     }
 
     val mapContent = @Composable {
-        Box(modifier = Modifier.fillMaxSize()) {
+        if (isWasmWeb) {
+            // Pure headless bridge to native Google Maps JS — zero Compose UI nodes / overlays rendered on Web
             MapContent(
                 rooms = viewModel.filteredRooms,
                 allRooms = viewModel.rooms,
@@ -1576,35 +1589,64 @@ private fun AppMapContainer(
                 onViewProperty = onViewProperty,
                 onNavigate = onNavigate
             )
+        } else {
+            Box(modifier = Modifier.fillMaxSize()) {
+                MapContent(
+                    rooms = viewModel.filteredRooms,
+                    allRooms = viewModel.rooms,
+                    selectedRoom = viewModel.selectedRoom,
+                    authState = authState,
+                    routingDestination = routingDestination,
+                    currentStatusFilter = viewModel.filterStatus ?: "ALL",
+                    shouldFitBounds = viewModel.shouldFitBounds,
+                    viewedRoomIds = viewModel.viewedRoomIds,
+                    savedRoomIds = viewModel.savedRoomIds,
+                    onStatusFilterChange = { viewModel.filterStatus = if (it == "ALL") null else it },
+                    onFiltersChange = { type, area, price, status ->
+                        viewModel.setFilters(type, area, price, status)
+                    },
+                    onFitBoundsHandled = { viewModel.clearFitBounds() },
+                    onClearRoute = onClearRoute,
+                    onMenuClick = { },
+                    onRoomSelected = { room ->
+                        viewModel.selectRoom(room)
+                    },
+                    onRoomCleared = {
+                        viewModel.clearSelectedRoom()
+                    },
+                    onViewProperty = onViewProperty,
+                    onNavigate = onNavigate
+                )
 
-            if (feedbackKey != null) {
-                val message = when (feedbackKey) {
-                    is MapViewModel.FilterFeedback.NoMatches -> {
-                        if (!feedbackArea.isNullOrBlank()) strings.noMatchingPropertiesIn(feedbackArea!!)
-                        else strings.noMatchingProperties
+                if (feedbackKey != null) {
+                    val message = when (feedbackKey) {
+                        is MapViewModel.FilterFeedback.NoMatches -> {
+                            if (!feedbackArea.isNullOrBlank()) strings.noMatchingPropertiesIn(feedbackArea!!)
+                            else strings.noMatchingProperties
+                        }
+                        is MapViewModel.FilterFeedback.InvalidCoordinates -> strings.invalidCoordinatesWarning
                     }
-                    is MapViewModel.FilterFeedback.InvalidCoordinates -> strings.invalidCoordinatesWarning
-                }
 
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = 80.dp)
-                        .zIndex(100f)
-                        .background(Color(0xFF1A237E), RoundedCornerShape(12.dp))
-                        .padding(horizontal = 16.dp, vertical = 10.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = message, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                        Spacer(Modifier.width(12.dp))
-                        Icon(
-                            Icons.Default.Close,
-                            contentDescription = "Dismiss",
-                            tint = Color.White,
-                            modifier = Modifier
-                                .size(16.dp)
-                                .clickable { viewModel.clearFeedback() }
-                        )
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 80.dp)
+                            .zIndex(100f)
+                            .background(Color(0xFF1A237E), RoundedCornerShape(12.dp))
+                            .padding(horizontal = 16.dp, vertical = 10.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(text = message, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.width(12.dp))
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "Dismiss",
+                                tint = Color.White,
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .clickable { viewModel.clearFeedback() }
+                            )
+                        }
                     }
                 }
             }

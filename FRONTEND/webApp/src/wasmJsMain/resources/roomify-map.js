@@ -202,10 +202,6 @@
             var map = document.getElementById("google-map-container");
 
             if (window.roomifyIsMapPage) {
-                if (compose) {
-                    compose.style.left = isSmall ? "0px" : "400px";
-                    compose.style.width = isSmall ? "100vw" : "calc(100vw - 400px)";
-                }
                 if (map && map.classList.contains("map-mode")) {
                     map.style.left = isSmall ? "0px" : "400px";
                     map.style.width = isSmall ? "100vw" : "calc(100vw - 400px)";
@@ -222,7 +218,7 @@
     }
 
     window.roomifyShowMap = function () {
-        console.log("[ROOMIFY MAP] SHOW MAP START");
+        console.log("[ROOMIFY MAP] SHOW MAP START (Native JS Mode - Compose Overlay Disabled)");
         window.roomifyIsMapPage = true;
         registerMapResizeListenerOnce();
 
@@ -230,11 +226,22 @@
         var compose = document.getElementById("ComposeTarget");
         var isSmallScreen = window.innerWidth < 900;
 
+        // 1. Completely hide and disable ComposeTarget so WebGL never conflicts with Google Maps JS
+        if (compose) {
+            compose.classList.add("map-mode");
+            compose.style.visibility = "hidden";
+            compose.style.opacity = "0";
+            compose.style.pointerEvents = "none";
+            compose.style.zIndex = "-1";
+        }
+
+        // 2. Show Native Google Map container
         if (map) {
             map.classList.add("map-mode");
             map.style.display = "block";
             map.style.visibility = "visible";
             map.style.opacity = "1";
+            map.style.pointerEvents = "auto";
             map.style.zIndex = "9999";
             map.style.left = isSmallScreen ? "0px" : "400px";
             map.style.width = isSmallScreen ? "100vw" : "calc(100vw - 400px)";
@@ -247,20 +254,12 @@
             console.error("[ROOMIFY MAP] map container NOT FOUND");
         }
 
-        if (compose) {
-            compose.classList.add("map-mode");
-            compose.style.left = isSmallScreen ? "0px" : "400px";
-            compose.style.width = isSmallScreen ? "100vw" : "calc(100vw - 400px)";
-            compose.style.background = "transparent";
-            compose.style.backgroundColor = "transparent";
-            var canvases = compose.querySelectorAll("canvas");
-            canvases.forEach(function(c) {
-                c.style.background = "transparent";
-                c.style.backgroundColor = "transparent";
-            });
-        }
-
         updateSidebarVisibility();
+
+        // Ensure map instance exists if Google Maps SDK is already loaded
+        if (!window.roomifyMap && window.google && window.google.maps && typeof window.roomifyCreateMap === "function") {
+            window.roomifyCreateMap();
+        }
 
         setTimeout(function () {
             if (window.roomifyMap && window.google && window.google.maps) {
@@ -272,7 +271,7 @@
             if (window.roomifyMap && window.google && window.google.maps) {
                 google.maps.event.trigger(window.roomifyMap, "resize");
             }
-        }, 300);
+        }, 250);
     };
 
     window.roomifyResizeMap = function () {
@@ -293,7 +292,7 @@
      */
 
     window.roomifyHideMap = function() {
-        console.log("[ROOMIFY MAP] HIDE MAP");
+        console.log("[ROOMIFY MAP] HIDE MAP (Restoring Compose Canvas)");
         window.roomifyIsMapPage = false;
 
         var map = document.getElementById("google-map-container");
@@ -304,6 +303,7 @@
             map.style.display = "none";
             map.style.visibility = "hidden";
             map.style.opacity = "0";
+            map.style.pointerEvents = "none";
             map.style.zIndex = "-1";
             console.log("[ROOMIFY MAP] map hidden");
         }
@@ -312,6 +312,10 @@
             compose.classList.remove("map-mode");
             compose.style.left = "0";
             compose.style.width = "100vw";
+            compose.style.visibility = "visible";
+            compose.style.opacity = "1";
+            compose.style.pointerEvents = "auto";
+            compose.style.zIndex = "10";
             compose.style.background = "#E8EEF7";
             compose.style.backgroundColor = "#E8EEF7";
             console.log("[ROOMIFY MAP] ComposeTarget restored to full width");
@@ -4689,13 +4693,81 @@
     window.roomifyRoutePolyline = null;
     window.roomifyOriginMarker = null;
 
-    window.showRoute = function(originLat, originLng, destLat, destLng) {
+    function haversineKm(lat1, lng1, lat2, lng2) {
+        var R = 6371.0;
+        var dLat = (lat2 - lat1) * Math.PI / 180;
+        var dLng = (lng2 - lng1) * Math.PI / 180;
+        var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLng / 2) * Math.sin(dLng / 2);
+        var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
+
+    function renderNativeRouteBanner(originLat, originLng, destLat, destLng, destTitle, destAddress) {
+        var existing = document.getElementById("roomify-native-route-card");
+        if (existing) existing.remove();
+
+        var mapContainer = document.getElementById("google-map-container") || document.body;
+        var straightKm = haversineKm(Number(originLat), Number(originLng), Number(destLat), Number(destLng));
+        var roadKm = straightKm * 1.28;
+        var distLabel = roadKm < 1 ? Math.round(roadKm * 1000) + " m" : roadKm.toFixed(1) + " km";
+        var driveMins = Math.max(1, Math.round((roadKm / 28.0) * 60));
+        var walkMins = Math.max(1, Math.round((roadKm / 4.8) * 60));
+
+        var card = document.createElement("div");
+        card.id = "roomify-native-route-card";
+        card.style.cssText = "position:fixed;bottom:24px;right:24px;width:min(360px,calc(100vw - 32px));background:#FFFFFF;border-radius:20px;box-shadow:0 12px 32px rgba(20,33,112,0.22);border:1px solid #D5E0F0;z-index:10002;font-family:'Inter',Arial,sans-serif;overflow:hidden;";
+
+        var header = document.createElement("div");
+        header.style.cssText = "background:linear-gradient(90deg,#142170,#283593);padding:12px 16px;color:#FFFFFF;display:flex;align-items:center;justify-content:space-between;";
+        header.innerHTML = '<div style="display:flex;align-items:center;gap:8px;"><span style="width:8px;height:8px;border-radius:50%;background:#4ADE80;display:inline-block;"></span><span style="font-size:11px;font-weight:800;letter-spacing:0.8px;">LIVE ROUTE PREVIEW</span></div><span style="font-size:12px;font-weight:800;background:rgba(255,255,255,0.16);padding:3px 10px;border-radius:12px;">' + distLabel + '</span>';
+
+        var body = document.createElement("div");
+        body.style.cssText = "padding:14px 16px;";
+        body.innerHTML =
+            '<div style="font-size:14px;font-weight:800;color:#0F172A;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (destTitle || "Selected Property") + '</div>' +
+            '<div style="font-size:12px;color:#64748B;margin-bottom:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (destAddress || "Destination") + '</div>' +
+            '<div style="display:flex;gap:8px;margin-bottom:12px;">' +
+                '<div style="flex:1;background:#EFF6FF;padding:8px 10px;border-radius:10px;font-size:12px;font-weight:700;color:#1D4ED8;text-align:center;">Drive ~' + driveMins + ' min</div>' +
+                '<div style="flex:1;background:#ECFDF5;padding:8px 10px;border-radius:10px;font-size:12px;font-weight:700;color:#047857;text-align:center;">Walk ~' + walkMins + ' min</div>' +
+            '</div>';
+
+        var actions = document.createElement("div");
+        actions.style.cssText = "display:flex;gap:8px;";
+
+        var recenterBtn = document.createElement("button");
+        recenterBtn.textContent = "Recenter";
+        recenterBtn.style.cssText = "flex:1;height:38px;border-radius:10px;border:none;background:#142170;color:#FFFFFF;font-weight:700;font-size:12px;cursor:pointer;";
+        recenterBtn.onclick = function() {
+            window.showRoute(originLat, originLng, destLat, destLng, destTitle, destAddress);
+        };
+
+        var endBtn = document.createElement("button");
+        endBtn.textContent = "End Route";
+        endBtn.style.cssText = "flex:1;height:38px;border-radius:10px;border:none;background:#FEE2E2;color:#DC2626;font-weight:700;font-size:12px;cursor:pointer;";
+        endBtn.onclick = function() {
+            window.clearRoute();
+            document.dispatchEvent(new CustomEvent("roomifyRouteCleared"));
+        };
+
+        actions.appendChild(recenterBtn);
+        actions.appendChild(endBtn);
+        body.appendChild(actions);
+        card.appendChild(header);
+        card.appendChild(body);
+        mapContainer.appendChild(card);
+    }
+
+    window.showRoute = function(originLat, originLng, destLat, destLng, destTitle, destAddress) {
         if (!window.roomifyMap || !window.google || !window.google.maps) return;
 
         window.clearRoute();
 
         var origin = new google.maps.LatLng(Number(originLat), Number(originLng));
         var dest = new google.maps.LatLng(Number(destLat), Number(destLng));
+
+        renderNativeRouteBanner(originLat, originLng, destLat, destLng, destTitle, destAddress);
 
         var originSvg =
             '<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">' +
@@ -4762,6 +4834,9 @@
     }
 
     window.clearRoute = function() {
+        var existingCard = document.getElementById("roomify-native-route-card");
+        if (existingCard) existingCard.remove();
+
         if (window.roomifyDirectionsRenderer) {
             window.roomifyDirectionsRenderer.setMap(null);
             window.roomifyDirectionsRenderer = null;
@@ -4776,9 +4851,25 @@
         }
     };
 
+    window.roomifyShowToast = function(message) {
+        var existing = document.getElementById("roomify-native-toast");
+        if (existing) existing.remove();
+        if (!message) return;
+
+        var toast = document.createElement("div");
+        toast.id = "roomify-native-toast";
+        toast.style.cssText = "position:fixed;top:84px;left:50%;transform:translateX(-50%);background:#1A237E;color:#FFFFFF;padding:10px 18px;border-radius:12px;font-family:'Inter',Arial,sans-serif;font-size:13px;font-weight:700;z-index:10005;box-shadow:0 8px 24px rgba(20,33,112,0.28);display:flex;align-items:center;gap:12px;";
+        toast.innerHTML = '<span>' + message + '</span><span style="cursor:pointer;font-size:16px;line-height:1;">&times;</span>';
+        toast.onclick = function() { toast.remove(); };
+        document.body.appendChild(toast);
+        setTimeout(function() {
+            if (toast.parentNode) toast.remove();
+        }, 4000);
+    };
+
 
     console.log(
-        "[ROOMIFY MAP] roomify-map.js loaded - v3.0 (Pixel-Perfect Squeezed Layout)"
+        "[ROOMIFY MAP] roomify-map.js loaded - v3.1 (Pure Native Google Maps Mode)"
     );
 
 })();

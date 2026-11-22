@@ -102,3 +102,18 @@ private external fun jsSyncWebMapLayer(isMapRoute: Boolean)
 
 actual fun syncWebMapLayer(isMapRoute: Boolean) = jsSyncWebMapLayer(isMapRoute)
 
+@OptIn(ExperimentalWasmJsInterop::class)
+@JsFun("""
+(message) => {
+    if (typeof window.roomifyShowToast === 'function') {
+        window.roomifyShowToast(message);
+        return true;
+    }
+    return false;
+}
+""")
+private external fun jsShowNativeWebMapToast(message: String): Boolean
+
+actual fun showNativeWebMapToast(message: String): Boolean = jsShowNativeWebMapToast(message)
+
+

@@ -93,22 +93,29 @@
             width: 100vw;
             height: 100vh;
 
-            z-index: 0;
+            z-index: 10;
 
             margin: 0;
             padding: 0;
 
-            background: transparent;
+            background: #E8EEF7;
         }
 
-
+        /* When Google Map is active, hide ComposeTarget completely so there is ZERO conflict between Compose WebGL canvas and native Google Maps JS */
+        #ComposeTarget.map-mode {
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            z-index: -1 !important;
+            background: transparent !important;
+        }
 
         #ComposeTarget,
         #ComposeTarget canvas {
 
-            background: transparent !important;
+            background: transparent;
 
-            background-color: transparent !important;
+            background-color: transparent;
         }
 
     </style>
@@ -175,137 +182,24 @@
             return;
         }
 
+        if (window.roomifyIsMapPage) {
+            return;
+        }
 
         map.style.zIndex = "-1";
+        map.style.display = "none";
+        map.style.visibility = "hidden";
+        map.style.opacity = "0";
 
         compose.style.zIndex = "10";
-
-
-        map.style.display =
-            "none";
-
-        map.style.visibility =
-            "hidden";
-
-        map.style.opacity =
-            "0";
-
-
-        compose.style.background =
-            "#E8EEF7";
-
-        compose.style.backgroundColor =
-            "#E8EEF7";
-
-
-        const canvases =
-            compose.querySelectorAll(
-                "canvas"
-            );
-
-
-        canvases.forEach(
-            function (canvas) {
-
-                canvas.style.background =
-                    "transparent";
-
-                canvas.style.backgroundColor =
-                    "transparent";
-            }
-        );
+        compose.style.visibility = "visible";
+        compose.style.opacity = "1";
+        compose.style.pointerEvents = "auto";
+        compose.style.background = "#E8EEF7";
+        compose.style.backgroundColor = "#E8EEF7";
     }
-
 
     roomifySetMapLayer();
-
-
-    if (
-        document.readyState ===
-        "loading"
-    ) {
-
-        document.addEventListener(
-            "DOMContentLoaded",
-            roomifySetMapLayer
-        );
-    }
-
-
-    /*
-     * Kotlin/Wasm creates the canvas asynchronously.
-     *
-     * Only maintain transparency.
-     *
-     * We DO NOT continuously manipulate z-index.
-     */
-
-    const composeTarget =
-        document.getElementById(
-            "ComposeTarget"
-        );
-
-
-    if (composeTarget) {
-
-        const observer =
-            new MutationObserver(
-                function () {
-
-                    /*
-                     * Only force transparency if we are on the map layer.
-                     *
-                     * We detect this by checking the z-index of
-                     * the map container.
-                     */
-
-                    const map =
-                        document.getElementById(
-                            "google-map-container"
-                        );
-
-                    if (
-                        map &&
-                        (map.style.zIndex === "1" || map.style.zIndex === "9999" || window.roomifyIsMapPage)
-                    ) {
-
-                        composeTarget.style.background =
-                            "transparent";
-
-                        composeTarget.style.backgroundColor =
-                            "transparent";
-
-
-                        const canvases =
-                            composeTarget.querySelectorAll(
-                                "canvas"
-                            );
-
-
-                        canvases.forEach(
-                            function (canvas) {
-
-                                canvas.style.background =
-                                    "transparent";
-
-                                canvas.style.backgroundColor =
-                                    "transparent";
-                            }
-                        );
-                    }
-                }
-            );
-
-
-        observer.observe(
-            composeTarget,
-            {
-                childList: true,
-                subtree: true
-            }
-        );
-    }
-
 
     console.log(
         "Roomify: index.html loaded"
