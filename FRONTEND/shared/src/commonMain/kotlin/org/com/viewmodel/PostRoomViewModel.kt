@@ -382,18 +382,25 @@ class PostRoomViewModel(
 
                         // 1. Upload the shared building video ONCE on the first unit (instead of N times!)
                         val firstUnitId = savedUnits.firstOrNull { it.id != null }?.id
-                        var sharedVideoUrl: String? = null
+                        var sharedVideoUploaded = false
                         if (firstUnitId != null && state.video != null) {
                             val videoBytes = state.video.readByteArray(context)
-                            sharedVideoUrl = roomApi.uploadVideo(firstUnitId, videoBytes)
+                            sharedVideoUploaded = roomApi.uploadVideo(firstUnitId, videoBytes)
                         }
 
                         // 2. Upload shared building images ONCE on the first unit if provided
-                        var sharedImageUrls: List<String> = emptyList()
+                        var sharedImagesUploaded = false
                         if (firstUnitId != null && state.images.isNotEmpty() && state.unitImages.isEmpty()) {
                             val sharedBytes = state.images.map { it.readByteArray(context) }
-                            sharedImageUrls = roomApi.uploadImages(firstUnitId, sharedBytes) ?: emptyList()
+                            sharedImagesUploaded = roomApi.uploadImages(firstUnitId, sharedBytes)
                         }
+
+                        // 3. Fetch the updated first unit once so we can share its stored media URLs with remaining units
+                        val updatedFirstUnit = if (firstUnitId != null && (sharedVideoUploaded || sharedImagesUploaded)) {
+                            roomApi.getRoomById(firstUnitId)
+                        } else null
+                        val sharedVideoUrl: String? = updatedFirstUnit?.videoUrl
+                        val sharedImageUrls: List<String> = updatedFirstUnit?.images ?: emptyList()
 
                         // 3. Upload per-unit images & link shared media in parallel batches of 4
                         coroutineScope {
