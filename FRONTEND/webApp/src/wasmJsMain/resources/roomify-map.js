@@ -367,6 +367,14 @@
                 position: relative;
             }
 
+            .pac-container {
+                z-index: 40000 !important;
+                border-radius: 12px !important;
+                box-shadow: 0 12px 28px rgba(20, 33, 112, 0.18) !important;
+                border: 1px solid #D5E0F0 !important;
+                font-family: 'Inter', Arial, sans-serif !important;
+            }
+
             .roomify-autocomplete-dropdown {
                 position: absolute;
                 top: 100%;
@@ -1428,49 +1436,73 @@
 
         fetchAreaSuggestions();
 
+        var placesServiceInstance = null;
+        var autocompleteServiceInstance = null;
+        var geocoderInstance = null;
+        var autocompleteDebounceTimer = null;
+
+        function ensureGoogleLocationServices() {
+            if (!window.google || !window.google.maps) return false;
+            if (!geocoderInstance && typeof google.maps.Geocoder === "function") {
+                geocoderInstance = new google.maps.Geocoder();
+            }
+            if (google.maps.places) {
+                if (!autocompleteServiceInstance && typeof google.maps.places.AutocompleteService === "function") {
+                    autocompleteServiceInstance = new google.maps.places.AutocompleteService();
+                }
+                if (!placesServiceInstance && window.roomifyMap && typeof google.maps.places.PlacesService === "function") {
+                    placesServiceInstance = new google.maps.places.PlacesService(window.roomifyMap);
+                }
+            }
+            return true;
+        }
+
+        function panToGooglePrediction(prediction) {
+            ensureGoogleLocationServices();
+            if (prediction.place_id && placesServiceInstance) {
+                placesServiceInstance.getDetails(
+                    { placeId: prediction.place_id, fields: ["name", "geometry", "formatted_address"] },
+                    function(place, status) {
+                        if (status === google.maps.places.PlacesServiceStatus.OK && place && place.geometry && place.geometry.location) {
+                            var loc = place.geometry.location;
+                            filterRoomsByPlaceOrLocation(place.name || prediction.description, loc.lat(), loc.lng(), place.geometry.viewport);
+                        } else {
+                            filterRooms(prediction.description);
+                        }
+                    }
+                );
+            } else {
+                filterRooms(prediction.description);
+            }
+        }
+
         input.addEventListener(
             "input",
             function () {
+                var query = input.value.trim();
+                window.roomifySearchQuery = query;
+                clear.style.display = query.length > 0 ? "flex" : "none";
 
-                var query =
-                    input.value
-                        .trim();
-
-                window.roomifySearchQuery =
-                    query;
-
-                clear.style.display =
-                    query.length > 0
-                        ? "flex"
-                        : "none";
-
-                updateAutocompleteDropdown(query);
+                if (autocompleteDebounceTimer) clearTimeout(autocompleteDebounceTimer);
+                autocompleteDebounceTimer = setTimeout(function() {
+                    updateAutocompleteDropdown(query);
+                }, 160);
             }
         );
 
-        function updateAutocompleteDropdown(query) {
-            if (query.length < 2) {
-                dropdown.style.display = "none";
-                return;
-            }
-
-            var filtered = window.roomifyAreaSuggestions.filter(function(area) {
-                return area.toLowerCase().includes(query.toLowerCase()) && area !== query;
-            }).slice(0, 5);
-
-            if (filtered.length === 0) {
-                dropdown.style.display = "none";
-                return;
-            }
-
+        function renderAutocompleteItems(localMatches, googlePredictions) {
             dropdown.innerHTML = "";
-            filtered.forEach(function(area) {
+            var totalCount = 0;
+
+            localMatches.forEach(function(area) {
                 var item = document.createElement("div");
                 item.className = "roomify-autocomplete-item";
-                item.innerHTML = `
-                    <span style="margin-right:10px;">📍</span>
-                    <span>${area}</span>
-                `;
+                item.innerHTML =
+                    '<span style="margin-right:10px;font-size:15px;">🏠</span>' +
+                    '<div style="display:flex;flex-direction:column;min-width:0;">' +
+                        '<span style="font-weight:700;color:#142170;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(area) + '</span>' +
+                        '<span style="font-size:10px;color:#64748B;">Roomify Property Area</span>' +
+                    '</div>';
                 item.onclick = function() {
                     input.value = area;
                     window.roomifySearchQuery = area;
@@ -1478,9 +1510,66 @@
                     filterRooms(area);
                 };
                 dropdown.appendChild(item);
+                totalCount++;
             });
 
-            dropdown.style.display = "block";
+            googlePredictions.forEach(function(pred) {
+                var mainText = (pred.structured_formatting && pred.structured_formatting.main_text)
+                    ? pred.structured_formatting.main_text
+                    : pred.description;
+                var secondaryText = (pred.structured_formatting && pred.structured_formatting.secondary_text)
+                    ? pred.structured_formatting.secondary_text
+                    : "Google Maps Location";
+
+                var item = document.createElement("div");
+                item.className = "roomify-autocomplete-item";
+                item.innerHTML =
+                    '<span style="margin-right:10px;font-size:15px;">📍</span>' +
+                    '<div style="display:flex;flex-direction:column;min-width:0;">' +
+                        '<span style="font-weight:700;color:#0F172A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(mainText) + '</span>' +
+                        '<span style="font-size:11px;color:#64748B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(secondaryText) + '</span>' +
+                    '</div>';
+                item.onclick = function() {
+                    input.value = mainText;
+                    window.roomifySearchQuery = mainText;
+                    dropdown.style.display = "none";
+                    panToGooglePrediction(pred);
+                };
+                dropdown.appendChild(item);
+                totalCount++;
+            });
+
+            dropdown.style.display = totalCount > 0 ? "block" : "none";
+        }
+
+        function updateAutocompleteDropdown(query) {
+            if (query.length < 2) {
+                dropdown.style.display = "none";
+                return;
+            }
+
+            var localFiltered = (window.roomifyAreaSuggestions || []).filter(function(area) {
+                return area && area.toLowerCase().includes(query.toLowerCase()) && area.toLowerCase() !== query.toLowerCase();
+            }).slice(0, 3);
+
+            ensureGoogleLocationServices();
+
+            if (autocompleteServiceInstance) {
+                autocompleteServiceInstance.getPlacePredictions(
+                    {
+                        input: query,
+                        componentRestrictions: { country: "tz" }
+                    },
+                    function(predictions, status) {
+                        var validPreds = (status === google.maps.places.PlacesServiceStatus.OK && Array.isArray(predictions))
+                            ? predictions.slice(0, 5)
+                            : [];
+                        renderAutocompleteItems(localFiltered, validPreds);
+                    }
+                );
+            } else {
+                renderAutocompleteItems(localFiltered, []);
+            }
         }
 
         // Close dropdown when clicking outside
@@ -1506,16 +1595,15 @@
                 clear.style.display =
                     "none";
 
+                dropdown.style.display = "none";
+
                 filterRooms("");
             }
         );
 
 
         /*
-         * Enter key.
-         *
-         * We do not navigate anywhere.
-         * The displayed markers are already filtered.
+         * Enter key: filter rooms by name/area AND geocode via Google Places/Geocoder if needed
          */
 
         input.addEventListener(
@@ -1527,6 +1615,7 @@
                 ) {
 
                     event.preventDefault();
+                    dropdown.style.display = "none";
 
                     filterRooms(
                         input.value.trim()
@@ -1973,8 +2062,36 @@
 
         document.body.appendChild(sidebar);
 
-        // DO NOT filter while typing (No input event listeners on sidebar search or budget inputs)
+        // Wire Google Places Autocomplete and Enter key on sidebar location input
         const quickSearchInput = document.getElementById("sidebar-search-input");
+        if (quickSearchInput) {
+            if (window.google && window.google.maps && window.google.maps.places && typeof google.maps.places.Autocomplete === "function") {
+                try {
+                    const sidebarAutocomplete = new google.maps.places.Autocomplete(quickSearchInput, {
+                        componentRestrictions: { country: "tz" },
+                        fields: ["name", "geometry", "formatted_address"]
+                    });
+                    sidebarAutocomplete.addListener("place_changed", function() {
+                        const place = sidebarAutocomplete.getPlace();
+                        if (place && place.geometry && place.geometry.location) {
+                            const placeName = place.name || (place.formatted_address ? place.formatted_address.split(",")[0] : quickSearchInput.value.trim());
+                            quickSearchInput.value = placeName;
+                            filterRoomsByPlaceOrLocation(placeName, place.geometry.location.lat(), place.geometry.location.lng(), place.geometry.viewport);
+                            if (window.innerWidth < 900) closeSidebar();
+                        }
+                    });
+                } catch (err) {
+                    console.warn("Roomify: Sidebar Places Autocomplete init skipped:", err);
+                }
+            }
+            quickSearchInput.addEventListener("keydown", function(e) {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    applySidebarFilters();
+                    if (window.innerWidth < 900) closeSidebar();
+                }
+            });
+        }
 
         const sidebarFilterBtn = document.getElementById("sidebar-filter-btn");
         if (sidebarFilterBtn) {
@@ -2127,11 +2244,16 @@
                     var cStatus = normalizePropertyStatus(status);
                     if (cStatus !== "ALL" && cStatus !== "" && rStatus !== cStatus) return false;
                     if (locVal) {
-                        var searchable = [room.title, room.address, room.city, room.areaName, room.location].filter(Boolean).join(" ").toLowerCase();
+                        var neighStr = Array.isArray(room.neighbourhoodPlaces) ? room.neighbourhoodPlaces.join(" ") : "";
+                        var searchable = [room.title, room.address, room.city, room.areaName, room.location, neighStr].filter(Boolean).join(" ").toLowerCase();
                         if (!searchable.includes(locVal.toLowerCase())) return false;
                     }
                     return true;
                 });
+            }
+
+            if (matches.length === 0 && locVal) {
+                geocodeAndMoveMapToLocation(locVal);
             }
 
             updateVisibleMarkers(matches);
@@ -2551,6 +2673,98 @@
      * ============================================================
      */
 
+    function filterRoomsByPlaceOrLocation(placeLabel, lat, lng, viewport) {
+        if (!window.roomifyMap || !window.google || !window.google.maps) return;
+
+        var currentStatus = normalizePropertyStatus(window.roomifyCurrentStatusFilter || "ALL");
+        var labelLower = String(placeLabel || "").split(",")[0].trim().toLowerCase();
+
+        var nearby = (window.roomifyAllRooms || []).filter(function(room) {
+            if (!room) return false;
+            var roomStatus = normalizePropertyStatus(room.status);
+            if (currentStatus !== "ALL" && currentStatus !== "" && roomStatus !== currentStatus) {
+                return false;
+            }
+            var rLat = Number(room.latitude !== undefined ? room.latitude : room.lat);
+            var rLng = Number(room.longitude !== undefined ? room.longitude : room.lng);
+            if (!isFinite(rLat) || !isFinite(rLng) || rLat === 0 || rLng === 0) return false;
+
+            var distKm = haversineKm(Number(lat), Number(lng), rLat, rLng);
+            var neighStr = Array.isArray(room.neighbourhoodPlaces) ? room.neighbourhoodPlaces.join(" ") : "";
+            var searchable = [room.title, room.address, room.city, room.areaName, room.location, neighStr].filter(Boolean).join(" ").toLowerCase();
+            var textMatch = labelLower.length >= 2 && searchable.includes(labelLower);
+
+            return distKm <= 3.5 || textMatch;
+        });
+
+        if (nearby.length > 0) {
+            updateVisibleMarkers(nearby);
+            showSearchCount(nearby.length, window.roomifyAllRooms.length);
+
+            var bounds = new google.maps.LatLngBounds();
+            bounds.extend(new google.maps.LatLng(Number(lat), Number(lng)));
+            nearby.forEach(function(r) {
+                var rLat = Number(r.latitude !== undefined ? r.latitude : r.lat);
+                var rLng = Number(r.longitude !== undefined ? r.longitude : r.lng);
+                bounds.extend(new google.maps.LatLng(rLat, rLng));
+            });
+            window.roomifyMap.fitBounds(bounds);
+            if (window.roomifyMap.getZoom() > 16) window.roomifyMap.setZoom(16);
+        } else {
+            // Keep all markers visible on the map so the user can explore the area around the searched place
+            updateVisibleMarkers(window.roomifyAllRooms);
+            showSearchCount(0, window.roomifyAllRooms.length);
+            if (viewport) {
+                window.roomifyMap.fitBounds(viewport);
+            } else {
+                window.roomifyMap.setCenter(new google.maps.LatLng(Number(lat), Number(lng)));
+                window.roomifyMap.setZoom(15);
+            }
+            if (typeof window.roomifyShowToast === "function") {
+                window.roomifyShowToast("Moved to " + (placeLabel || "location") + " (no exact property listings within 3.5 km yet)");
+            }
+        }
+    }
+
+    function geocodeAndMoveMapToLocation(queryText) {
+        if (!window.roomifyMap || !window.google || !window.google.maps || !queryText) return;
+
+        var searchWithPlaces = function() {
+            if (google.maps.places && typeof google.maps.places.PlacesService === "function") {
+                var ps = new google.maps.places.PlacesService(window.roomifyMap);
+                ps.findPlaceFromQuery(
+                    {
+                        query: queryText + ", Tanzania",
+                        fields: ["name", "geometry", "formatted_address"]
+                    },
+                    function(pResults, pStatus) {
+                        if (pStatus === google.maps.places.PlacesServiceStatus.OK && pResults && pResults[0] && pResults[0].geometry && pResults[0].geometry.location) {
+                            var loc = pResults[0].geometry.location;
+                            filterRoomsByPlaceOrLocation(pResults[0].name || queryText, loc.lat(), loc.lng(), pResults[0].geometry.viewport);
+                        }
+                    }
+                );
+            }
+        };
+
+        if (typeof google.maps.Geocoder === "function") {
+            var geocoder = new google.maps.Geocoder();
+            geocoder.geocode(
+                { address: queryText, componentRestrictions: { country: "TZ" } },
+                function(results, status) {
+                    if (status === "OK" && results && results[0] && results[0].geometry && results[0].geometry.location) {
+                        var loc = results[0].geometry.location;
+                        filterRoomsByPlaceOrLocation(results[0].formatted_address || queryText, loc.lat(), loc.lng(), results[0].geometry.viewport);
+                    } else {
+                        searchWithPlaces();
+                    }
+                }
+            );
+        } else {
+            searchWithPlaces();
+        }
+    }
+
     function filterRooms(query) {
         var normalized = String(query || "").trim().toLowerCase();
 
@@ -2614,8 +2828,9 @@
             }
 
             if (locationTerms.length > 0) {
+                var neighStr = Array.isArray(room.neighbourhoodPlaces) ? room.neighbourhoodPlaces.join(" ") : "";
                 var searchable = [
-                    room.title, room.address, room.city, room.areaName, room.location
+                    room.title, room.address, room.city, room.areaName, room.location, neighStr
                 ].filter(Boolean).join(" ").toLowerCase();
 
                 return locationTerms.every(function(term) {
@@ -2625,6 +2840,11 @@
 
             return true;
         });
+
+        if (filtered.length === 0 && locationTerms.length > 0) {
+            geocodeAndMoveMapToLocation(locationTerms.join(" "));
+            return;
+        }
 
         updateVisibleMarkers(filtered);
         showSearchCount(filtered.length, window.roomifyAllRooms.length);

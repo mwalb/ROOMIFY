@@ -86,7 +86,7 @@ actual fun createMapController(
 ): MapController {
     return remember {
         WebMapController(
-            apiKey = apiKey ?: "AIzaSyCez1-gQmVYnJoIf6xZS1m-VhXb6tyZ0so",
+            apiKey = apiKey ?: "AIzaSyBLyHdlQHjeCKntbZSyoTyzK-J160-Xbvw",
             onLocationSelected = onLocationSelected,
             onError = onError
         )
@@ -496,7 +496,12 @@ actual fun PlatformLocationMap(
     val lat = latitude?.toDoubleOrNull() ?: -6.7924
     val lng = longitude?.toDoubleOrNull() ?: 39.2083
     val mapId = remember { "full_map_picker_${window.performance.now().toInt()}" }
-    
+    val safeInitialSearch = (initialSearch ?: "")
+        .replace("&", "&amp;")
+        .replace("\"", "&quot;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+
     val container = remember {
         document.createElement("div").unsafeCast<HTMLDivElement>().apply {
             id = mapId
@@ -505,8 +510,8 @@ actual fun PlatformLocationMap(
             style.left = "0"
             style.width = "100vw"
             style.height = "100vh"
-            style.zIndex = "3000" 
-            style.backgroundColor = "white"
+            style.zIndex = "30000"
+            style.backgroundColor = "#F8FAFC"
             style.display = "flex"
             style.flexDirection = "column"
         }
@@ -514,33 +519,63 @@ actual fun PlatformLocationMap(
 
     DisposableEffect(Unit) {
         document.body?.appendChild(container)
-        
+
         container.innerHTML = """
-            <div id="${mapId}_header" style="padding: 12px 16px; background: white; border-bottom: 1px solid #eee; display: flex; flex-direction: column; gap: 12px;">
+            <style>
+                .pac-container {
+                    z-index: 40000 !important;
+                    border-radius: 12px !important;
+                    box-shadow: 0 12px 28px rgba(20, 33, 112, 0.18) !important;
+                    border: 1px solid #D5E0F0 !important;
+                    font-family: 'Inter', sans-serif !important;
+                    margin-top: 4px !important;
+                }
+                .pac-item {
+                    padding: 10px 14px !important;
+                    cursor: pointer !important;
+                    font-size: 13px !important;
+                }
+                .pac-item:hover {
+                    background-color: #EEF2FF !important;
+                }
+                .pac-item-query {
+                    font-size: 14px !important;
+                    font-weight: 700 !important;
+                    color: #142170 !important;
+                }
+            </style>
+            <div id="${mapId}_header" style="padding: 14px 18px; background: white; border-bottom: 1px solid #E2E8F0; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.04); z-index: 2;">
                 <div style="display: flex; align-items: center; justify-content: space-between;">
-                    <h3 style="margin: 0; font-family: sans-serif; font-size: 18px; color: #1A237E;">Select Property Location</h3>
-                    <button id="${mapId}_close" style="background: none; border: none; font-size: 28px; cursor: pointer; color: #666;">&times;</button>
+                    <div>
+                        <h3 style="margin: 0; font-family: 'Inter', sans-serif; font-size: 18px; font-weight: 800; color: #142170;">Select Property Location</h3>
+                        <div style="font-family: 'Inter', sans-serif; font-size: 12px; color: #64748B;">Search by place name, choose from live suggestions, or drag the map pin</div>
+                    </div>
+                    <button id="${mapId}_close" style="background: #F1F5F9; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 22px; cursor: pointer; color: #334155; display: flex; align-items: center; justify-content: center;">&times;</button>
                 </div>
-                <div style="display: flex; gap: 8px;">
-                    <input id="${mapId}_search_input" type="text" value="${initialSearch ?: ""}" placeholder="Search for area, street or landmark..." 
-                        style="flex: 1; height: 44px; padding: 0 16px; border: 1px solid #ddd; border-radius: 8px; font-family: sans-serif; font-size: 14px; outline: none;">
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <input id="${mapId}_search_input" type="text" value="$safeInitialSearch" placeholder="Type place name (e.g. Mikocheni, Sinza, Mlimani City, Kariakoo)..." 
+                        style="flex: 1; min-width: 220px; height: 44px; padding: 0 16px; border: 1.5px solid #CBD5E1; border-radius: 10px; font-family: 'Inter', sans-serif; font-size: 14px; outline: none; color: #0F172A; font-weight: 600;">
                     <button id="${mapId}_search_btn" 
-                        style="height: 44px; padding: 0 20px; background: #1A237E; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
-                        Search
+                        style="height: 44px; padding: 0 20px; background: #142170; color: white; border: none; border-radius: 10px; font-weight: 800; font-size: 13px; cursor: pointer;">
+                        Search Place
+                    </button>
+                    <button id="${mapId}_gps_btn" 
+                        style="height: 44px; padding: 0 14px; background: #EEF2FF; color: #142170; border: 1.5px solid #C7D2FE; border-radius: 10px; font-weight: 800; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                        📍 My GPS
                     </button>
                 </div>
-                <div id="${mapId}_search_status" style="font-family: sans-serif; font-size: 12px; color: #666; display: none;"></div>
+                <div id="${mapId}_search_status" style="font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: #64748B; display: none;"></div>
             </div>
             <div id="${mapId}_canvas" style="flex: 1; background: #e5e3df;"></div>
-            <div id="${mapId}_footer" style="padding: 20px; background: white; box-shadow: 0 -4px 15px rgba(0,0,0,0.1); border-top: 1px solid #eee;">
-                <div style="font-family: sans-serif; font-size: 12px; color: #666; margin-bottom: 4px;">Selected location:</div>
-                <div id="${mapId}_address" style="font-family: sans-serif; font-size: 14px; font-weight: 600; min-height: 36px; line-height: 1.4; color: #1A1A1A;">
-                    Loading address...
+            <div id="${mapId}_footer" style="padding: 18px 20px; background: white; box-shadow: 0 -4px 18px rgba(20,33,112,0.10); border-top: 1px solid #E2E8F0; z-index: 2;">
+                <div style="font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #64748B; margin-bottom: 4px;">Pinned Location Name & Address</div>
+                <div id="${mapId}_address" style="font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 800; min-height: 22px; line-height: 1.35; color: #0F172A;">
+                    Click on the map or search a place name above...
                 </div>
-                <div id="${mapId}_coords" style="font-family: monospace; font-size: 11px; color: #888; margin: 8px 0 16px 0;"></div>
+                <div id="${mapId}_coords" style="font-family: monospace; font-size: 12px; color: #475569; margin: 6px 0 14px 0;"></div>
                 <button id="${mapId}_confirm" disabled 
-                    style="width: 100%; height: 52px; background: #1A237E; color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 15px; cursor: pointer; transition: opacity 0.2s;">
-                    CONFIRM LOCATION
+                    style="width: 100%; height: 50px; background: #142170; color: white; border: none; border-radius: 12px; font-weight: 800; font-size: 14px; cursor: pointer; transition: opacity 0.2s;">
+                    CONFIRM THIS LOCATION
                 </button>
             </div>
         """.trimIndent()
@@ -555,8 +590,9 @@ actual fun PlatformLocationMap(
                 const closeBtn = document.getElementById('${mapId}_close');
                 const searchInput = document.getElementById('${mapId}_search_input');
                 const searchBtn = document.getElementById('${mapId}_search_btn');
+                const gpsBtn = document.getElementById('${mapId}_gps_btn');
                 const searchStatus = document.getElementById('${mapId}_search_status');
-                
+
                 let selectedPos = { lat: $lat, lng: $lng };
                 let formattedAddress = "";
                 let knownName = "";
@@ -567,9 +603,10 @@ actual fun PlatformLocationMap(
                     zoomControl: true,
                     mapTypeControl: false,
                     streetViewControl: false,
-                    fullscreenControl: false
+                    fullscreenControl: false,
+                    gestureHandling: "greedy"
                 });
-                
+
                 const marker = new google.maps.Marker({
                     position: selectedPos,
                     map: map,
@@ -579,101 +616,144 @@ actual fun PlatformLocationMap(
 
                 const geocoder = new google.maps.Geocoder();
 
-                function updateLocation(latLng, skipGeocode = false, providedName = null) {
+                // Attach Google Places Autocomplete directly to the search input
+                if (google.maps.places && typeof google.maps.places.Autocomplete === "function") {
+                    const autocomplete = new google.maps.places.Autocomplete(searchInput, {
+                        fields: ["name", "geometry", "formatted_address", "address_components", "place_id"]
+                    });
+                    autocomplete.bindTo("bounds", map);
+                    autocomplete.addListener("place_changed", function() {
+                        const place = autocomplete.getPlace();
+                        if (!place || !place.geometry || !place.geometry.location) {
+                            performSearch();
+                            return;
+                        }
+                        if (place.geometry.viewport) {
+                            map.fitBounds(place.geometry.viewport);
+                        } else {
+                            map.setCenter(place.geometry.location);
+                            map.setZoom(17);
+                        }
+                        const displayTitle = place.name || (place.formatted_address ? place.formatted_address.split(",")[0] : searchInput.value.trim());
+                        const fullAddr = place.formatted_address || displayTitle;
+                        searchStatus.style.display = "none";
+                        updateLocation(place.geometry.location, false, displayTitle, fullAddr);
+                    });
+                }
+
+                function updateLocation(latLng, skipGeocode = false, providedName = null, providedFormattedAddress = null) {
                     selectedPos = latLng;
                     marker.setPosition(latLng);
                     confirmBtn.disabled = false;
                     confirmBtn.style.opacity = "1";
-                    
+
                     const latVal = typeof latLng.lat === 'function' ? latLng.lat() : latLng.lat;
                     const lngVal = typeof latLng.lng === 'function' ? latLng.lng() : latLng.lng;
-                    coordsText.innerText = "Lat: " + latVal.toFixed(6) + " | Lng: " + lngVal.toFixed(6);
+                    coordsText.innerText = "Coordinates: " + latVal.toFixed(6) + ", " + lngVal.toFixed(6);
 
                     if (skipGeocode) return;
-                    
-                    confirmBtn.disabled = true;
-                    confirmBtn.style.opacity = "0.5";
 
                     if (providedName) {
                         knownName = providedName;
-                        addressText.innerText = knownName;
+                        formattedAddress = providedFormattedAddress || providedName;
+                        const displayCombined = (formattedAddress && formattedAddress.toLowerCase().indexOf(knownName.toLowerCase()) === -1)
+                            ? (knownName + ", " + formattedAddress)
+                            : formattedAddress;
+                        addressText.innerText = displayCombined;
+                        searchInput.value = displayCombined;
                         confirmBtn.disabled = false;
                         confirmBtn.style.opacity = "1";
-                        window.postMessage({ 
-                            action: 'locationUpdated', 
-                            lat: latVal, 
-                            lng: lngVal, 
-                            address: knownName,
-                            formattedAddress: knownName
+                        window.postMessage({
+                            action: 'locationUpdated',
+                            lat: latVal,
+                            lng: lngVal,
+                            address: displayCombined,
+                            formattedAddress: displayCombined
                         }, '*');
                         return;
                     }
 
-                    addressText.innerText = "Resolving address...";
+                    confirmBtn.disabled = true;
+                    confirmBtn.style.opacity = "0.5";
+                    addressText.innerText = "Resolving place name...";
+
                     geocoder.geocode({ location: latLng }, (results, status) => {
                         confirmBtn.disabled = false;
                         confirmBtn.style.opacity = "1";
-                        
-                        if (status === "OK" && results[0]) {
+
+                        if (status === "OK" && results && results[0]) {
                             const result = results[0];
                             formattedAddress = result.formatted_address;
-                            
+
                             knownName = "";
-                            // Improved logic to find the real name of the location
                             const namePriority = [
-                                'point_of_interest', 
-                                'establishment', 
-                                'natural_feature', 
-                                'neighborhood', 
+                                'point_of_interest',
+                                'establishment',
+                                'natural_feature',
+                                'neighborhood',
                                 'sublocality_level_1',
                                 'sublocality',
-                                'locality'
+                                'locality',
+                                'route'
                             ];
 
                             for (let type of namePriority) {
-                                for (let component of result.address_components) {
-                                    if (component.types.includes(type)) {
+                                for (let component of (result.address_components || [])) {
+                                    if (component.types && component.types.includes(type) && !component.long_name.includes('+')) {
                                         knownName = component.long_name;
                                         break;
                                     }
                                 }
                                 if (knownName) break;
                             }
-                            
-                            if (!knownName) {
-                                for (let component of result.address_components) {
-                                    if (component.types.includes('route')) {
-                                        knownName = component.long_name;
-                                        break;
-                                    }
-                                }
-                            }
+
                             if (!knownName) knownName = formattedAddress.split(',')[0];
 
-                            addressText.innerText = formattedAddress;
-                            
-                            window.postMessage({ 
-                                action: 'locationUpdated', 
-                                lat: latVal, 
-                                lng: lngVal, 
-                                address: knownName,
-                                formattedAddress: formattedAddress
+                            const cleanDisplay = (formattedAddress && !formattedAddress.trim().startsWith('Coordinates:'))
+                                ? formattedAddress
+                                : knownName;
+
+                            addressText.innerText = cleanDisplay;
+                            searchInput.value = cleanDisplay;
+
+                            window.postMessage({
+                                action: 'locationUpdated',
+                                lat: latVal,
+                                lng: lngVal,
+                                address: cleanDisplay,
+                                formattedAddress: cleanDisplay
                             }, '*');
                         } else {
-                            const latVal = typeof latLng.lat === 'function' ? latLng.lat() : latLng.lat;
-                            const lngVal = typeof latLng.lng === 'function' ? latLng.lng() : latLng.lng;
-                            
-                            formattedAddress = "Coordinates: " + latVal.toFixed(6) + ", " + latVal.toFixed(6);
-                            knownName = "Pinned Location";
-                            addressText.innerText = formattedAddress;
-                            
-                            window.postMessage({ 
-                                action: 'locationUpdated', 
-                                lat: latVal, 
-                                lng: lngVal, 
-                                address: knownName,
-                                formattedAddress: formattedAddress
-                            }, '*');
+                            // Fallback to OpenStreetMap Nominatim reverse geocoding so it NEVER saves raw "Coordinates: ..."
+                            fetch("https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=" + latVal + "&lon=" + lngVal)
+                                .then(r => r.json())
+                                .then(osm => {
+                                    const osmName = (osm && (osm.name || (osm.address && (osm.address.suburb || osm.address.neighbourhood || osm.address.road || osm.address.city)))) || "Dar es Salaam, Tanzania";
+                                    const osmFull = (osm && osm.display_name) ? osm.display_name.split(",").slice(0, 3).join(",").trim() : osmName;
+                                    knownName = osmName;
+                                    formattedAddress = osmFull;
+                                    addressText.innerText = osmFull;
+                                    searchInput.value = osmFull;
+                                    window.postMessage({
+                                        action: 'locationUpdated',
+                                        lat: latVal,
+                                        lng: lngVal,
+                                        address: osmFull,
+                                        formattedAddress: osmFull
+                                    }, '*');
+                                })
+                                .catch(() => {
+                                    knownName = searchInput.value.trim() || "Dar es Salaam, Tanzania";
+                                    formattedAddress = knownName;
+                                    addressText.innerText = formattedAddress;
+                                    window.postMessage({
+                                        action: 'locationUpdated',
+                                        lat: latVal,
+                                        lng: lngVal,
+                                        address: formattedAddress,
+                                        formattedAddress: formattedAddress
+                                    }, '*');
+                                });
                         }
                     });
                 }
@@ -682,77 +762,116 @@ actual fun PlatformLocationMap(
                     const query = searchInput.value.trim();
                     if (!query) return;
 
-                    console.log("Roomify Search: " + query);
-                    searchStatus.innerText = "Searching...";
+                    searchStatus.innerText = "Searching for '" + query + "'...";
                     searchStatus.style.display = "block";
-                    searchStatus.style.color = "#666";
+                    searchStatus.style.color = "#142170";
+
+                    const tryPlacesFallback = function() {
+                        if (google.maps.places && typeof google.maps.places.PlacesService === "function") {
+                            const placesService = new google.maps.places.PlacesService(map);
+                            placesService.findPlaceFromQuery({
+                                query: query,
+                                fields: ['name', 'geometry', 'formatted_address']
+                            }, (pResults, pStatus) => {
+                                if (pStatus === google.maps.places.PlacesServiceStatus.OK && pResults && pResults[0] && pResults[0].geometry) {
+                                    const pResult = pResults[0];
+                                    const loc = pResult.geometry.location;
+                                    map.setCenter(loc);
+                                    map.setZoom(17);
+                                    updateLocation(loc, false, pResult.name || query, pResult.formatted_address || pResult.name || query);
+                                    searchStatus.style.display = "none";
+                                } else {
+                                    tryNominatimSearchFallback();
+                                }
+                            });
+                        } else {
+                            tryNominatimSearchFallback();
+                        }
+                    };
+
+                    const tryNominatimSearchFallback = function() {
+                        fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=" + encodeURIComponent(query + " Tanzania"))
+                            .then(r => r.json())
+                            .then(list => {
+                                if (Array.isArray(list) && list.length > 0) {
+                                    const item = list[0];
+                                    const loc = new google.maps.LatLng(Number(item.lat), Number(item.lon));
+                                    const cleanTitle = (item.display_name || query).split(",").slice(0, 3).join(",").trim();
+                                    map.setCenter(loc);
+                                    map.setZoom(16);
+                                    updateLocation(loc, false, cleanTitle, cleanTitle);
+                                    searchStatus.style.display = "none";
+                                } else {
+                                    searchStatus.innerText = "Could not find '" + query + "'. Try adding city/area (e.g. " + query + ", Dar es Salaam).";
+                                    searchStatus.style.color = "#DC2626";
+                                }
+                            })
+                            .catch(() => {
+                                searchStatus.innerText = "Could not find '" + query + "'. You can also click or drag the pin directly on the map.";
+                                searchStatus.style.color = "#DC2626";
+                            });
+                    };
 
                     geocoder.geocode({ address: query }, (results, status) => {
-                        console.log("Roomify Geocode status: " + status);
-                        if (status === "OK" && results[0]) {
+                        if (status === "OK" && results && results[0] && results[0].geometry) {
                             const result = results[0];
                             const loc = result.geometry.location;
-                            console.log("Roomify Geocode success:", result.formatted_address);
-                            
                             map.setCenter(loc);
                             map.setZoom(17);
-                            updateLocation(loc, false, result.formatted_address.split(',')[0]);
+                            updateLocation(loc, false, result.formatted_address.split(',')[0], result.formatted_address);
                             searchStatus.style.display = "none";
                         } else {
-                            // Fallback to Places Service if Geocoding is denied or fails
-                            console.log("Roomify: Geocoding failed with " + status + ", trying Places Service...");
-                            
-                            try {
-                                const placesService = new google.maps.places.PlacesService(mapCanvas);
-                                placesService.findPlaceFromQuery({
-                                    query: query,
-                                    fields: ['name', 'geometry', 'formatted_address', 'address_components']
-                                }, (pResults, pStatus) => {
-                                    console.log("Roomify Places status: " + pStatus);
-                                    if (pStatus === google.maps.places.PlacesServiceStatus.OK && pResults[0]) {
-                                        const pResult = pResults[0];
-                                        const loc = pResult.geometry.location;
-                                        console.log("Roomify Places success:", pResult.name);
-                                        
-                                        map.setCenter(loc);
-                                        map.setZoom(17);
-                                        updateLocation(loc, false, pResult.name);
-                                        searchStatus.style.display = "none";
-                                    } else {
-                                        searchStatus.innerText = "Location not found. Ensure Geocoding, Places and Maps JS APIs are enabled for this key.";
-                                        searchStatus.style.color = "#f44336";
-                                        console.error("Roomify Search error: Geocoding=" + status + ", Places=" + pStatus);
-                                    }
-                                });
-                            } catch (e) {
-                                console.error("Places service error:", e);
-                                searchStatus.innerText = "Search error. Try more specific terms.";
-                                searchStatus.style.color = "#f44336";
-                            }
+                            tryPlacesFallback();
                         }
                     });
                 }
 
                 map.addListener('click', (e) => updateLocation(e.latLng));
                 marker.addListener('dragend', () => updateLocation(marker.getPosition()));
-                
+
                 searchBtn.onclick = performSearch;
-                searchInput.onkeypress = (e) => { if (e.key === 'Enter') performSearch(); };
+                searchInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        performSearch();
+                    }
+                });
+
+                if (gpsBtn) {
+                    gpsBtn.onclick = () => {
+                        if (!navigator.geolocation) return;
+                        searchStatus.innerText = "Detecting your current GPS location...";
+                        searchStatus.style.display = "block";
+                        searchStatus.style.color = "#142170";
+                        navigator.geolocation.getCurrentPosition(
+                            (pos) => {
+                                const loc = new google.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
+                                map.setCenter(loc);
+                                map.setZoom(17);
+                                searchStatus.style.display = "none";
+                                updateLocation(loc);
+                            },
+                            () => {
+                                searchStatus.innerText = "Unable to read GPS location. Please allow browser location access or search by name.";
+                                searchStatus.style.color = "#DC2626";
+                            },
+                            { enableHighAccuracy: true, timeout: 8000 }
+                        );
+                    };
+                }
 
                 confirmBtn.onclick = () => {
-                    console.log("Roomify confirm clicked");
                     if (selectedPos) {
                         const latVal = typeof selectedPos.lat === 'function' ? selectedPos.lat() : selectedPos.lat;
                         const lngVal = typeof selectedPos.lng === 'function' ? selectedPos.lng() : selectedPos.lng;
-                        
-                        console.log("Roomify confirming: " + latVal + ", " + lngVal);
-                        
-                        window.postMessage({ 
-                            action: 'modalLocationConfirmed', 
-                            lat: latVal, 
-                            lng: lngVal, 
-                            address: knownName,
-                            formattedAddress: formattedAddress 
+                        const finalAddr = formattedAddress || knownName || searchInput.value.trim() || "Dar es Salaam, Tanzania";
+
+                        window.postMessage({
+                            action: 'modalLocationConfirmed',
+                            lat: latVal,
+                            lng: lngVal,
+                            address: finalAddr,
+                            formattedAddress: finalAddr
                         }, '*');
                     }
                 };
@@ -762,9 +881,11 @@ actual fun PlatformLocationMap(
                 };
 
                 if ($lat !== -6.7924 || $lng !== 39.2083) {
-                   updateLocation(selectedPos);
+                    updateLocation(selectedPos);
                 } else if (searchInput.value.trim()) {
-                   performSearch();
+                    performSearch();
+                } else {
+                    updateLocation(selectedPos);
                 }
             })();
         """.trimIndent()
@@ -785,24 +906,28 @@ actual fun PlatformLocationMap(
                 val pLat = data.lat?.let { fromJsNumber(it) } ?: 0.0
                 val pLng = data.lng?.let { fromJsNumber(it) } ?: 0.0
                 val pAddrText = data.address?.toString() ?: ""
-                val pFullAddr = data.formattedAddress?.toString() ?: ""
+                val pFullAddr = data.formattedAddress?.toString() ?: pAddrText
 
-                when(action) {
+                when (action) {
                     "modalLocationConfirmed" -> {
-                        onLocationConfirmed(AddressResult(
-                            address = pAddrText,
-                            latitude = pLat,
-                            longitude = pLng,
-                            formattedAddress = pFullAddr
-                        ))
+                        onLocationConfirmed(
+                            AddressResult(
+                                address = pAddrText.ifBlank { pFullAddr },
+                                latitude = pLat,
+                                longitude = pLng,
+                                formattedAddress = pFullAddr.ifBlank { pAddrText }
+                            )
+                        )
                     }
                     "locationUpdated" -> {
-                        onLocationSelected(AddressResult(
-                            address = pAddrText,
-                            latitude = pLat,
-                            longitude = pLng,
-                            formattedAddress = pFullAddr
-                        ))
+                        onLocationSelected(
+                            AddressResult(
+                                address = pAddrText.ifBlank { pFullAddr },
+                                latitude = pLat,
+                                longitude = pLng,
+                                formattedAddress = pFullAddr.ifBlank { pAddrText }
+                            )
+                        )
                     }
                     "modalPickerClosed" -> {
                         onDismiss()

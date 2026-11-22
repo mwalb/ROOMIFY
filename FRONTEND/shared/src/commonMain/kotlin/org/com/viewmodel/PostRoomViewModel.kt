@@ -306,6 +306,10 @@ class PostRoomViewModel(
 
         scope.launch {
             try {
+                val resolvedAddress = state.selectedAddress
+                    .takeIf { it.isNotBlank() && !it.equals("No location selected", ignoreCase = true) }
+                    ?: state.manualAddress.trim().ifBlank { "Dar es Salaam, Tanzania" }
+
                 if (state.postMode == org.com.ui.PostMode.SINGLE) {
                     val room = Room(
                         id = state.roomId,
@@ -315,7 +319,7 @@ class PostRoomViewModel(
                         propertyType = state.propertyType,
                         latitude = state.latitude.toDoubleOrNull() ?: 0.0,
                         longitude = state.longitude.toDoubleOrNull() ?: 0.0,
-                        address = state.selectedAddress,
+                        address = resolvedAddress,
                         postedBy = auth.user.id,
                         ownerName = state.ownerName,
                         contactPhone = state.contactPhone,
@@ -352,7 +356,7 @@ class PostRoomViewModel(
                     val property = Property(
                         title = state.title,
                         description = state.description,
-                        address = state.selectedAddress,
+                        address = resolvedAddress,
                         latitude = state.latitude.toDoubleOrNull() ?: 0.0,
                         longitude = state.longitude.toDoubleOrNull() ?: 0.0,
                         ownerId = auth.user.id,
@@ -368,7 +372,7 @@ class PostRoomViewModel(
                                 ownerName = state.ownerName,
                                 contactPhone = state.contactPhone,
                                 contactEmail = state.contactEmail,
-                                address = state.selectedAddress,
+                                address = resolvedAddress,
                                 latitude = state.latitude.toDoubleOrNull() ?: 0.0,
                                 longitude = state.longitude.toDoubleOrNull() ?: 0.0
                             )
