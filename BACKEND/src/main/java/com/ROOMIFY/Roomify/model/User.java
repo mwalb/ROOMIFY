@@ -27,6 +27,9 @@ public class User {
 
     private String phone;
 
+    @Column(name = "bio", length = 1000)
+    private String bio;
+
     private String businessName;
 
     @Enumerated(EnumType.STRING)

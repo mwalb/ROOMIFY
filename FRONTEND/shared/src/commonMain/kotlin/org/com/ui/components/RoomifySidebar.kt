@@ -22,10 +22,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.layout.ContentScale
+import io.kamel.image.KamelImage
+import io.kamel.image.asyncPainterResource
 import kotlinx.coroutines.launch
 import org.com.i18n.LocalRoomifyStrings
 import org.com.model.User
 import org.com.model.initials
+import org.com.network.ApiClient
 import org.com.network.RoomifyApi
 
 private val PrimaryColor = Color(0xFF1A237E)
@@ -659,7 +663,22 @@ fun RoomifySidebar(
                                 .background(PrimaryColor.copy(alpha = 0.12f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(user.initials, color = PrimaryColor, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            if (!user.profileImage.isNullOrBlank()) {
+                                val avatarUrl = ApiClient.resolveUrl(user.profileImage)
+                                key(avatarUrl) {
+                                    KamelImage(
+                                        resource = { asyncPainterResource(avatarUrl) },
+                                        contentDescription = "Profile Picture",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize(),
+                                        onFailure = {
+                                            Text(user.initials, color = PrimaryColor, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                        }
+                                    )
+                                }
+                            } else {
+                                Text(user.initials, color = PrimaryColor, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            }
                         }
                         Spacer(Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {

@@ -323,6 +323,14 @@ public class AuthController {
         userData.put("role", effectiveRole.name().toLowerCase());
         userData.put("emailVerified", user.isEmailVerified());
         userData.put("status", user.getStatus() != null ? user.getStatus() : "ACTIVE");
+        userData.put("profileImage", user.getProfileImage());
+        userData.put("phone", user.getPhone());
+        userData.put("bio", user.getBio());
+        userData.put("businessName", user.getBusinessName());
+        userData.put("locationArea", user.getLocationArea());
+        if (user.getVerificationStatus() != null) {
+            userData.put("verificationStatus", user.getVerificationStatus().name());
+        }
 
         System.out.println("Login successful for: " + email);
 
@@ -477,6 +485,14 @@ public class AuthController {
             userData.put("role", updatedUser.getRole().toString().toLowerCase());
             userData.put("emailVerified", updatedUser.isEmailVerified());
             userData.put("status", updatedUser.getStatus());
+            userData.put("profileImage", updatedUser.getProfileImage());
+            userData.put("phone", updatedUser.getPhone());
+            userData.put("bio", updatedUser.getBio());
+            userData.put("businessName", updatedUser.getBusinessName());
+            userData.put("locationArea", updatedUser.getLocationArea());
+            if (updatedUser.getVerificationStatus() != null) {
+                userData.put("verificationStatus", updatedUser.getVerificationStatus().name());
+            }
 
             response.put("success", true);
             response.put("message", "Login successful");

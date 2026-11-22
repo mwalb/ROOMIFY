@@ -709,21 +709,13 @@ private fun ShopDetailsSection(
                     }
                 }
             } else {
-                OutlinedTextField(
+                org.com.ui.components.AutocompleteTextField(
                     value = address,
                     onValueChange = onAddressChange,
-                    label = { Text("Eneo / Mtaa (Mfano: Magomeni, Dar es Salaam)") },
-                    placeholder = { Text("Ingiza mtaa au eneo la duka") },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    leadingIcon = { Icon(Icons.Rounded.LocationOn, null, tint = BrandNavy) },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = BrandNavy,
-                        unfocusedBorderColor = BorderColor,
-                        focusedContainerColor = Color.White,
-                        unfocusedContainerColor = Color.White
-                    ),
-                    singleLine = true
+                    suggestions = emptyList(),
+                    label = "Eneo / Mtaa (Mfano: Kinondoni, Magomeni, Dar es Salaam)",
+                    placeholder = "Ingiza mtaa au eneo la duka",
+                    onSuggestionSelected = onAddressChange
                 )
 
                 Button(

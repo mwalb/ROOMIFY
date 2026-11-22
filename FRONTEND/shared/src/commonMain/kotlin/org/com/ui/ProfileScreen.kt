@@ -72,6 +72,8 @@ fun ProfileScreen(
     onBack: () -> Unit,
     onLogout: () -> Unit,
     onUpdateUser: (User) -> Unit = {},
+    onProfileImageUpdated: (String) -> Unit = {},
+    onUserRefreshed: (User) -> Unit = {},
     onNavigate: (String) -> Unit = {}
 ) {
     val localizationManager = LocalLocalizationManager.current
@@ -83,6 +85,28 @@ fun ProfileScreen(
     var showHelpDialog by remember { mutableStateOf(false) }
     var showDeleteAccountDialog by remember { mutableStateOf(false) }
     var isUploading by remember { mutableStateOf(false) }
+    var displayedProfileImage by remember(user.profileImage) { mutableStateOf(user.profileImage) }
+    var uploadStatusMessage by remember { mutableStateOf<String?>(null) }
+    var uploadIsError by remember { mutableStateOf(false) }
+
+    // Fetch latest profile from backend on open so saved profileImage/phone/bio always appear
+    LaunchedEffect(user.id) {
+        if (user.id > 0) {
+            try {
+                val res = RoomifyApi.getUserProfile()
+                if (res.success && res.data != null) {
+                    displayedProfileImage = res.data.profileImage
+                    onUserRefreshed(res.data)
+                }
+            } catch (e: Exception) {
+                println("Profile: Failed to refresh profile: ${e.message}")
+            }
+        }
+    }
+
+    val effectiveUser = remember(user, displayedProfileImage) {
+        user.copy(profileImage = displayedProfileImage)
+    }
 
     val imagePicker = rememberFilePickerLauncher(
         type = FilePickerFileType.Image,
@@ -91,14 +115,30 @@ fun ProfileScreen(
             files.firstOrNull()?.let { file ->
                 scope.launch {
                     isUploading = true
+                    uploadStatusMessage = null
+                    uploadIsError = false
                     try {
                         val bytes = file.readByteArray(context)
-                        val response = RoomifyApi.uploadProfileImage(bytes)
-                        if (response.success && response.data != null) {
-                            onUpdateUser(user.copy(profileImage = response.data))
+                        if (bytes.isEmpty()) {
+                            uploadIsError = true
+                            uploadStatusMessage = "Selected image is empty"
+                        } else {
+                            val response = RoomifyApi.uploadProfileImage(bytes)
+                            if (response.success && !response.data.isNullOrBlank()) {
+                                val newImageUrl = response.data
+                                displayedProfileImage = newImageUrl
+                                onProfileImageUpdated(newImageUrl)
+                                uploadIsError = false
+                                uploadStatusMessage = "Profile picture updated"
+                            } else {
+                                uploadIsError = true
+                                uploadStatusMessage = response.message.ifBlank { "Failed to upload profile picture" }
+                            }
                         }
                     } catch (e: Exception) {
                         println("Profile: Upload failed: ${e.message}")
+                        uploadIsError = true
+                        uploadStatusMessage = e.message ?: "Upload failed"
                     } finally {
                         isUploading = false
                     }
@@ -119,8 +159,10 @@ fun ProfileScreen(
 
         if (isExpanded) {
             DesktopProfileLayout(
-                user = user,
+                user = effectiveUser,
                 isUploading = isUploading,
+                uploadStatusMessage = uploadStatusMessage,
+                uploadIsError = uploadIsError,
                 onBack = onBack,
                 onLogout = onLogout,
                 onAvatarUpload = { imagePicker.launch() },
@@ -139,8 +181,10 @@ fun ProfileScreen(
             )
         } else if (isMedium) {
             MediumProfileLayout(
-                user = user,
+                user = effectiveUser,
                 isUploading = isUploading,
+                uploadStatusMessage = uploadStatusMessage,
+                uploadIsError = uploadIsError,
                 onBack = onBack,
                 onLogout = onLogout,
                 onAvatarUpload = { imagePicker.launch() },
@@ -158,8 +202,10 @@ fun ProfileScreen(
             )
         } else {
             CompactProfileLayout(
-                user = user,
+                user = effectiveUser,
                 isUploading = isUploading,
+                uploadStatusMessage = uploadStatusMessage,
+                uploadIsError = uploadIsError,
                 onBack = onBack,
                 onLogout = onLogout,
                 onAvatarUpload = { imagePicker.launch() },
@@ -180,7 +226,7 @@ fun ProfileScreen(
 
     if (showEditDialog) {
         EditProfileModal(
-            user = user,
+            user = effectiveUser,
             onDismiss = { showEditDialog = false },
             onSave = { updatedUser ->
                 onUpdateUser(updatedUser)
@@ -216,6 +262,8 @@ fun ProfileScreen(
 private fun DesktopProfileLayout(
     user: User,
     isUploading: Boolean,
+    uploadStatusMessage: String? = null,
+    uploadIsError: Boolean = false,
     onBack: () -> Unit,
     onLogout: () -> Unit,
     onAvatarUpload: () -> Unit,
@@ -299,6 +347,8 @@ private fun DesktopProfileLayout(
                         AvatarSummary(
                             user = user,
                             isUploading = isUploading,
+                            uploadStatusMessage = uploadStatusMessage,
+                            uploadIsError = uploadIsError,
                             onAvatarUpload = onAvatarUpload
                         )
 
@@ -494,6 +544,8 @@ private fun AccountActivitySnapshotCard(
 private fun MediumProfileLayout(
     user: User,
     isUploading: Boolean,
+    uploadStatusMessage: String? = null,
+    uploadIsError: Boolean = false,
     onBack: () -> Unit,
     onLogout: () -> Unit,
     onAvatarUpload: () -> Unit,
@@ -564,6 +616,8 @@ private fun MediumProfileLayout(
                 AvatarSummary(
                     user = user,
                     isUploading = isUploading,
+                    uploadStatusMessage = uploadStatusMessage,
+                    uploadIsError = uploadIsError,
                     onAvatarUpload = onAvatarUpload
                 )
             }
@@ -642,6 +696,8 @@ private fun MediumProfileLayout(
 private fun CompactProfileLayout(
     user: User,
     isUploading: Boolean,
+    uploadStatusMessage: String? = null,
+    uploadIsError: Boolean = false,
     onBack: () -> Unit,
     onLogout: () -> Unit,
     onAvatarUpload: () -> Unit,
@@ -706,6 +762,8 @@ private fun CompactProfileLayout(
                 AvatarSummary(
                     user = user,
                     isUploading = isUploading,
+                    uploadStatusMessage = uploadStatusMessage,
+                    uploadIsError = uploadIsError,
                     onAvatarUpload = onAvatarUpload
                 )
             }
@@ -784,6 +842,8 @@ private fun CompactProfileLayout(
 private fun AvatarSummary(
     user: User,
     isUploading: Boolean,
+    uploadStatusMessage: String? = null,
+    uploadIsError: Boolean = false,
     onAvatarUpload: () -> Unit
 ) {
     Column(
@@ -795,7 +855,9 @@ private fun AvatarSummary(
                 modifier = Modifier
                     .size(104.dp)
                     .border(3.dp, Color.White, CircleShape)
-                    .shadow(4.dp, CircleShape),
+                    .shadow(4.dp, CircleShape)
+                    .clip(CircleShape)
+                    .clickable(enabled = !isUploading, onClick = onAvatarUpload),
                 shape = CircleShape,
                 color = Color(0xFFF1F5F9)
             ) {
@@ -809,13 +871,33 @@ private fun AvatarSummary(
                     }
                 } else if (!user.profileImage.isNullOrBlank()) {
                     val fullUrl = ApiClient.resolveUrl(user.profileImage)
-                    KamelImage(
-                        resource = { asyncPainterResource(fullUrl) },
-                        contentDescription = "Profile Picture",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
-                        onLoading = { Box(Modifier.fillMaxSize().background(Color(0xFFE2E8F0))) }
-                    )
+                    key(fullUrl) {
+                        KamelImage(
+                            resource = { asyncPainterResource(fullUrl) },
+                            contentDescription = "Profile Picture",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize(),
+                            onLoading = {
+                                Box(Modifier.fillMaxSize().background(Color(0xFFE2E8F0)), contentAlignment = Alignment.Center) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(22.dp),
+                                        strokeWidth = 2.dp,
+                                        color = NavyPrimary
+                                    )
+                                }
+                            },
+                            onFailure = {
+                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = user.initials,
+                                        color = NavyPrimary,
+                                        fontSize = 34.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        )
+                    }
                 } else {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
@@ -830,6 +912,7 @@ private fun AvatarSummary(
 
             IconButton(
                 onClick = onAvatarUpload,
+                enabled = !isUploading,
                 modifier = Modifier
                     .size(34.dp)
                     .background(NavyPrimary, CircleShape)
@@ -842,6 +925,17 @@ private fun AvatarSummary(
                     modifier = Modifier.size(16.dp)
                 )
             }
+        }
+
+        if (!uploadStatusMessage.isNullOrBlank()) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = uploadStatusMessage,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = if (uploadIsError) Color(0xFFDC2626) else Color(0xFF15803D),
+                textAlign = TextAlign.Center
+            )
         }
 
         Spacer(Modifier.height(14.dp))

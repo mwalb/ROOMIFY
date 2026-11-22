@@ -706,21 +706,38 @@ private fun StepLocation(
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Text("Address & Coordinates", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
 
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Box(modifier = Modifier.weight(1f)) {
                         AutocompleteTextField(
                             value = state.manualAddress,
                             onValueChange = { onManualAddressChange(it) },
                             suggestions = areaSuggestions,
                             label = "Property Address",
-                            placeholder = "e.g. Makumbusho, Dar es Salaam",
-                            onSuggestionSelected = { onManualAddressChange(it) }
+                            placeholder = "e.g. Kinondoni, Mikocheni, Sinza...",
+                            onSuggestionSelected = { onManualAddressChange(it) },
+                            onPlaceSelected = { place ->
+                                val fullAddr = if (place.name.contains(",")) place.name
+                                else "${place.name}, ${place.subtitle.substringAfterLast(",").trim().ifBlank { "Dar es Salaam" }}"
+                                onManualAddressChange(fullAddr)
+                                if (place.hasCoordinates && place.lat != 0.0 && place.lng != 0.0) {
+                                    onLatitudeChange(place.lat.toString())
+                                    onLongitudeChange(place.lng.toString())
+                                    onLocationSelected(
+                                        AddressResult(
+                                            address = fullAddr,
+                                            latitude = place.lat,
+                                            longitude = place.lng,
+                                            formattedAddress = fullAddr
+                                        )
+                                    )
+                                }
+                            }
                         )
                     }
 
                     Button(
                         onClick = { showMapModal = true },
-                        modifier = Modifier.height(56.dp),
+                        modifier = Modifier.padding(top = 6.dp).height(56.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
                     ) {

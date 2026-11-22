@@ -54,6 +54,53 @@ public class UserController {
         }
     }
 
+    @PutMapping("/profile")
+    public ResponseEntity<ApiResponse<User>> updateProfile(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody java.util.Map<String, Object> updates) {
+        try {
+            Long userId = extractUserIdFromToken(authHeader);
+            if (userId == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ApiResponse<>(false, null, "Unauthorized"));
+            }
+
+            User user = userRepository.findById(userId).orElse(null);
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse<>(false, null, "User not found"));
+            }
+
+            if (updates != null) {
+                if (updates.get("name") instanceof String nameVal && !nameVal.isBlank()) {
+                    user.setName(nameVal.trim());
+                }
+                if (updates.containsKey("phone")) {
+                    Object phoneObj = updates.get("phone");
+                    user.setPhone(phoneObj instanceof String s ? s.trim() : null);
+                }
+                if (updates.containsKey("bio")) {
+                    Object bioObj = updates.get("bio");
+                    user.setBio(bioObj instanceof String s && !s.isBlank() ? s.trim() : null);
+                }
+                if (updates.get("businessName") instanceof String bn) {
+                    user.setBusinessName(bn.trim());
+                }
+                if (updates.get("locationArea") instanceof String loc) {
+                    user.setLocationArea(loc.trim());
+                }
+                if (updates.get("profileImage") instanceof String img && !img.isBlank()) {
+                    user.setProfileImage(img.trim());
+                }
+            }
+
+            User savedUser = userRepository.saveAndFlush(user);
+            return ResponseEntity.ok(new ApiResponse<>(true, savedUser, "Profile updated successfully"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>(false, null, "Failed to update profile: " + e.getMessage()));
+        }
+    }
+
     @PostMapping("/profile/image")
     public ResponseEntity<ApiResponse<String>> uploadProfileImage(
             @RequestHeader("Authorization") String authHeader,
@@ -64,20 +111,22 @@ public class UserController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ApiResponse<>(false, null, "Unauthorized"));
             }
 
+            if (file == null || file.isEmpty()) {
+                return ResponseEntity.badRequest().body(new ApiResponse<>(false, null, "No image file provided"));
+            }
+
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            String originalFileName = file.getOriginalFilename();
-            String fileExtension = ".jpg";
-            if (originalFileName != null && originalFileName.contains(".")) {
-                fileExtension = originalFileName.substring(originalFileName.lastIndexOf("."));
-            }
+            byte[] bytes = file.getBytes();
+            String detectedContentType = detectImageContentType(bytes, file.getContentType(), file.getOriginalFilename());
+            String fileExtension = extensionForContentType(detectedContentType);
 
             String fileName = UUID.randomUUID().toString() + fileExtension;
             String fileUrl = "/uploads/profiles/" + userId + "/" + fileName;
-            mediaStorageService.storeMedia(fileUrl, file.getContentType(), file.getBytes());
+            mediaStorageService.storeMedia(fileUrl, detectedContentType, bytes);
             user.setProfileImage(fileUrl);
-            userRepository.save(user);
+            userRepository.saveAndFlush(user);
 
             return ResponseEntity.ok(new ApiResponse<>(true, fileUrl, "Image uploaded successfully"));
         } catch (Exception e) {
@@ -85,6 +134,45 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ApiResponse<>(false, null, "Upload failed: " + e.getMessage()));
         }
+    }
+
+    private String detectImageContentType(byte[] bytes, String providedType, String originalName) {
+        if (bytes != null && bytes.length >= 12) {
+            // PNG: 89 50 4E 47
+            if ((bytes[0] & 0xFF) == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47) {
+                return "image/png";
+            }
+            // JPEG: FF D8 FF
+            if ((bytes[0] & 0xFF) == 0xFF && (bytes[1] & 0xFF) == 0xD8 && (bytes[2] & 0xFF) == 0xFF) {
+                return "image/jpeg";
+            }
+            // GIF: 47 49 46 38
+            if (bytes[0] == 0x47 && bytes[1] == 0x49 && bytes[2] == 0x46 && bytes[3] == 0x38) {
+                return "image/gif";
+            }
+            // WebP: RIFF....WEBP
+            if (bytes[0] == 'R' && bytes[1] == 'I' && bytes[2] == 'F' && bytes[3] == 'F'
+                    && bytes[8] == 'W' && bytes[9] == 'E' && bytes[10] == 'B' && bytes[11] == 'P') {
+                return "image/webp";
+            }
+        }
+        if (providedType != null && providedType.startsWith("image/")) {
+            return providedType;
+        }
+        if (originalName != null) {
+            String lower = originalName.toLowerCase();
+            if (lower.endsWith(".png")) return "image/png";
+            if (lower.endsWith(".webp")) return "image/webp";
+            if (lower.endsWith(".gif")) return "image/gif";
+        }
+        return "image/jpeg";
+    }
+
+    private String extensionForContentType(String contentType) {
+        if ("image/png".equals(contentType)) return ".png";
+        if ("image/webp".equals(contentType)) return ".webp";
+        if ("image/gif".equals(contentType)) return ".gif";
+        return ".jpg";
     }
 
     @PostMapping("/change-password")

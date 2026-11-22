@@ -94,7 +94,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/bookings/**").authenticated()
 
                         // User endpoints require authentication
-                        .requestMatchers("/api/users/profile/**").authenticated()
+                        .requestMatchers("/api/users/profile", "/api/users/profile/**", "/api/users/change-password", "/api/users/delete-account").authenticated()
                         .requestMatchers("/api/users/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
 
                         // Analytics available to authenticated Owners, Dalalis, Furniture Sellers, and Admins

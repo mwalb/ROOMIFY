@@ -18,7 +18,8 @@ data class PlaceSuggestionItem(
     val lat: Double,
     val lng: Double,
     val category: String,
-    val isRelated: Boolean = false
+    val isRelated: Boolean = false,
+    val hasCoordinates: Boolean = true
 )
 
 data class PlaceSuggestionBundle(
@@ -31,11 +32,15 @@ object PlaceSuggestionEngine {
 
     private val places: List<PlaceNode> = listOf(
         // Kinondoni & Peninsula
-        PlaceNode("Kinondoni", "Kinondoni", "Dar es Salaam", -6.7834, 39.2665, "district", listOf("kinondoni studio", "kinondoni manyanya", "mikocheni", "msasani", "masaki", "oysterbay", "ada estate", "mwananyamala", "kijitonyama", "makumbusho", "mwenge", "kawe", "mbezi beach")),
-        PlaceNode("Kinondoni Studio", "Kinondoni", "Dar es Salaam", -6.7892, 39.2683, "subarea", listOf("kinondoni", "manyanya", "biafra", "morocco", "ada estate")),
+        PlaceNode("Kinondoni", "Kinondoni", "Dar es Salaam", -6.7834, 39.2665, "district", listOf("kinondoni studio", "kinondoni manyanya", "kinondoni biafra", "kinondoni mkwajuni", "mikocheni", "msasani", "masaki", "oysterbay", "ada estate", "hana nasif", "mwananyamala", "kijitonyama", "makumbusho", "mwenge", "kawe", "mbezi beach")),
+        PlaceNode("Kinondoni Studio", "Kinondoni", "Dar es Salaam", -6.7892, 39.2683, "subarea", listOf("kinondoni", "manyanya", "biafra", "morocco", "ada estate", "kawawa road")),
+        PlaceNode("Kinondoni Manyanya", "Kinondoni", "Dar es Salaam", -6.7858, 39.2636, "subarea", listOf("kinondoni", "studio", "mwananyamala", "mkwajuni", "kawawa road")),
+        PlaceNode("Kinondoni Biafra", "Kinondoni", "Dar es Salaam", -6.7875, 39.2704, "subarea", listOf("kinondoni", "studio", "ada estate", "morocco", "kawawa road")),
         PlaceNode("Ada Estate", "Kinondoni", "Dar es Salaam", -6.7819, 39.2728, "area", listOf("kinondoni", "oysterbay", "morocco", "msasani")),
         PlaceNode("Morocco", "Kinondoni", "Dar es Salaam", -6.7826, 39.2643, "area", listOf("kinondoni", "bagamoyo road", "makumbusho", "ada estate", "kijitonyama")),
         PlaceNode("Mwananyamala", "Kinondoni", "Dar es Salaam", -6.7848, 39.2549, "area", listOf("kinondoni", "hospital", "makumbusho", "kijitonyama", "manyanya")),
+        PlaceNode("Hana Nasif", "Kinondoni", "Dar es Salaam", -6.7944, 39.2634, "area", listOf("kinondoni", "mkwajuni", "magomeni", "studio")),
+        PlaceNode("Kigogo", "Kinondoni", "Dar es Salaam", -6.8142, 39.2478, "area", listOf("kinondoni", "magomeni", "ilala", "mabibo", "manzese")),
 
         // Mikocheni & Landmarks
         PlaceNode("Mikocheni", "Kinondoni", "Dar es Salaam", -6.7689, 39.2512, "area", listOf("mikocheni a", "mikocheni b", "kinondoni", "msasani", "kijitonyama", "mwenge", "kawe", "shoppers plaza", "palm village", "kairuki", "regent estate")),
@@ -50,9 +55,10 @@ object PlaceSuggestionEngine {
         PlaceNode("Msasani", "Kinondoni", "Dar es Salaam", -6.7614, 39.2708, "area", listOf("peninsula", "masaki", "oysterbay", "mikocheni", "namanga", "slipway", "beach", "kinondoni")),
         PlaceNode("Masaki", "Kinondoni", "Dar es Salaam", -6.7518, 39.2798, "area", listOf("peninsula", "msasani", "oysterbay", "slipway", "sea cliff", "beach", "kinondoni")),
         PlaceNode("Oysterbay", "Kinondoni", "Dar es Salaam", -6.7764, 39.2792, "area", listOf("msasani", "masaki", "coco beach", "ada estate", "namanga", "kinondoni")),
+        PlaceNode("Namanga", "Kinondoni", "Dar es Salaam", -6.7747, 39.2699, "subarea", listOf("msasani", "oysterbay", "mikocheni", "kinondoni")),
 
         // Kijitonyama / Makumbusho / Victoria / Mwenge
-        PlaceNode("Kijitonyama", "Kinondoni", "Dar es Salaam", -6.7785, 39.2422, "area", listOf("kinondoni", "sinza", "makumbusho", "mikocheni", "mwenge", "sayansi", "victoria")),
+        PlaceNode("Kijitonyama", "Kinondoni", "Dar es Salaam", -6.7785, 39.2422, "area", listOf("kinondoni", "sinza", "makumbusho", "mikocheni", "mwenge", "sayansi", "victoria", "dar village")),
         PlaceNode("Makumbusho", "Kinondoni", "Dar es Salaam", -6.7834, 39.2471, "area", listOf("kinondoni", "bus stand", "kijitonyama", "mwananyamala", "victoria", "sinza")),
         PlaceNode("Victoria", "Kinondoni", "Dar es Salaam", -6.7793, 39.2546, "area", listOf("kinondoni", "kijitonyama", "mikocheni", "regent estate", "morocco")),
         PlaceNode("Mwenge", "Kinondoni", "Dar es Salaam", -6.7689, 39.2286, "area", listOf("kinondoni", "mlimani city", "survey", "udsm", "sinza", "kijitonyama", "mikocheni", "kawe", "makongo")),
@@ -77,53 +83,77 @@ object PlaceSuggestionEngine {
         PlaceNode("Kawe", "Kinondoni", "Dar es Salaam", -6.7379, 39.2289, "area", listOf("kinondoni", "kawe beach", "lugalo", "mbezi beach", "mikocheni", "mwenge", "makongo")),
         PlaceNode("Mbezi Beach", "Kinondoni", "Dar es Salaam", -6.7068, 39.2148, "area", listOf("mbezi", "africana", "makonde", "tanki bovu", "kawe", "goba", "tegeta", "kunduchi", "salasala", "kinondoni", "beach")),
         PlaceNode("Mbezi Beach Africana", "Kinondoni", "Dar es Salaam", -6.6956, 39.2124, "subarea", listOf("mbezi beach", "mbezi", "salasala", "kunduchi", "tegeta")),
+        PlaceNode("Mbezi Tanki Bovu", "Kinondoni", "Dar es Salaam", -6.7224, 39.2185, "subarea", listOf("mbezi beach", "mbezi", "kawe", "goba", "makonde")),
         PlaceNode("Goba", "Ubungo", "Dar es Salaam", -6.7166, 39.1674, "area", listOf("mbezi beach", "makongo juu", "madale", "salasala", "kimara", "mbezi luis", "ubungo")),
         PlaceNode("Salasala", "Kinondoni", "Dar es Salaam", -6.6902, 39.1886, "area", listOf("mbezi beach", "africana", "tegeta", "goba", "madale")),
         PlaceNode("Tegeta", "Kinondoni", "Dar es Salaam", -6.6552, 39.1932, "area", listOf("kunduchi", "boko", "bahari beach", "salasala", "mbezi beach", "madale", "kinondoni")),
         PlaceNode("Kunduchi", "Kinondoni", "Dar es Salaam", -6.6665, 39.2178, "area", listOf("beach", "tegeta", "mbezi beach", "bahari beach")),
+        PlaceNode("Bahari Beach", "Kinondoni", "Dar es Salaam", -6.6479, 39.2121, "area", listOf("tegeta", "kunduchi", "boko", "ununio", "beach")),
         PlaceNode("Boko", "Kinondoni", "Dar es Salaam", -6.6258, 39.1765, "area", listOf("tegeta", "bunju", "bahari beach", "ununio")),
         PlaceNode("Bunju", "Kinondoni", "Dar es Salaam", -6.5889, 39.1462, "area", listOf("boko", "bagamoyo road", "kinondoni")),
+        PlaceNode("Madale", "Kinondoni", "Dar es Salaam", -6.6805, 39.1419, "area", listOf("wazo", "goba", "salasala", "tegeta", "kinondoni")),
 
-        // Ubungo / Kimara / Mbezi Luis / Mabibo / Magomeni
+        // Ubungo / Kimara / Mbezi Luis / Kibamba / Mabibo / Magomeni
         PlaceNode("Ubungo", "Ubungo", "Dar es Salaam", -6.7924, 39.2083, "district", listOf("riverside", "external", "sinza", "kimara", "manzese", "mabibo", "udsm", "mlimani city", "mbezi luis", "goba")),
-        PlaceNode("Kimara", "Ubungo", "Dar es Salaam", -6.7918, 39.1665, "area", listOf("kimara mwisho", "kimara korogwe", "kimara baruti", "ubungo", "mbezi luis", "goba", "tabata")),
+        PlaceNode("Ubungo Riverside", "Ubungo", "Dar es Salaam", -6.8001, 39.2055, "subarea", listOf("ubungo", "external", "mabibo", "mandela road", "kimara")),
+        PlaceNode("Kimara", "Ubungo", "Dar es Salaam", -6.7918, 39.1665, "area", listOf("kimara mwisho", "kimara korogwe", "kimara baruti", "kimara suka", "ubungo", "mbezi luis", "goba", "tabata")),
+        PlaceNode("Kimara Korogwe", "Ubungo", "Dar es Salaam", -6.7926, 39.1815, "subarea", listOf("kimara", "ubungo", "baruti", "mwisho", "morogoro road")),
+        PlaceNode("Kimara Mwisho", "Ubungo", "Dar es Salaam", -6.7905, 39.1562, "subarea", listOf("kimara", "mbezi luis", "ubungo", "baruti", "morogoro road")),
+        PlaceNode("Kimara Baruti", "Ubungo", "Dar es Salaam", -6.7932, 39.1904, "subarea", listOf("kimara", "ubungo", "korogwe", "morogoro road")),
         PlaceNode("Mbezi Luis (Mbezi Mwisho)", "Ubungo", "Dar es Salaam", -6.7867, 39.1128, "area", listOf("mbezi", "magufuli", "kimara", "kibamba", "goba", "ubungo")),
+        PlaceNode("Kibamba", "Ubungo", "Dar es Salaam", -6.7896, 39.0672, "area", listOf("mbezi luis", "kiluvya", "luguruni", "ubungo", "morogoro road")),
+        PlaceNode("Kiluvya", "Ubungo", "Dar es Salaam", -6.7930, 39.0372, "area", listOf("kibamba", "kibaha", "mbezi luis", "morogoro road")),
         PlaceNode("Mabibo", "Ubungo", "Dar es Salaam", -6.8034, 39.2227, "area", listOf("mabibo hostel", "nit", "ubungo", "manzese", "sinza", "udsm")),
         PlaceNode("Manzese", "Ubungo", "Dar es Salaam", -6.8012, 39.2368, "area", listOf("ubungo", "sinza", "magomeni", "mabibo")),
         PlaceNode("Magomeni", "Kinondoni", "Dar es Salaam", -6.8065, 39.2545, "area", listOf("mapipa", "kagera", "kinondoni", "kariakoo", "manzese", "upanga")),
 
-        // Ilala / CBD / Kariakoo / Upanga / Tabata / Airport
+        // Ilala / CBD / Kariakoo / Upanga / Kisutu / Tabata / Kinyerezi / Airport
         PlaceNode("Ilala", "Ilala", "Dar es Salaam", -6.8277, 39.2571, "district", listOf("kariakoo", "upanga", "posta", "cbd", "kisutu", "buguruni", "tabata", "segerea", "kinyerezi", "ukonga")),
         PlaceNode("Posta (Dar es Salaam CBD)", "Ilala", "Dar es Salaam", -6.8161, 39.2894, "area", listOf("cbd", "city center", "kisutu", "kivukoni", "ifm", "cbe", "dit", "upanga", "kariakoo", "ferry")),
         PlaceNode("Kariakoo", "Ilala", "Dar es Salaam", -6.8211, 39.2747, "area", listOf("ilala", "market", "gerezani", "mnazi mmoja", "upanga", "posta", "magomeni")),
+        PlaceNode("Kisutu", "Ilala", "Dar es Salaam", -6.8168, 39.2839, "area", listOf("posta", "cbd", "upanga", "kariakoo", "mnazi mmoja", "ilala")),
         PlaceNode("Upanga", "Ilala", "Dar es Salaam", -6.8068, 39.2798, "area", listOf("muhimbili", "muhas", "aga khan", "posta", "kariakoo", "kisutu", "ilala")),
         PlaceNode("Muhimbili (MUHAS)", "Ilala", "Dar es Salaam", -6.8066, 39.2740, "university", listOf("muhas", "hospital", "upanga", "ilala", "kariakoo", "student")),
-        PlaceNode("Tabata", "Ilala", "Dar es Salaam", -6.8286, 39.2163, "area", listOf("tabata bima", "tabata segerea", "tabata relini", "tabata kimanga", "kinyerezi", "buguruni", "ilala")),
+        PlaceNode("Tabata", "Ilala", "Dar es Salaam", -6.8286, 39.2163, "area", listOf("tabata bima", "tabata segerea", "tabata relini", "tabata kimanga", "tabata liwiti", "kinyerezi", "buguruni", "ilala")),
+        PlaceNode("Tabata Bima", "Ilala", "Dar es Salaam", -6.8258, 39.2104, "subarea", listOf("tabata", "segerea", "kimanga", "ilala")),
         PlaceNode("Tabata Segerea", "Ilala", "Dar es Salaam", -6.8351, 39.1932, "subarea", listOf("tabata", "segerea", "kinyerezi", "ukonga", "ilala")),
         PlaceNode("Kinyerezi", "Ilala", "Dar es Salaam", -6.8469, 39.1704, "area", listOf("tabata", "segerea", "kimara", "ukonga", "ilala")),
         PlaceNode("Buguruni", "Ilala", "Dar es Salaam", -6.8339, 39.2471, "area", listOf("ilala", "tabata", "tazara")),
-        PlaceNode("Ukonga", "Ilala", "Dar es Salaam", -6.8672, 39.1818, "area", listOf("airport", "jnia", "gongo la mboto", "banana", "segerea")),
+        PlaceNode("Kipawa", "Ilala", "Dar es Salaam", -6.8716, 39.2105, "area", listOf("airport", "jnia", "ukonga", "banana", "ilala")),
+        PlaceNode("Ukonga", "Ilala", "Dar es Salaam", -6.8672, 39.1818, "area", listOf("airport", "jnia", "gongo la mboto", "banana", "segerea", "kipawa")),
         PlaceNode("Julius Nyerere Airport (JNIA)", "Ilala", "Dar es Salaam", -6.8781, 39.2026, "landmark", listOf("airport", "kipawa", "ukonga", "banana", "gongo la mboto")),
+        PlaceNode("Gongo la Mboto", "Ilala", "Dar es Salaam", -6.8834, 39.1539, "area", listOf("ukonga", "airport", "kiu", "pugu", "chanika", "ilala")),
 
         // Temeke & Kigamboni
         PlaceNode("Temeke", "Temeke", "Dar es Salaam", -6.8604, 39.2618, "district", listOf("changombe", "kurasini", "tandika", "mbagala", "chamazi", "kijichi", "duce", "tia")),
         PlaceNode("Chang'ombe", "Temeke", "Dar es Salaam", -6.8473, 39.2675, "area", listOf("temeke", "duce", "taifa", "stadium", "kurasini", "student")),
         PlaceNode("Kurasini", "Temeke", "Dar es Salaam", -6.8548, 39.2861, "area", listOf("temeke", "tia", "port", "changombe", "kigamboni bridge")),
+        PlaceNode("Kijichi", "Temeke", "Dar es Salaam", -6.9052, 39.2882, "area", listOf("mbagala", "temeke", "chamazi", "kigamboni")),
         PlaceNode("Mbagala", "Temeke", "Dar es Salaam", -6.9061, 39.2654, "area", listOf("rangi tatu", "zakhem", "chamazi", "kijichi", "temeke")),
         PlaceNode("Kigamboni", "Kigamboni", "Dar es Salaam", -6.8428, 39.3264, "district", listOf("ferry", "kivukoni", "kibada", "mjimwema", "gezaulole", "kisota", "tuangoma", "beach", "mnma")),
         PlaceNode("Kigamboni Ferry", "Kigamboni", "Dar es Salaam", -6.8246, 39.3029, "subarea", listOf("kigamboni", "kivukoni", "posta", "mjimwema", "mnma")),
         PlaceNode("Kibada, Kigamboni", "Kigamboni", "Dar es Salaam", -6.8856, 39.3324, "area", listOf("kigamboni", "kisota", "tuangoma", "mjimwema", "gezaulole")),
+        PlaceNode("Kisota, Kigamboni", "Kigamboni", "Dar es Salaam", -6.8745, 39.3210, "area", listOf("kigamboni", "kibada", "ferry", "mjimwema")),
         PlaceNode("Mjimwema, Kigamboni", "Kigamboni", "Dar es Salaam", -6.8567, 39.3547, "area", listOf("kigamboni", "beach", "ferry", "gezaulole", "kibada")),
+        PlaceNode("Gezaulole, Kigamboni", "Kigamboni", "Dar es Salaam", -6.8794, 39.3924, "area", listOf("kigamboni", "mjimwema", "kibada", "beach")),
 
-        // Major Tanzania Cities
+        // Major Tanzania Cities & Towns
         PlaceNode("Arusha", "Arusha", "Arusha", -3.3869, 36.6830, "city", listOf("njiro", "sakina", "uzunguni", "clock tower", "iaa")),
+        PlaceNode("Njiro, Arusha", "Arusha", "Arusha", -3.4041, 36.7068, "area", listOf("arusha", "iaa", "kijenge")),
         PlaceNode("Dodoma", "Dodoma", "Dodoma", -6.1630, 35.7516, "city", listOf("udom", "area d", "area c", "kisasa", "makulu", "cbe")),
         PlaceNode("Mwanza", "Nyamagana", "Mwanza", -2.5164, 32.9175, "city", listOf("nyamagana", "ilemela", "capri point", "nyegezi", "saut", "bugando")),
         PlaceNode("Zanzibar (Stone Town)", "Mjini", "Zanzibar", -6.1659, 39.1990, "city", listOf("unguja", "stone town", "mbweni", "nungwi", "paje", "suza")),
         PlaceNode("Morogoro", "Morogoro", "Morogoro", -6.8278, 37.6591, "city", listOf("sua", "mzumbe", "kihonda", "mazimbu")),
         PlaceNode("Mbeya", "Mbeya", "Mbeya", -8.9094, 33.4608, "city", listOf("must", "uyole", "forest", "mwanjelwa")),
         PlaceNode("Moshi", "Moshi", "Kilimanjaro", -3.3349, 37.3404, "city", listOf("kilimanjaro", "kcmc", "shanty town", "mocu")),
-        PlaceNode("Tanga", "Tanga", "Tanga", -5.0689, 39.0988, "city", listOf("raskazone", "chumbageni", "donge"))
+        PlaceNode("Tanga", "Tanga", "Tanga", -5.0689, 39.0988, "city", listOf("raskazone", "chumbageni", "donge")),
+        PlaceNode("Kibaha", "Kibaha", "Pwani", -6.7667, 38.9167, "city", listOf("pwani", "maili moja", "tumbi", "kongowe", "morogoro road")),
+        PlaceNode("Bagamoyo", "Bagamoyo", "Pwani", -6.4422, 38.9042, "city", listOf("pwani", "kaole", "kiromo", "beach")),
+        PlaceNode("Kigoma", "Kigoma", "Kigoma", -4.8769, 29.6267, "city", listOf("ujiji", "mwanga", "lake tanganyika")),
+        PlaceNode("Iringa", "Iringa", "Iringa", -7.7700, 35.6900, "city", listOf("gangilonga", "kihesa", "ruaha")),
+        PlaceNode("Tabora", "Tabora", "Tabora", -5.0162, 32.8266, "city", listOf("tabora municipal")),
+        PlaceNode("Bukoba", "Bukoba", "Kagera", -1.3317, 31.8122, "city", listOf("kagera", "lake victoria")),
+        PlaceNode("Mtwara", "Mtwara", "Mtwara", -10.2667, 40.1833, "city", listOf("mikindani", "shangani"))
     )
 
     private val popularHubNames = setOf(
@@ -131,7 +161,7 @@ object PlaceSuggestionEngine {
         "University of Dar es Salaam (UDSM)", "Kariakoo", "Kigamboni"
     )
 
-    fun suggest(rawQuery: String): PlaceSuggestionBundle {
+    fun suggest(rawQuery: String, extraAreas: List<String> = emptyList()): PlaceSuggestionBundle {
         val q = rawQuery.trim().lowercase()
         if (q.isEmpty()) {
             val popular = places
@@ -164,9 +194,9 @@ object PlaceSuggestionEngine {
             var reason = ""
             when {
                 nameL == q -> { score = 130; reason = "exact" }
-                nameL.startsWith(q) -> { score = 105; reason = "prefix" }
-                words.any { it.startsWith(q) } -> { score = 92; reason = "word-prefix" }
-                nameL.contains(q) -> { score = 80; reason = "substring" }
+                nameL.startsWith(q) -> { score = 110; reason = "prefix" }
+                words.any { it.startsWith(q) } -> { score = 96; reason = "word-prefix" }
+                nameL.contains(q) -> { score = 82; reason = "substring" }
                 tokens.size > 1 && tokens.all { combined.contains(it) } -> { score = 78; reason = "multi" }
                 distL.startsWith(q) || cityL.startsWith(q) -> { score = 68; reason = "district" }
                 tagsL.contains(q) -> { score = 60; reason = "tag" }
@@ -193,7 +223,7 @@ object PlaceSuggestionEngine {
 
         for (s in scored) {
             val key = s.node.name.lowercase()
-            if (s.reason == "tag" || (s.reason == "district" && directNodes.size >= 2)) {
+            if (s.reason == "tag" || (s.reason == "district" && directNodes.size >= 4)) {
                 if (seenNames.add(key)) {
                     relatedItems.add(
                         PlaceSuggestionItem(
@@ -234,7 +264,7 @@ object PlaceSuggestionEngine {
                         isRelated = true
                     )
                 } else null
-            }.sortedByDescending { it.first }.take(5)
+            }.sortedByDescending { it.first }.take(6)
 
             for ((_, item) in nearby) {
                 if (seenNames.add(item.name.lowercase())) {
@@ -243,7 +273,7 @@ object PlaceSuggestionEngine {
             }
         }
 
-        val primaryItems = directNodes.take(5).map {
+        val primaryItems = directNodes.take(8).map {
             PlaceSuggestionItem(
                 name = it.name,
                 subtitle = if (it.district == it.city) "${it.city}, Tanzania" else "${it.district}, ${it.city}",
@@ -251,11 +281,33 @@ object PlaceSuggestionEngine {
                 lng = it.lng,
                 category = it.category
             )
+        }.toMutableList()
+
+        // Merge dynamic backend areas that match query and aren't already listed
+        for (rawArea in extraAreas) {
+            val trimmed = rawArea.trim()
+            if (trimmed.isBlank()) continue
+            val lower = trimmed.lowercase()
+            if (lower in seenNames) continue
+            if (lower.startsWith(q) || lower.contains(q) || (tokens.size > 1 && tokens.all { lower.contains(it) })) {
+                seenNames.add(lower)
+                primaryItems.add(
+                    PlaceSuggestionItem(
+                        name = trimmed,
+                        subtitle = "Active Roomify Area",
+                        lat = 0.0,
+                        lng = 0.0,
+                        category = "area",
+                        isRelated = false,
+                        hasCoordinates = false
+                    )
+                )
+            }
         }
 
         return PlaceSuggestionBundle(
-            primary = primaryItems,
-            related = relatedItems.take(5),
+            primary = primaryItems.take(10),
+            related = relatedItems.take(6),
             isPopularMode = false
         )
     }

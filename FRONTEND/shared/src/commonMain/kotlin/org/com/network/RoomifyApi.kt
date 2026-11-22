@@ -330,25 +330,62 @@ object RoomifyApi {
     }
 
     suspend fun uploadProfileImage(imageBytes: ByteArray): ApiResponse<String> {
+        if (imageBytes.isEmpty()) {
+            return ApiResponse(success = false, message = "Selected image file is empty")
+        }
         return try {
+            val (mimeType, fileName) = detectImageMimeAndName(imageBytes)
+            val token = ApiClient.getToken()
             val response = ApiClient.client.post("users/profile/image") {
+                if (!token.isNullOrBlank()) {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                }
                 // Let Ktor's MultiPartFormDataContent set the Content-Type with boundary
                 setBody(
                     MultiPartFormDataContent(
                         formData {
                             append("image", imageBytes, Headers.build {
-                                append(HttpHeaders.ContentType, "image/jpeg")
-                                append(HttpHeaders.ContentDisposition, "filename=\"profile.jpg\"")
+                                append(HttpHeaders.ContentType, mimeType)
+                                append(HttpHeaders.ContentDisposition, "filename=\"$fileName\"")
                             })
                         }
                     )
                 )
             }
-            response.body()
+            if (response.status.value in 200..299) {
+                response.body()
+            } else {
+                ApiResponse(
+                    success = false,
+                    message = "Profile image upload failed (HTTP ${response.status.value})"
+                )
+            }
         } catch (e: Exception) {
             println("RoomifyApi: Profile image upload error: ${e.message}")
             ApiResponse(success = false, message = e.message ?: "Upload failed")
         }
+    }
+
+    private fun detectImageMimeAndName(bytes: ByteArray): Pair<String, String> {
+        if (bytes.size >= 12) {
+            val b0 = bytes[0].toInt() and 0xFF
+            val b1 = bytes[1].toInt() and 0xFF
+            val b2 = bytes[2].toInt() and 0xFF
+            val b3 = bytes[3].toInt() and 0xFF
+            if (b0 == 0x89 && b1 == 0x50 && b2 == 0x4E && b3 == 0x47) {
+                return "image/png" to "profile.png"
+            }
+            if (b0 == 0x47 && b1 == 0x49 && b2 == 0x46 && b3 == 0x38) {
+                return "image/gif" to "profile.gif"
+            }
+            if (b0 == 'R'.code && b1 == 'I'.code && b2 == 'F'.code && b3 == 'F'.code &&
+                (bytes[8].toInt() and 0xFF) == 'W'.code && (bytes[9].toInt() and 0xFF) == 'E'.code &&
+                (bytes[10].toInt() and 0xFF) == 'B'.code && (bytes[11].toInt() and 0xFF) == 'P'.code
+            ) {
+                return "image/webp" to "profile.webp"
+            }
+        }
+        return "image/jpeg" to "profile.jpg"
     }
 
     // ============================================================

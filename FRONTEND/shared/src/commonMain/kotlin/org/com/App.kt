@@ -1188,8 +1188,9 @@ fun App() {
                                     )
                                 }
                                 "profile" -> {
+                                    val authedUser = (authState as AuthState.Authenticated).user
                                     ProfileScreen(
-                                        user = (authState as AuthState.Authenticated).user,
+                                        user = authedUser,
                                         onBack = { navigateBack() },
                                         onLogout = {
                                             scope.launch {
@@ -1197,12 +1198,21 @@ fun App() {
                                                 currentRoute = "map"
                                             }
                                         },
+                                        onProfileImageUpdated = { newImageUrl ->
+                                            val current = (authState as? AuthState.Authenticated)?.user ?: authedUser
+                                            authManager.updateCurrentUser(current.copy(profileImage = newImageUrl))
+                                        },
+                                        onUserRefreshed = { freshUser ->
+                                            authManager.updateCurrentUser(freshUser)
+                                        },
                                         onUpdateUser = { updatedUser ->
                                             scope.launch {
                                                 try {
                                                     val response = RoomifyApi.updateUserProfile(updatedUser)
                                                     if (response.success && response.data != null) {
                                                         authManager.updateCurrentUser(response.data)
+                                                    } else {
+                                                        authManager.updateCurrentUser(updatedUser)
                                                     }
                                                 } catch (e: Exception) {
                                                     println("App: Profile update failed: ${e.message}")
