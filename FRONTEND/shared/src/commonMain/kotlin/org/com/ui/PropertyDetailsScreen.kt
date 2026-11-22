@@ -372,33 +372,6 @@ fun PropertyDetailsScreen(
                                 ComplexOverviewCard(parentProperty!!)
                             }
 
-                            // Virtual Tour Video
-                            if (room.hasVideo && !room.videoUrl.isNullOrBlank()) {
-                                SectionTitleDetails("Virtual Tour Video")
-                                Surface(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(200.dp)
-                                        .pointerHoverIcon(PointerIcon.Hand)
-                                        .clickable {
-                                            val resolvedUrl = room.getFullUrl(room.videoUrl!!)
-                                            if (!openVideoPlayerModal(resolvedUrl)) {
-                                                uriHandler.openUri(resolvedUrl)
-                                            }
-                                        },
-                                    shape = RoundedCornerShape(16.dp),
-                                    color = Color(0xFF0F172A)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                            Icon(Icons.Rounded.PlayCircle, null, tint = Color.White, modifier = Modifier.size(48.dp))
-                                            Spacer(Modifier.height(8.dp))
-                                            Text("Watch Video Tour", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                        }
-                                    }
-                                }
-                            }
-
                             // Reviews & Ratings Section
                             ReviewsSection(
                                 room = room,
