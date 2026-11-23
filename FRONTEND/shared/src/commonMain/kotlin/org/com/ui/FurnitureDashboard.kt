@@ -201,7 +201,7 @@ fun FurnitureDashboard(
                                             modifier = Modifier.size(16.dp)
                                         )
                                         Text(
-                                            if (isCompact) "AI Panga Chumba" else "AI Panga Chumba",
+                                            if (isCompact) "AI Chumba" else "AI Panga Chumba",
                                             color = Color.White,
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.Bold,

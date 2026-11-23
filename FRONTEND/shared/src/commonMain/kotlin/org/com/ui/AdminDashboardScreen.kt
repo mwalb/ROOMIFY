@@ -188,7 +188,10 @@ fun AdminDashboardScreen(
                     isSmallScreen = isSmallScreen,
                     selectedSection = selectedSection,
                     user = user,
+                    isSuperAdmin = isSuperAdmin,
                     onOpenDrawer = { scope.launch { drawerState.open() } },
+                    onBack = onBack,
+                    onSelectSection = { selectedSection = it },
                     content = {
                         AdminSectionSwitcher(
                             selectedSection = selectedSection,
@@ -241,7 +244,10 @@ fun AdminDashboardScreen(
                         isSmallScreen = false,
                         selectedSection = selectedSection,
                         user = user,
+                        isSuperAdmin = isSuperAdmin,
                         onOpenDrawer = {},
+                        onBack = onBack,
+                        onSelectSection = { selectedSection = it },
                         content = {
                             AdminSectionSwitcher(
                                 selectedSection = selectedSection,
@@ -381,7 +387,10 @@ fun AdminMainShell(
     isSmallScreen: Boolean,
     selectedSection: String,
     user: User,
+    isSuperAdmin: Boolean = false,
     onOpenDrawer: () -> Unit,
+    onBack: () -> Unit = {},
+    onSelectSection: (String) -> Unit = {},
     content: @Composable () -> Unit
 ) {
     Column(
@@ -389,33 +398,48 @@ fun AdminMainShell(
             .fillMaxSize()
             .background(RoomifyColors.PageBackgroundBrush)
     ) {
-        // Clean Top Header (Height = 68.dp, #FFFFFF, 1.dp bottom border #E2E8F0)
+        // Clean Top Header (Height = 64.dp - 68.dp, #FFFFFF, 1.dp bottom border #E2E8F0)
         Surface(
             color = Color.White,
-            modifier = Modifier.fillMaxWidth().height(68.dp),
+            modifier = Modifier.fillMaxWidth().height(if (isSmallScreen) 60.dp else 68.dp),
             border = BorderStroke(1.dp, BorderGray)
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = if (isSmallScreen) 16.dp else 24.dp),
+                    .padding(horizontal = if (isSmallScreen) 12.dp else 24.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(Color(0xFFF1F5F9), CircleShape)
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = NavySidebarBg, modifier = Modifier.size(18.dp))
+                }
+                Spacer(Modifier.width(8.dp))
+
                 if (isCompact) {
                     IconButton(
                         onClick = onOpenDrawer,
-                        modifier = Modifier.size(48.dp) // 48.dp touch target
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(Color(0xFFF1F5F9), CircleShape)
                     ) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menu", tint = PrimaryTextDark)
+                        Icon(Icons.Default.Menu, contentDescription = "Menu", tint = PrimaryTextDark, modifier = Modifier.size(18.dp))
                     }
-                    Spacer(Modifier.width(4.dp))
+                    Spacer(Modifier.width(8.dp))
                 }
 
                 Text(
                     text = selectedSection,
-                    fontSize = if (isSmallScreen) 18.sp else 20.sp,
+                    fontSize = if (isSmallScreen) 16.sp else 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = PrimaryTextDark
+                    color = PrimaryTextDark,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
                 )
 
                 Spacer(Modifier.weight(1f))
@@ -445,7 +469,7 @@ fun AdminMainShell(
 
                     Box(
                         modifier = Modifier
-                            .size(40.dp)
+                            .size(if (isSmallScreen) 34.dp else 40.dp)
                             .clip(CircleShape)
                             .background(NavySidebarBg),
                         contentAlignment = Alignment.Center
@@ -454,7 +478,7 @@ fun AdminMainShell(
                             text = adminName.take(1).uppercase(),
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
+                            fontSize = if (isSmallScreen) 13.sp else 16.sp
                         )
                     }
                 }
@@ -464,7 +488,8 @@ fun AdminMainShell(
         // Section Content Container (Bounded to maxWidth = 1280.dp on large screens)
         Box(
             modifier = Modifier
-                .fillMaxSize(),
+                .weight(1f)
+                .fillMaxWidth(),
             contentAlignment = Alignment.TopCenter
         ) {
             Box(
@@ -476,6 +501,53 @@ fun AdminMainShell(
                 content()
             }
         }
+
+        // Mobile Phone Bottom Navigation Bar (< 600.dp) matching Owner & Dalali Dashboards
+        if (isSmallScreen) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(64.dp),
+                color = Color.White,
+                border = BorderStroke(1.dp, BorderGray)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.SpaceAround,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    AdminBottomNavItem("Overview", Icons.Default.Dashboard, selectedSection == "Overview") { onSelectSection("Overview") }
+                    AdminBottomNavItem("Properties", Icons.Default.Home, selectedSection == "Properties") { onSelectSection("Properties") }
+                    AdminBottomNavItem("Users", Icons.Default.People, selectedSection == "Users") { onSelectSection("Users") }
+                    AdminBottomNavItem("Bookings", Icons.Default.BookOnline, selectedSection == "Bookings") { onSelectSection("Bookings") }
+                    AdminBottomNavItem("Reports", Icons.Default.Assessment, selectedSection == "Reports") { onSelectSection("Reports") }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AdminBottomNavItem(label: String, icon: ImageVector, selected: Boolean, onClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .padding(vertical = 4.dp, horizontal = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            icon,
+            contentDescription = label,
+            tint = if (selected) NavySidebarBg else MutedTextGray,
+            modifier = Modifier.size(20.dp)
+        )
+        Text(
+            label,
+            fontSize = 11.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+            color = if (selected) NavySidebarBg else MutedTextGray
+        )
     }
 }
 
@@ -2057,71 +2129,126 @@ fun BookingsManagementContent(
     bookings: List<Booking>,
     isLoading: Boolean
 ) {
-    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text("Bookings Management & Status Tracking", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PrimaryTextDark)
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val isSmall = maxWidth < 600.dp
 
-        if (isLoading) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = NavySidebarBg) }
-        } else if (bookings.isEmpty()) {
-            EmptyStateBlock(
-                icon = Icons.Default.BookOnline,
-                title = "No bookings found",
-                subtext = "There are currently no tenant bookings recorded in the system."
-            )
-        } else {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                shape = RoundedCornerShape(14.dp),
-                border = BorderStroke(1.dp, BorderGray)
-            ) {
-                Column(Modifier.padding(16.dp)) {
-                    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                        Text("Booking ID", Modifier.weight(0.9f), fontWeight = FontWeight.Bold, color = PrimaryTextDark)
-                        Text("Property", Modifier.weight(1.6f), fontWeight = FontWeight.Bold, color = PrimaryTextDark)
-                        Text("Tenant", Modifier.weight(1.3f), fontWeight = FontWeight.Bold, color = PrimaryTextDark)
-                        Text("Total Price", Modifier.weight(1.1f), fontWeight = FontWeight.Bold, color = PrimaryTextDark)
-                        Text("Status", Modifier.weight(1f), fontWeight = FontWeight.Bold, color = PrimaryTextDark)
-                    }
-                    HorizontalDivider(color = BorderGray)
+        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text("Bookings Management & Status Tracking", fontSize = if (isSmall) 18.sp else 20.sp, fontWeight = FontWeight.Bold, color = PrimaryTextDark)
 
-                    LazyColumn {
-                        items(bookings) { b ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text("#${b.id}", Modifier.weight(0.9f), fontWeight = FontWeight.Bold, color = PrimaryTextDark)
-                                Text(b.roomTitle ?: "Room #${b.roomId}", Modifier.weight(1.6f), fontSize = 13.sp)
-                                Text(b.userName ?: "User #${b.userId}", Modifier.weight(1.3f), fontSize = 13.sp)
-                                Text("TZS ${b.totalPrice.toInt()}", Modifier.weight(1.1f), fontWeight = FontWeight.Bold, color = NavySidebarBg, fontSize = 13.sp)
-
-                                val bColor = when (b.status) {
-                                    "CONFIRMED" -> SuccessGreen
-                                    "PENDING" -> WarningAmber
-                                    else -> DangerRed
-                                }
-                                val bBg = when (b.status) {
-                                    "CONFIRMED" -> SuccessGreenLight
-                                    "PENDING" -> WarningAmberLight
-                                    else -> DangerRedLight
-                                }
-
-                                Surface(
-                                    color = bBg,
-                                    shape = RoundedCornerShape(50),
-                                    modifier = Modifier.wrapContentWidth()
+            if (isLoading) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = NavySidebarBg) }
+            } else if (bookings.isEmpty()) {
+                EmptyStateBlock(
+                    icon = Icons.Default.BookOnline,
+                    title = "No bookings found",
+                    subtext = "There are currently no tenant bookings recorded in the system."
+                )
+            } else if (isSmall) {
+                // Stacked responsive card list for phones
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxSize()) {
+                    items(bookings) { b ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            shape = RoundedCornerShape(14.dp),
+                            border = BorderStroke(1.dp, BorderGray)
+                        ) {
+                            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(
-                                        b.status,
-                                        color = bColor,
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                    )
+                                    Text("Booking #${b.id}", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = PrimaryTextDark)
+                                    val bColor = when (b.status) {
+                                        "CONFIRMED" -> SuccessGreen
+                                        "PENDING" -> WarningAmber
+                                        else -> DangerRed
+                                    }
+                                    val bBg = when (b.status) {
+                                        "CONFIRMED" -> SuccessGreenLight
+                                        "PENDING" -> WarningAmberLight
+                                        else -> DangerRedLight
+                                    }
+                                    Surface(color = bBg, shape = RoundedCornerShape(50)) {
+                                        Text(
+                                            b.status,
+                                            color = bColor,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                        )
+                                    }
+                                }
+                                Text("Property: ${b.roomTitle ?: "Room #${b.roomId}"}", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PrimaryTextDark)
+                                Text("Tenant: ${b.userName ?: "User #${b.userId}"}", fontSize = 12.sp, color = MutedTextGray)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Total Price", fontSize = 12.sp, color = MutedTextGray)
+                                    Text("TZS ${b.totalPrice.toInt()}", fontWeight = FontWeight.Black, color = NavySidebarBg, fontSize = 14.sp)
                                 }
                             }
-                            HorizontalDivider(color = Color(0xFFF1F5F9))
+                        }
+                    }
+                }
+            } else {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.dp, BorderGray)
+                ) {
+                    Column(Modifier.padding(16.dp)) {
+                        Row(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                            Text("Booking ID", Modifier.weight(0.9f), fontWeight = FontWeight.Bold, color = PrimaryTextDark)
+                            Text("Property", Modifier.weight(1.6f), fontWeight = FontWeight.Bold, color = PrimaryTextDark)
+                            Text("Tenant", Modifier.weight(1.3f), fontWeight = FontWeight.Bold, color = PrimaryTextDark)
+                            Text("Total Price", Modifier.weight(1.1f), fontWeight = FontWeight.Bold, color = PrimaryTextDark)
+                            Text("Status", Modifier.weight(1f), fontWeight = FontWeight.Bold, color = PrimaryTextDark)
+                        }
+                        HorizontalDivider(color = BorderGray)
+
+                        LazyColumn {
+                            items(bookings) { b ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("#${b.id}", Modifier.weight(0.9f), fontWeight = FontWeight.Bold, color = PrimaryTextDark)
+                                    Text(b.roomTitle ?: "Room #${b.roomId}", Modifier.weight(1.6f), fontSize = 13.sp)
+                                    Text(b.userName ?: "User #${b.userId}", Modifier.weight(1.3f), fontSize = 13.sp)
+                                    Text("TZS ${b.totalPrice.toInt()}", Modifier.weight(1.1f), fontWeight = FontWeight.Bold, color = NavySidebarBg, fontSize = 13.sp)
+
+                                    val bColor = when (b.status) {
+                                        "CONFIRMED" -> SuccessGreen
+                                        "PENDING" -> WarningAmber
+                                        else -> DangerRed
+                                    }
+                                    val bBg = when (b.status) {
+                                        "CONFIRMED" -> SuccessGreenLight
+                                        "PENDING" -> WarningAmberLight
+                                        else -> DangerRedLight
+                                    }
+
+                                    Surface(
+                                        color = bBg,
+                                        shape = RoundedCornerShape(50),
+                                        modifier = Modifier.wrapContentWidth()
+                                    ) {
+                                        Text(
+                                            b.status,
+                                            color = bColor,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        )
+                                    }
+                                }
+                                HorizontalDivider(color = Color(0xFFF1F5F9))
+                            }
                         }
                     }
                 }
@@ -2368,90 +2495,169 @@ fun AdministratorsContent(
         if (isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = NavySidebarBg) }
         } else {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                shape = RoundedCornerShape(14.dp),
-                border = BorderStroke(1.dp, BorderGray)
-            ) {
-                Column(Modifier.padding(16.dp)) {
-                    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Name", Modifier.weight(1.5f), fontWeight = FontWeight.Bold, color = PrimaryTextDark)
-                        Text("Email", Modifier.weight(1.8f), fontWeight = FontWeight.Bold, color = PrimaryTextDark)
-                        Text("Role Scope", Modifier.weight(1.2f), fontWeight = FontWeight.Bold, color = PrimaryTextDark)
-                        Text("Status", Modifier.weight(1f), fontWeight = FontWeight.Bold, color = PrimaryTextDark)
-                        Text("Actions", Modifier.weight(0.8f), fontWeight = FontWeight.Bold, color = PrimaryTextDark)
-                    }
-                    HorizontalDivider(color = BorderGray)
+            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                val isSmall = maxWidth < 600.dp
 
-                    admins.forEach { a ->
-                        val isSelf = (a.id == currentAdminId || a.email.equals(currentAdminEmail, ignoreCase = true))
+                if (isSmall) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        admins.forEach { a ->
+                            val isSelf = (a.id == currentAdminId || a.email.equals(currentAdminEmail, ignoreCase = true))
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(Modifier.weight(1.5f), verticalAlignment = Alignment.CenterVertically) {
-                                Text(a.name, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = PrimaryTextDark)
-                                if (isSelf) {
-                                    Spacer(Modifier.width(8.dp))
-                                    Surface(
-                                        color = InfoBlueLight,
-                                        shape = RoundedCornerShape(50)
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(containerColor = Color.White),
+                                shape = RoundedCornerShape(14.dp),
+                                border = BorderStroke(1.dp, BorderGray)
+                            ) {
+                                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text(
-                                            "You",
-                                            color = InfoBlue,
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                                        )
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(a.name, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = PrimaryTextDark)
+                                            if (isSelf) {
+                                                Spacer(Modifier.width(6.dp))
+                                                Surface(color = InfoBlueLight, shape = RoundedCornerShape(50)) {
+                                                    Text("You", color = InfoBlue, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                                }
+                                            }
+                                        }
+
+                                        Surface(
+                                            color = if (a.role.equals("SUPER_ADMIN", true)) Color(0xFFF3E8FF) else InfoBlueLight,
+                                            shape = RoundedCornerShape(6.dp)
+                                        ) {
+                                            Text(
+                                                a.role.uppercase(),
+                                                color = if (a.role.equals("SUPER_ADMIN", true)) Color(0xFF6B21A8) else InfoBlue,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                            )
+                                        }
                                     }
-                                }
-                            }
 
-                            Text(a.email, Modifier.weight(1.8f), fontSize = 13.sp, color = MutedTextGray)
+                                    Text(a.email, fontSize = 12.sp, color = MutedTextGray)
 
-                            Surface(
-                                color = if (a.role.equals("SUPER_ADMIN", true)) Color(0xFFF3E8FF) else InfoBlueLight,
-                                shape = RoundedCornerShape(6.dp),
-                                modifier = Modifier.weight(1.2f).wrapContentWidth()
-                            ) {
-                                Text(
-                                    a.role.uppercase(),
-                                    color = if (a.role.equals("SUPER_ADMIN", true)) Color(0xFF6B21A8) else InfoBlue,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                )
-                            }
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Surface(
+                                            color = if (a.isUserSuspended()) DangerRedLight else SuccessGreenLight,
+                                            shape = RoundedCornerShape(50)
+                                        ) {
+                                            Text(
+                                                if (a.isUserSuspended()) "Disabled" else "Active",
+                                                color = if (a.isUserSuspended()) DangerRed else SuccessGreen,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                            )
+                                        }
 
-                            Surface(
-                                color = if (a.isUserSuspended()) DangerRedLight else SuccessGreenLight,
-                                shape = RoundedCornerShape(50),
-                                modifier = Modifier.weight(1f).wrapContentWidth()
-                            ) {
-                                Text(
-                                    if (a.isUserSuspended()) "Disabled" else "Active",
-                                    color = if (a.isUserSuspended()) DangerRed else SuccessGreen,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                )
-                            }
-
-                            Box(Modifier.weight(0.8f)) {
-                                if (isSelf) {
-                                    // Guardrail: Self deletion disabled
-                                    Text("Protected", fontSize = 11.sp, color = MutedTextGray, fontWeight = FontWeight.Medium)
-                                } else {
-                                    IconButton(onClick = { deleteConfirmAdmin = a }) {
-                                        Icon(Icons.Default.Delete, "Delete", tint = DangerRed)
+                                        if (isSelf) {
+                                            Text("Protected", fontSize = 11.sp, color = MutedTextGray, fontWeight = FontWeight.Medium)
+                                        } else {
+                                            IconButton(onClick = { deleteConfirmAdmin = a }, modifier = Modifier.size(32.dp)) {
+                                                Icon(Icons.Default.Delete, "Delete", tint = DangerRed, modifier = Modifier.size(18.dp))
+                                            }
+                                        }
                                     }
                                 }
                             }
                         }
-                        HorizontalDivider(color = Color(0xFFF1F5F9))
+                    }
+                } else {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        shape = RoundedCornerShape(14.dp),
+                        border = BorderStroke(1.dp, BorderGray)
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text("Name", Modifier.weight(1.5f), fontWeight = FontWeight.Bold, color = PrimaryTextDark)
+                                Text("Email", Modifier.weight(1.8f), fontWeight = FontWeight.Bold, color = PrimaryTextDark)
+                                Text("Role Scope", Modifier.weight(1.2f), fontWeight = FontWeight.Bold, color = PrimaryTextDark)
+                                Text("Status", Modifier.weight(1f), fontWeight = FontWeight.Bold, color = PrimaryTextDark)
+                                Text("Actions", Modifier.weight(0.8f), fontWeight = FontWeight.Bold, color = PrimaryTextDark)
+                            }
+                            HorizontalDivider(color = BorderGray)
+
+                            admins.forEach { a ->
+                                val isSelf = (a.id == currentAdminId || a.email.equals(currentAdminEmail, ignoreCase = true))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(Modifier.weight(1.5f), verticalAlignment = Alignment.CenterVertically) {
+                                        Text(a.name, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = PrimaryTextDark)
+                                        if (isSelf) {
+                                            Spacer(Modifier.width(8.dp))
+                                            Surface(
+                                                color = InfoBlueLight,
+                                                shape = RoundedCornerShape(50)
+                                            ) {
+                                                Text(
+                                                    "You",
+                                                    color = InfoBlue,
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    Text(a.email, Modifier.weight(1.8f), fontSize = 13.sp, color = MutedTextGray)
+
+                                    Surface(
+                                        color = if (a.role.equals("SUPER_ADMIN", true)) Color(0xFFF3E8FF) else InfoBlueLight,
+                                        shape = RoundedCornerShape(6.dp),
+                                        modifier = Modifier.weight(1.2f).wrapContentWidth()
+                                    ) {
+                                        Text(
+                                            a.role.uppercase(),
+                                            color = if (a.role.equals("SUPER_ADMIN", true)) Color(0xFF6B21A8) else InfoBlue,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        )
+                                    }
+
+                                    Surface(
+                                        color = if (a.isUserSuspended()) DangerRedLight else SuccessGreenLight,
+                                        shape = RoundedCornerShape(50),
+                                        modifier = Modifier.weight(1f).wrapContentWidth()
+                                    ) {
+                                        Text(
+                                            if (a.isUserSuspended()) "Disabled" else "Active",
+                                            color = if (a.isUserSuspended()) DangerRed else SuccessGreen,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        )
+                                    }
+
+                                    Box(Modifier.weight(0.8f)) {
+                                        if (isSelf) {
+                                            // Guardrail: Self deletion disabled
+                                            Text("Protected", fontSize = 11.sp, color = MutedTextGray, fontWeight = FontWeight.Medium)
+                                        } else {
+                                            IconButton(onClick = { deleteConfirmAdmin = a }) {
+                                                Icon(Icons.Default.Delete, "Delete", tint = DangerRed)
+                                            }
+                                        }
+                                    }
+                                }
+                                HorizontalDivider(color = Color(0xFFF1F5F9))
+                            }
+                        }
                     }
                 }
             }

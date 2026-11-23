@@ -137,6 +137,7 @@ fun AnalyticsContent(
 
     BoxWithConstraints(modifier = modifier.fillMaxSize().roomifyAmbientBackground()) {
         val isExpanded = maxWidth >= 840.dp
+        val isCompact = maxWidth < 600.dp
 
         Column(modifier = Modifier.fillMaxSize()) {
             // Clean, accessible tab row (Not full-bleed dark purple)
@@ -148,17 +149,17 @@ fun AnalyticsContent(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        .padding(horizontal = if (isCompact) 10.dp else 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(if (isCompact) 4.dp else 8.dp)
                 ) {
                     tabs.forEachIndexed { index, title ->
                         val isSelected = index == selectedTab
                         Surface(
                             modifier = Modifier
                                 .weight(1f)
-                                .height(44.dp)
+                                .height(if (isCompact) 40.dp else 44.dp)
                                 .clickable { selectedTab = index },
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(10.dp),
                             color = if (isSelected) PrimaryColor else Color(0xFFF1F5F9),
                             border = if (isSelected) null else androidx.compose.foundation.BorderStroke(1.dp, CardBorderColor)
                         ) {
@@ -166,7 +167,7 @@ fun AnalyticsContent(
                                 Text(
                                     text = title,
                                     color = if (isSelected) Color.White else Color(0xFF475569),
-                                    fontSize = 14.sp,
+                                    fontSize = if (isCompact) 12.sp else 14.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis

@@ -1,13 +1,15 @@
 package com.ROOMIFY.Roomify.controller;
 
+import com.ROOMIFY.Roomify.Component.JwtUtil;
 import com.ROOMIFY.Roomify.dto.ApiResponse;
 import com.ROOMIFY.Roomify.model.User;
 import com.ROOMIFY.Roomify.repository.UserRepository;
-import com.ROOMIFY.Roomify.service.JwtService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -24,7 +26,7 @@ public class UserController {
     private UserRepository userRepository;
 
     @Autowired
-    private JwtService jwtService;
+    private JwtUtil jwtUtil;
 
     @Autowired
     private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
@@ -36,9 +38,10 @@ public class UserController {
     private String uploadDir;
 
     @GetMapping("/profile")
-    public ResponseEntity<ApiResponse<User>> getProfile(@RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<ApiResponse<User>> getProfile(
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
+            Long userId = resolveUserId(authHeader);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ApiResponse<>(false, null, "Unauthorized"));
             }
@@ -56,10 +59,10 @@ public class UserController {
 
     @PutMapping("/profile")
     public ResponseEntity<ApiResponse<User>> updateProfile(
-            @RequestHeader("Authorization") String authHeader,
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
             @RequestBody java.util.Map<String, Object> updates) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
+            Long userId = resolveUserId(authHeader);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ApiResponse<>(false, null, "Unauthorized"));
             }
@@ -103,10 +106,10 @@ public class UserController {
 
     @PostMapping("/profile/image")
     public ResponseEntity<ApiResponse<String>> uploadProfileImage(
-            @RequestHeader("Authorization") String authHeader,
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
             @RequestParam("image") MultipartFile file) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
+            Long userId = resolveUserId(authHeader);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ApiResponse<>(false, null, "Unauthorized"));
             }
@@ -177,10 +180,10 @@ public class UserController {
 
     @PostMapping("/change-password")
     public ResponseEntity<ApiResponse<Void>> changePassword(
-            @RequestHeader("Authorization") String authHeader,
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
             @RequestBody java.util.Map<String, String> request) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
+            Long userId = resolveUserId(authHeader);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ApiResponse<>(false, null, "Unauthorized"));
             }
@@ -212,9 +215,10 @@ public class UserController {
     }
 
     @PostMapping("/delete-account")
-    public ResponseEntity<ApiResponse<Void>> deleteAccount(@RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<ApiResponse<Void>> deleteAccount(
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
+            Long userId = resolveUserId(authHeader);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ApiResponse<>(false, null, "Unauthorized"));
             }
@@ -233,12 +237,31 @@ public class UserController {
         }
     }
 
-    private Long extractUserIdFromToken(String authHeader) {
+    /**
+     * Resolves the user ID either from Spring's SecurityContext (populated by JwtAuthenticationFilter)
+     * or by validating and decoding the Bearer token with JwtUtil.
+     */
+    private Long resolveUserId(String authHeader) {
         try {
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) return null;
-            String token = authHeader.substring(7);
-            String email = jwtService.extractEmail(token);
-            return userRepository.findByEmail(email).map(User::getId).orElse(null);
+            // 1. Try SecurityContextHolder first
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
+                String principalEmail = auth.getName();
+                if (principalEmail != null && !principalEmail.isBlank()) {
+                    Long id = userRepository.findByEmail(principalEmail).map(User::getId).orElse(null);
+                    if (id != null) return id;
+                }
+            }
+
+            // 2. Fallback to extracting from the Authorization header using JwtUtil
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                String token = authHeader.substring(7);
+                String email = jwtUtil.extractEmail(token);
+                if (email != null && !email.isBlank()) {
+                    return userRepository.findByEmail(email).map(User::getId).orElse(null);
+                }
+            }
+            return null;
         } catch (Exception e) {
             return null;
         }

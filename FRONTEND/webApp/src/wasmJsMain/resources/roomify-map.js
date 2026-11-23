@@ -3616,17 +3616,17 @@
             zIndex: 99998
         });
 
-        window.roomifyMap.panTo(target);
+        window.roomifyMap.setCenter(target);
         var zoomLevel = targetZoom || 16;
         window.roomifyMap.setZoom(zoomLevel);
         setTimeout(function() {
             if (window.roomifyMap) {
                 window.roomifyMap.panTo(target);
-                if (window.roomifyMap.getZoom() < zoomLevel - 1) {
+                if (window.roomifyMap.getZoom() < zoomLevel) {
                     window.roomifyMap.setZoom(zoomLevel);
                 }
             }
-        }, 120);
+        }, 150);
     }
 
     function filterRoomsByPlaceOrLocation(placeLabel, lat, lng, viewport) {

@@ -361,19 +361,35 @@ fun DalaliDashboardScreen(
                     ) {
                         when (selectedTab) {
                             0 -> {
-                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                    StatBox("Listings", "${properties.size}", Icons.Default.Business, Modifier.weight(1f))
-                                    val totalCommK = (dalaliStats?.totalCommission ?: 0.0) / 1000.0
-                                    StatBox("Commission", "TZS ${totalCommK.toLong()}K", Icons.Default.Payments, Modifier.weight(1f))
-                                    StatBox("Pending", "${bookings.count { it.status == "PENDING" }}", Icons.Default.BookmarkBorder, Modifier.weight(1f))
+                                if (isMobile) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        StatBox("Listings", "${properties.size}", Icons.Default.Business, Modifier.fillMaxWidth())
+                                        val totalCommK = (dalaliStats?.totalCommission ?: 0.0) / 1000.0
+                                        StatBox("Commission", "TZS ${totalCommK.toLong()}K", Icons.Default.Payments, Modifier.fillMaxWidth())
+                                        StatBox("Pending", "${bookings.count { it.status == "PENDING" }}", Icons.Default.BookmarkBorder, Modifier.fillMaxWidth())
+                                    }
+                                } else {
+                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                        StatBox("Listings", "${properties.size}", Icons.Default.Business, Modifier.weight(1f))
+                                        val totalCommK = (dalaliStats?.totalCommission ?: 0.0) / 1000.0
+                                        StatBox("Commission", "TZS ${totalCommK.toLong()}K", Icons.Default.Payments, Modifier.weight(1f))
+                                        StatBox("Pending", "${bookings.count { it.status == "PENDING" }}", Icons.Default.BookmarkBorder, Modifier.weight(1f))
+                                    }
                                 }
 
                                 Column {
                                     Text("Quick Actions", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Color.Gray)
                                     Spacer(Modifier.height(12.dp))
-                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                        ActionItem("Add Listing", Icons.Default.Add, PrimaryColor, Modifier.weight(1f), onClick = onAddProperty)
-                                        ActionItem("Analytics", Icons.AutoMirrored.Filled.TrendingUp, Color(0xFF00897B), Modifier.weight(1f), onClick = onViewAnalytics)
+                                    if (isMobile) {
+                                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                            ActionItem("Add Listing", Icons.Default.Add, PrimaryColor, Modifier.fillMaxWidth(), onClick = onAddProperty)
+                                            ActionItem("Analytics", Icons.AutoMirrored.Filled.TrendingUp, Color(0xFF00897B), Modifier.fillMaxWidth(), onClick = onViewAnalytics)
+                                        }
+                                    } else {
+                                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                            ActionItem("Add Listing", Icons.Default.Add, PrimaryColor, Modifier.weight(1f), onClick = onAddProperty)
+                                            ActionItem("Analytics", Icons.AutoMirrored.Filled.TrendingUp, Color(0xFF00897B), Modifier.weight(1f), onClick = onViewAnalytics)
+                                        }
                                     }
                                 }
 
@@ -422,6 +438,29 @@ fun DalaliDashboardScreen(
                             }
                         }
                     }
+
+                    // Compact Phone Bottom Navigation Bar (< 900.dp) matching Owner Dashboard
+                    if (isMobile) {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(64.dp),
+                            color = Color.White,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxSize(),
+                                horizontalArrangement = Arrangement.SpaceAround,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                DalaliBottomNavItem("Dashboard", Icons.Default.Dashboard, selectedTab == 0) { selectedTab = 0 }
+                                DalaliBottomNavItem("Listings", Icons.Default.HomeWork, selectedTab == 1) { selectedTab = 1 }
+                                DalaliBottomNavItem("Requests", Icons.Default.Bookmark, selectedTab == 2) { selectedTab = 2 }
+                                DalaliBottomNavItem("Analytics", Icons.AutoMirrored.Filled.TrendingUp, false) { onViewAnalytics() }
+                                DalaliBottomNavItem("Profile", Icons.Default.Person, false) { onNavigate("profile") }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -444,6 +483,30 @@ fun DalaliDashboardScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun DalaliBottomNavItem(label: String, icon: ImageVector, selected: Boolean, onClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .padding(vertical = 4.dp, horizontal = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            icon,
+            contentDescription = label,
+            tint = if (selected) PrimaryColor else Color(0xFF64748B),
+            modifier = Modifier.size(22.dp)
+        )
+        Text(
+            label,
+            fontSize = 11.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+            color = if (selected) PrimaryColor else Color(0xFF64748B)
+        )
     }
 }
 

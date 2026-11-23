@@ -1,14 +1,16 @@
 package com.ROOMIFY.Roomify.controller;
 
+import com.ROOMIFY.Roomify.Component.JwtUtil;
 import com.ROOMIFY.Roomify.dto.ApiResponse;
 import com.ROOMIFY.Roomify.dto.DalaliStats;
 import com.ROOMIFY.Roomify.model.Room;
 import com.ROOMIFY.Roomify.model.User;
 import com.ROOMIFY.Roomify.repository.RoomRepository;
 import com.ROOMIFY.Roomify.repository.UserRepository;
-import com.ROOMIFY.Roomify.service.JwtService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -26,13 +28,13 @@ public class DalaliController {
     private UserRepository userRepository;
 
     @Autowired
-    private JwtService jwtService;
+    private JwtUtil jwtUtil;
 
     @GetMapping("/properties")
     public ResponseEntity<ApiResponse<List<Room>>> getAgentProperties(
-            @RequestHeader("Authorization") String authHeader) {
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
+            Long userId = resolveUserId(authHeader);
             List<Room> properties = roomRepository.findByDalaliId(userId);
             return ResponseEntity.ok(new ApiResponse<>(true, properties, "Properties retrieved"));
         } catch (Exception e) {
@@ -43,9 +45,9 @@ public class DalaliController {
 
     @GetMapping("/properties/pending")
     public ResponseEntity<ApiResponse<List<Room>>> getPendingProperties(
-            @RequestHeader("Authorization") String authHeader) {
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
+            Long userId = resolveUserId(authHeader);
             List<Room> properties = roomRepository.findPendingPropertiesByDalali(userId);
             return ResponseEntity.ok(new ApiResponse<>(true, properties, "Pending properties retrieved"));
         } catch (Exception e) {
@@ -56,9 +58,9 @@ public class DalaliController {
 
     @GetMapping("/properties/rented")
     public ResponseEntity<ApiResponse<List<Room>>> getRentedProperties(
-            @RequestHeader("Authorization") String authHeader) {
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
+            Long userId = resolveUserId(authHeader);
             List<Room> properties = roomRepository.findRentedPropertiesByDalali(userId);
             return ResponseEntity.ok(new ApiResponse<>(true, properties, "Rented properties retrieved"));
         } catch (Exception e) {
@@ -69,9 +71,9 @@ public class DalaliController {
 
     @GetMapping("/stats")
     public ResponseEntity<ApiResponse<DalaliStats>> getDalaliStats(
-            @RequestHeader("Authorization") String authHeader) {
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
+            Long userId = resolveUserId(authHeader);
             User user = userRepository.findById(userId).orElse(null);
 
             DalaliStats stats = new DalaliStats();
@@ -113,9 +115,9 @@ public class DalaliController {
 
     @GetMapping("/profile")
     public ResponseEntity<ApiResponse<User>> getDalaliProfile(
-            @RequestHeader("Authorization") String authHeader) {
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
+            Long userId = resolveUserId(authHeader);
             User user = userRepository.findById(userId).orElse(null);
             if (user != null) {
                 return ResponseEntity.ok(new ApiResponse<>(true, user, "Profile retrieved"));
@@ -130,10 +132,10 @@ public class DalaliController {
 
     @PutMapping("/properties/{propertyId}/rented")
     public ResponseEntity<ApiResponse<Void>> markAsRented(
-            @RequestHeader("Authorization") String authHeader,
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
             @PathVariable Long propertyId) {
         try {
-            Long userId = extractUserIdFromToken(authHeader);
+            Long userId = resolveUserId(authHeader);
             Room room = roomRepository.findById(propertyId).orElse(null);
 
             if (room == null) {
@@ -155,12 +157,27 @@ public class DalaliController {
         }
     }
 
-    private Long extractUserIdFromToken(String authHeader) {
+    private Long resolveUserId(String authHeader) {
         try {
-            String token = authHeader.substring(7); // Remove "Bearer "
-            String email = jwtService.extractEmail(token);
-            User user = userRepository.findByEmail(email).orElse(null);
-            return user != null ? user.getId() : null;
+            // 1. Try SecurityContextHolder first
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
+                String principalEmail = auth.getName();
+                if (principalEmail != null && !principalEmail.isBlank()) {
+                    Long id = userRepository.findByEmail(principalEmail).map(User::getId).orElse(null);
+                    if (id != null) return id;
+                }
+            }
+
+            // 2. Fallback to extracting from the Authorization header using JwtUtil
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                String token = authHeader.substring(7);
+                String email = jwtUtil.extractEmail(token);
+                if (email != null && !email.isBlank()) {
+                    return userRepository.findByEmail(email).map(User::getId).orElse(null);
+                }
+            }
+            return null;
         } catch (Exception e) {
             e.printStackTrace();
             return null;
