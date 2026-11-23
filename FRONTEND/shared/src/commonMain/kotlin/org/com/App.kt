@@ -568,7 +568,7 @@ fun App() {
             }
             "postroom" -> {
                 withAuth("postroom") {
-                    if (postRoomViewModel.uiState.value.isSuccess) {
+                    if (postRoomViewModel.uiState.value.successMessage != null) {
                         postRoomViewModel.reset()
                     }
                     currentRoute = "postroom"

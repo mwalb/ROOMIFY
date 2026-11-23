@@ -123,7 +123,9 @@ data class PropertyFormState(
     val unitSearchQuery: String = "",
     val unitFilterFloor: Int? = null,
     val unitFilterStatus: String? = null
-)
+) {
+    val isSuccess: Boolean get() = successMessage != null
+}
 
 private val propertyTypes = listOf("Apartment", "Hostel / Rooms", "Studio / Bedsitter", "Commercial / Mixed")
 private val amenitiesList = listOf("WiFi", "Parking", "Air Conditioning", "Furnished", "Water Included", "Electricity Included", "Security", "Balcony", "Pool", "Gym")
