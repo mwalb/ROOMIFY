@@ -1,19 +1,24 @@
-# Use Java 21 JDK
-FROM eclipse-temurin:21-jdk
+# Stage 1: Build using official Maven on Java 21 (no local wrapper required)
+FROM maven:3.9.6-eclipse-temurin-21 AS build
 
 WORKDIR /app
 
-# Copy the entire BACKEND directory
-COPY BACKEND/ .
+# Copy pom.xml and cache dependencies
+COPY BACKEND/pom.xml .
+RUN mvn dependency:go-offline -B || true
 
-# Make Maven wrapper executable
-RUN chmod +x mvnw
+# Copy backend source code and package JAR
+COPY BACKEND/src ./src
+RUN mvn clean package -DskipTests
 
-# Build the Spring Boot application
-RUN ./mvnw clean package -DskipTests
+# Stage 2: Minimal Java 21 runtime container
+FROM eclipse-temurin:21-jre
 
-# Expose port
+WORKDIR /app
+
+# Copy the compiled Spring Boot executable JAR
+COPY --from=build /app/target/*.jar app.jar
+
 EXPOSE 8080
 
-# Run JAR file
-CMD ["java", "-jar", "target/Roomify-0.0.1-SNAPSHOT.jar"]
+CMD ["java", "-jar", "app.jar"]
