@@ -159,8 +159,6 @@
             }
             if (backdrop) {
                 backdrop.classList.remove("open");
-                backdrop.style.display = "none";
-                backdrop.style.pointerEvents = "none";
             }
             if (menuControl) menuControl.style.display = "none";
             if (searchControl) searchControl.style.display = "none";
@@ -173,17 +171,19 @@
         if (sidebar) {
             sidebar.classList.add("map-active");
             if (isSmall) {
+                sidebar.style.display = "flex";
                 if (sidebar.classList.contains("open")) {
-                    sidebar.style.display = "flex";
                     sidebar.style.pointerEvents = "auto";
                 } else {
-                    sidebar.style.display = "none";
                     sidebar.style.pointerEvents = "none";
                 }
             } else {
                 sidebar.classList.remove("open");
                 sidebar.style.display = "flex";
                 sidebar.style.pointerEvents = "auto";
+                if (backdrop) {
+                    backdrop.classList.remove("open");
+                }
             }
         }
 
@@ -1017,44 +1017,99 @@
              */
 
             .roomify-sidebar-backdrop {
-                display: none !important;
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100vw !important;
+                height: 100vh !important;
+                height: 100dvh !important;
+                background: rgba(15, 23, 42, 0.5) !important;
+                backdrop-filter: blur(3px) !important;
+                -webkit-backdrop-filter: blur(3px) !important;
+                z-index: 99998 !important;
+                opacity: 0 !important;
+                visibility: hidden !important;
+                transition: opacity 0.32s ease, visibility 0.32s !important;
+                pointer-events: none !important;
+            }
+
+            .roomify-sidebar-backdrop.open {
+                opacity: 1 !important;
+                visibility: visible !important;
+                pointer-events: auto !important;
             }
 
             @media (max-width: 899px) {
                 .roomify-sidebar {
                     position: fixed !important;
-                    top: 0 !important;
-                    left: -100% !important;
-                    width: 320px !important;
-                    max-width: 85vw !important;
-                    height: 100vh !important;
-                    height: 100dvh !important;
+                    top: auto !important;
+                    bottom: 0 !important;
+                    left: 0 !important;
+                    right: 0 !important;
+                    width: 100vw !important;
+                    max-width: 100vw !important;
+                    height: auto !important;
+                    max-height: 84vh !important;
+                    max-height: 84dvh !important;
+                    min-height: 280px !important;
+                    border-radius: 28px 28px 0 0 !important;
+                    box-shadow: 0 -12px 40px rgba(15, 23, 42, 0.3) !important;
+                    border-top: 1px solid rgba(255, 255, 255, 0.35) !important;
+                    border-right: none !important;
+                    border-left: none !important;
+                    border-bottom: none !important;
                     z-index: 99999 !important;
-                    display: none;
+                    display: flex !important;
                     flex-direction: column !important;
                     overflow: hidden !important;
-                    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-                    box-shadow: 4px 0 24px rgba(0,0,0,0.25) !important;
-                    pointer-events: none;
+                    transform: translateY(105%) !important;
+                    transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.38s !important;
+                    visibility: hidden !important;
+                    pointer-events: none !important;
+                    background: linear-gradient(180deg, #F0F4FC 0%, #E8EEF7 100%) !important;
                 }
                 .roomify-sidebar.map-active {
-                    display: none;
+                    display: flex !important;
                 }
                 .roomify-sidebar.map-active.open {
-                    display: flex !important;
-                    left: 0 !important;
+                    transform: translateY(0%) !important;
+                    visibility: visible !important;
                     pointer-events: auto !important;
                 }
                 .roomify-sidebar-header {
-                    padding: 24px 20px 20px 20px !important;
-                    border-radius: 0 0 24px 0 !important;
+                    padding: 14px 20px 18px 20px !important;
+                    background: #3F4494 !important;
+                    color: white !important;
+                    position: relative !important;
+                    border-radius: 28px 28px 0 0 !important;
                     flex-shrink: 0 !important;
+                    text-align: center;
+                }
+                .roomify-sidebar-header::before {
+                    content: "";
+                    display: block;
+                    width: 44px;
+                    height: 5px;
+                    background: rgba(255, 255, 255, 0.45);
+                    border-radius: 3px;
+                    margin: 0 auto 10px auto;
+                    cursor: grab;
                 }
                 .roomify-sidebar-brand {
-                    font-size: 24px !important;
+                    font-size: 22px !important;
+                    font-weight: 700 !important;
+                    margin-bottom: 2px !important;
                 }
                 .roomify-sidebar-tagline {
                     font-size: 13px !important;
+                    opacity: 0.92 !important;
+                }
+                .roomify-sidebar-close {
+                    top: 14px !important;
+                    right: 16px !important;
+                    width: 32px !important;
+                    height: 32px !important;
+                    font-size: 15px !important;
                 }
                 .roomify-sidebar-body {
                     flex: 1 1 auto !important;
@@ -1065,7 +1120,7 @@
                 }
                 .roomify-sidebar-footer {
                     flex-shrink: 0 !important;
-                    padding: 16px 20px !important;
+                    padding: 14px 20px !important;
                     background: #ffffff !important;
                     border-top: 1px solid #E5E7EB !important;
                     box-shadow: 0 -2px 10px rgba(0,0,0,0.05) !important;
@@ -1417,17 +1472,19 @@
                     border-radius: 10px;
                 }
                 .roomify-sidebar {
-                    width: 300px;
-                    max-width: 86vw;
+                    width: 100vw !important;
+                    max-width: 100vw !important;
+                    max-height: 85vh !important;
+                    max-height: 85dvh !important;
                 }
                 .roomify-sidebar-header {
-                    padding: 20px 16px 16px 16px !important;
+                    padding: 12px 16px 16px 16px !important;
                 }
                 .roomify-sidebar-body {
                     padding: 12px 14px !important;
                 }
                 .roomify-sidebar-footer {
-                    padding: 14px 16px !important;
+                    padding: 12px 16px !important;
                 }
                 .roomify-footer-item {
                     font-size: 15px !important;
@@ -1561,121 +1618,8 @@
         var currentDropdownEntries = [];
         var activeDropdownIndex = -1;
 
-        // Curated Tanzania & Dar es Salaam place/district/sub-area/landmark knowledge graph
-        // Enables instant, zero-latency matching AND related nearby area discovery while typing
-        var ROOMIFY_PLACE_GRAPH = [
-            // Kinondoni District & Peninsula
-            { name: "Kinondoni", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7834, lng: 39.2665, cat: "district", tags: ["kinondoni studio", "kinondoni manyanya", "kinondoni biafra", "kinondoni mkwajuni", "mikocheni", "msasani", "masaki", "oysterbay", "ada estate", "hana nasif", "mwananyamala", "kijitonyama", "makumbusho", "mwenge", "kawe", "mbezi beach"] },
-            { name: "Kinondoni Studio", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7892, lng: 39.2683, cat: "subarea", tags: ["kinondoni", "manyanya", "biafra", "morocco", "ada estate", "kawawa road"] },
-            { name: "Kinondoni Manyanya", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7858, lng: 39.2636, cat: "subarea", tags: ["kinondoni", "studio", "mwananyamala", "mkwajuni", "kawawa road"] },
-            { name: "Ada Estate", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7819, lng: 39.2728, cat: "area", tags: ["kinondoni", "oysterbay", "morocco", "msasani", "ali hassan mwinyi"] },
-            { name: "Morocco", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7826, lng: 39.2643, cat: "area", tags: ["kinondoni", "bagamoyo road", "brt", "airtel", "makumbusho", "ada estate", "kijitonyama"] },
-            { name: "Mwananyamala", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7848, lng: 39.2549, cat: "area", tags: ["kinondoni", "hospital", "makumbusho", "kijitonyama", "tandale", "manyanya"] },
-            { name: "Hana Nasif", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7944, lng: 39.2634, cat: "area", tags: ["kinondoni", "mkwajuni", "magomeni", "studio"] },
-
-            // Mikocheni & Sub-areas & Landmarks
-            { name: "Mikocheni", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7689, lng: 39.2512, cat: "area", tags: ["mikocheni a", "mikocheni b", "kinondoni", "msasani", "kijitonyama", "mwenge", "kawe", "shoppers plaza", "palm village", "kairuki", "old bagamoyo", "mwai kibaki", "regent estate"] },
-            { name: "Mikocheni A", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7712, lng: 39.2564, cat: "subarea", tags: ["mikocheni", "kinondoni", "kairuki hospital", "shoppers plaza", "regent estate", "victoria", "msasani"] },
-            { name: "Mikocheni B", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7618, lng: 39.2454, cat: "subarea", tags: ["mikocheni", "kinondoni", "palm village", "mwenge", "kawe", "cocacola", "mwai kibaki", "kijitonyama"] },
-            { name: "Regent Estate, Mikocheni", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7745, lng: 39.2598, cat: "subarea", tags: ["mikocheni", "mikocheni a", "victoria", "kijitonyama", "morocco", "kinondoni"] },
-            { name: "Palm Village, Mikocheni", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7575, lng: 39.2535, cat: "landmark", tags: ["mikocheni", "mikocheni b", "mall", "msasani", "kawe", "mwai kibaki", "kinondoni"] },
-            { name: "Shoppers Plaza, Mikocheni", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7694, lng: 39.2615, cat: "landmark", tags: ["mikocheni", "mikocheni a", "mall", "supermarket", "kairuki", "mwai kibaki", "msasani"] },
-            { name: "Kairuki Hospital, Mikocheni", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7720, lng: 39.2571, cat: "landmark", tags: ["mikocheni", "hospital", "university", "hkmu", "kijitonyama", "shoppers plaza"] },
-
-            // Msasani, Masaki, Oysterbay
-            { name: "Msasani", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7614, lng: 39.2708, cat: "area", tags: ["msasani peninsula", "masaki", "oysterbay", "mikocheni", "namanga", "kimweri", "slipway", "beach", "kinondoni"] },
-            { name: "Masaki", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7518, lng: 39.2798, cat: "area", tags: ["peninsula", "msasani", "oysterbay", "chole road", "haile selassie", "slipway", "sea cliff", "toure drive", "beach", "kinondoni"] },
-            { name: "Oysterbay", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7764, lng: 39.2792, cat: "area", tags: ["msasani", "masaki", "coco beach", "ada estate", "namanga", "toure drive", "kinondoni"] },
-            { name: "Namanga", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7747, lng: 39.2699, cat: "subarea", tags: ["msasani", "oysterbay", "mikocheni", "ali hassan mwinyi", "kinondoni"] },
-
-            // Kijitonyama, Makumbusho, Victoria, Mwenge
-            { name: "Kijitonyama", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7785, lng: 39.2422, cat: "area", tags: ["kinondoni", "sinza", "makumbusho", "mikocheni", "mwenge", "sayansi", "costech", "victoria", "dar village", "village museum"] },
-            { name: "Makumbusho", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7834, lng: 39.2471, cat: "area", tags: ["kinondoni", "bus stand", "kijitonyama", "mwananyamala", "victoria", "village museum", "sinza"] },
-            { name: "Victoria", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7793, lng: 39.2546, cat: "area", tags: ["kinondoni", "new bagamoyo", "kijitonyama", "mikocheni", "regent estate", "morocco", "makumbusho"] },
-            { name: "Mwenge", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7689, lng: 39.2286, cat: "area", tags: ["kinondoni", "mwenge market", "mlimani city", "survey", "udsm", "sinza", "kijitonyama", "mikocheni", "kawe", "lugalo", "makongo"] },
-
-            // Sinza & Sub-areas
-            { name: "Sinza", district: "Ubungo", city: "Dar es Salaam", lat: -6.7866, lng: 39.2275, cat: "area", tags: ["sinza mori", "sinza palestina", "sinza mugabe", "sinza kijiweni", "sinza kwa remmy", "sinza kumekucha", "sinza madukani", "sinza afrikasana", "ubungo", "kijitonyama", "mwenge", "mlimani city", "udsm", "shekilango"] },
-            { name: "Sinza Mori", district: "Ubungo", city: "Dar es Salaam", lat: -6.7824, lng: 39.2341, cat: "subarea", tags: ["sinza", "kijitonyama", "shekilango", "afrikasana", "ubungo"] },
-            { name: "Sinza Palestina", district: "Ubungo", city: "Dar es Salaam", lat: -6.7885, lng: 39.2268, cat: "subarea", tags: ["sinza", "hospital", "mugabe", "kijiweni", "ubungo"] },
-            { name: "Sinza Mugabe", district: "Ubungo", city: "Dar es Salaam", lat: -6.7908, lng: 39.2225, cat: "subarea", tags: ["sinza", "palestina", "ubungo", "shekilango", "maweni"] },
-            { name: "Sinza Kijiweni", district: "Ubungo", city: "Dar es Salaam", lat: -6.7848, lng: 39.2252, cat: "subarea", tags: ["sinza", "kwa remmy", "madukani", "mlimani city", "mwenge"] },
-            { name: "Sinza Kwa Remmy", district: "Ubungo", city: "Dar es Salaam", lat: -6.7832, lng: 39.2289, cat: "subarea", tags: ["sinza", "kijiweni", "mori", "mlimani city", "kijitonyama"] },
-
-            // Universities & Mlimani / Survey / Makongo
-            { name: "University of Dar es Salaam (UDSM)", district: "Ubungo", city: "Dar es Salaam", lat: -6.7795, lng: 39.2055, cat: "university", tags: ["udsm", "chuo kikuu", "mlimani", "survey", "mwenge", "sinza", "ubungo", "makongo juu", "changanyikeni", "ardhi", "hostel", "student", "main campus"] },
-            { name: "Mlimani City", district: "Ubungo", city: "Dar es Salaam", lat: -6.7731, lng: 39.2212, cat: "landmark", tags: ["mall", "sam nujoma", "survey", "udsm", "mwenge", "sinza", "ubungo", "ardhi university"] },
-            { name: "Survey", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7681, lng: 39.2165, cat: "area", tags: ["ardhi university", "aru", "udsm", "mlimani city", "mwenge", "makongo", "changanyikeni", "student", "hostel"] },
-            { name: "Ardhi University (ARU)", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7644, lng: 39.2131, cat: "university", tags: ["aru", "survey", "udsm", "makongo juu", "mwenge", "mlimani city", "student", "hostel"] },
-            { name: "Makongo Juu", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7485, lng: 39.2006, cat: "area", tags: ["makongo", "ardhi", "survey", "udsm", "changanyikeni", "goba", "mwenge", "lugalo", "kawe"] },
-            { name: "Changanyikeni", district: "Ubungo", city: "Dar es Salaam", lat: -6.7597, lng: 39.1932, cat: "area", tags: ["udsm", "makongo juu", "survey", "ardhi", "goba", "ubungo", "student"] },
-
-            // Kawe, Mbezi Beach, Goba, Tegeta, Boko, Bunju, Kunduchi
-            { name: "Kawe", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7379, lng: 39.2289, cat: "area", tags: ["kinondoni", "kawe beach", "lugalo", "mbezi beach", "mikocheni", "mwenge", "makongo", "tanganyika packers"] },
-            { name: "Mbezi Beach", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7068, lng: 39.2148, cat: "area", tags: ["mbezi", "mbezi beach africana", "mbezi makonde", "mbezi jogoo", "mbezi tanki bovu", "kawe", "goba", "tegeta", "kunduchi", "salasala", "kinondoni", "beach"] },
-            { name: "Mbezi Beach Africana", district: "Kinondoni", city: "Dar es Salaam", lat: -6.6956, lng: 39.2124, cat: "subarea", tags: ["mbezi beach", "mbezi", "salasala", "kunduchi", "tegeta", "kinondoni"] },
-            { name: "Mbezi Tanki Bovu", district: "Kinondoni", city: "Dar es Salaam", lat: -6.7224, lng: 39.2185, cat: "subarea", tags: ["mbezi beach", "mbezi", "kawe", "goba", "makonde", "kinondoni"] },
-            { name: "Goba", district: "Ubungo", city: "Dar es Salaam", lat: -6.7166, lng: 39.1674, cat: "area", tags: ["goba center", "goba njia nne", "mbezi beach", "makongo juu", "madale", "salasala", "kimara", "mbezi luis", "ubungo"] },
-            { name: "Salasala", district: "Kinondoni", city: "Dar es Salaam", lat: -6.6902, lng: 39.1886, cat: "area", tags: ["mbezi beach", "africana", "tegeta", "goba", "madale", "kinondoni"] },
-            { name: "Tegeta", district: "Kinondoni", city: "Dar es Salaam", lat: -6.6552, lng: 39.1932, cat: "area", tags: ["tegeta kibaoni", "tegeta nyuki", "kunduchi", "boko", "bahari beach", "salasala", "mbezi beach", "wazo", "madale", "kinondoni"] },
-            { name: "Kunduchi", district: "Kinondoni", city: "Dar es Salaam", lat: -6.6665, lng: 39.2178, cat: "area", tags: ["kunduchi beach", "tegeta", "mbezi beach", "bahari beach", "ununi", "kinondoni"] },
-            { name: "Bahari Beach", district: "Kinondoni", city: "Dar es Salaam", lat: -6.6479, lng: 39.2121, cat: "area", tags: ["tegeta", "kunduchi", "boko", "ununio", "beach", "kinondoni"] },
-            { name: "Boko", district: "Kinondoni", city: "Dar es Salaam", lat: -6.6258, lng: 39.1765, cat: "area", tags: ["tegeta", "bunju", "bahari beach", "ununio", "basihaya", "kinondoni"] },
-            { name: "Bunju", district: "Kinondoni", city: "Dar es Salaam", lat: -6.5889, lng: 39.1462, cat: "area", tags: ["bunju a", "bunju b", "boko", "mabwepande", "bagamoyo road", "kinondoni"] },
-            { name: "Madale", district: "Kinondoni", city: "Dar es Salaam", lat: -6.6805, lng: 39.1419, cat: "area", tags: ["wazo", "goba", "salasala", "tegeta", "kinondoni"] },
-
-            // Ubungo, Kimara, Mbezi Luis, Magomeni, Manzese, Mabibo
-            { name: "Ubungo", district: "Ubungo", city: "Dar es Salaam", lat: -6.7924, lng: 39.2083, cat: "district", tags: ["ubungo plaza", "ubungo riverside", "ubungo external", "sinza", "kimara", "manzese", "mabibo", "udsm", "mlimani city", "mbezi luis", "goba", "morogoro road"] },
-            { name: "Ubungo Riverside", district: "Ubungo", city: "Dar es Salaam", lat: -6.8001, lng: 39.2055, cat: "subarea", tags: ["ubungo", "external", "mabibo", "mandela road", "kimara"] },
-            { name: "Kimara", district: "Ubungo", city: "Dar es Salaam", lat: -6.7918, lng: 39.1665, cat: "area", tags: ["kimara mwisho", "kimara korogwe", "kimara baruti", "kimara suka", "kimara bucha", "ubungo", "mbezi luis", "goba", "tabata", "morogoro road"] },
-            { name: "Kimara Korogwe", district: "Ubungo", city: "Dar es Salaam", lat: -6.7926, lng: 39.1815, cat: "subarea", tags: ["kimara", "ubungo", "baruti", "mwisho", "morogoro road"] },
-            { name: "Mbezi Luis (Mbezi Mwisho)", district: "Ubungo", city: "Dar es Salaam", lat: -6.7867, lng: 39.1128, cat: "area", tags: ["mbezi", "mbezi mwisho", "magufuli bus terminal", "kimara", "kibamba", "goba", "msakuzi", "ubungo", "morogoro road"] },
-            { name: "Kibamba", district: "Ubungo", city: "Dar es Salaam", lat: -6.7896, lng: 39.0672, cat: "area", tags: ["mbezi luis", "kiluvya", "luguruni", "ubungo", "morogoro road"] },
-            { name: "Mabibo", district: "Ubungo", city: "Dar es Salaam", lat: -6.8034, lng: 39.2227, cat: "area", tags: ["mabibo hostel", "nit", "national institute of transport", "ubungo", "manzese", "sinza", "kigogo", "udsm"] },
-            { name: "Manzese", district: "Ubungo", city: "Dar es Salaam", lat: -6.8012, lng: 39.2368, cat: "area", tags: ["ubungo", "sinza", "magomeni", "mabibo", "tandale", "morogoro road"] },
-            { name: "Magomeni", district: "Kinondoni", city: "Dar es Salaam", lat: -6.8065, lng: 39.2545, cat: "area", tags: ["magomeni mapipa", "magomeni kagera", "magomeni mwembechai", "kinondoni", "kariakoo", "manzese", "upanga", "morogoro road"] },
-
-            // Ilala, Posta, Kariakoo, Upanga, Tabata, Segerea, Airport
-            { name: "Ilala", district: "Ilala", city: "Dar es Salaam", lat: -6.8277, lng: 39.2571, cat: "district", tags: ["ilala boma", "kariakoo", "upanga", "posta", "cbd", "kisutu", "buguruni", "tabata", "segerea", "kinyerezi", "ukonga", "gerezani", "muhimbili"] },
-            { name: "Posta (Dar es Salaam CBD)", district: "Ilala", city: "Dar es Salaam", lat: -6.8161, lng: 39.2894, cat: "area", tags: ["cbd", "city center", "posta mpya", "kisutu", "kivukoni", "ifm", "cbe", "dit", "upanga", "kariakoo", "ferry", "ilala"] },
-            { name: "Kariakoo", district: "Ilala", city: "Dar es Salaam", lat: -6.8211, lng: 39.2747, cat: "area", tags: ["ilala", "market", "gerezani", "mnazi mmoja", "upanga", "posta", "jangwani", "magomeni", "dit"] },
-            { name: "Upanga", district: "Ilala", city: "Dar es Salaam", lat: -6.8068, lng: 39.2798, cat: "area", tags: ["upanga east", "upanga west", "muhimbili", "muhas", "aga khan", "palm beach", "sea view", "posta", "kariakoo", "kisutu", "ilala"] },
-            { name: "Muhimbili (MUHAS)", district: "Ilala", city: "Dar es Salaam", lat: -6.8066, lng: 39.2740, cat: "university", tags: ["muhas", "hospital", "upanga", "ilala", "kariakoo", "fire", "student", "medical"] },
-            { name: "Kisutu", district: "Ilala", city: "Dar es Salaam", lat: -6.8168, lng: 39.2839, cat: "area", tags: ["posta", "cbd", "upanga", "kariakoo", "mnazi mmoja", "ilala"] },
-            { name: "Tabata", district: "Ilala", city: "Dar es Salaam", lat: -6.8286, lng: 39.2163, cat: "area", tags: ["tabata bima", "tabata segerea", "tabata relini", "tabata kimanga", "tabata liwiti", "tabata kisiwani", "tabata sanene", "kinyerezi", "buguruni", "ilala", "ubungo"] },
-            { name: "Tabata Segerea", district: "Ilala", city: "Dar es Salaam", lat: -6.8351, lng: 39.1932, cat: "subarea", tags: ["tabata", "segerea", "kinyerezi", "ukonga", "ilala"] },
-            { name: "Kinyerezi", district: "Ilala", city: "Dar es Salaam", lat: -6.8469, lng: 39.1704, cat: "area", tags: ["tabata", "segerea", "kisukuru", "kimara", "ukonga", "ilala"] },
-            { name: "Buguruni", district: "Ilala", city: "Dar es Salaam", lat: -6.8339, lng: 39.2471, cat: "area", tags: ["ilala", "tabata", "vingunguti", "tazara", "malapa", "rozana"] },
-            { name: "Ukonga", district: "Ilala", city: "Dar es Salaam", lat: -6.8672, lng: 39.1818, cat: "area", tags: ["airport", "jnia", "gongo la mboto", "banana", "segerea", "kinyerezi", "ilala"] },
-            { name: "Julius Nyerere Airport (JNIA)", district: "Ilala", city: "Dar es Salaam", lat: -6.8781, lng: 39.2026, cat: "landmark", tags: ["airport", "kipawa", "ukonga", "banana", "gongo la mboto", "jet lumo", "ilala"] },
-            { name: "Gongo la Mboto", district: "Ilala", city: "Dar es Salaam", lat: -6.8834, lng: 39.1539, cat: "area", tags: ["ukonga", "airport", "kiu", "kampala university", "pugu", "chanika", "ilala"] },
-
-            // Temeke & Kigamboni
-            { name: "Temeke", district: "Temeke", city: "Dar es Salaam", lat: -6.8604, lng: 39.2618, cat: "district", tags: ["changombe", "kurasini", "tandika", "mbagala", "yombo", "chamazi", "kijichi", "benjamin mkapa stadium", "taifa", "duuce", "tia"] },
-            { name: "Chang'ombe", district: "Temeke", city: "Dar es Salaam", lat: -6.8473, lng: 39.2675, cat: "area", tags: ["temeke", "duce", "dar es salaam university college", "taifa", "stadium", "kurasini", "mgulani", "student"] },
-            { name: "Kurasini", district: "Temeke", city: "Dar es Salaam", lat: -6.8548, lng: 39.2861, cat: "area", tags: ["temeke", "tia", "bandari", "port", "changombe", "kigamboni bridge", "mgulani"] },
-            { name: "Mbagala", district: "Temeke", city: "Dar es Salaam", lat: -6.9061, lng: 39.2654, cat: "area", tags: ["mbagala rangi tatu", "mbagala zakhem", "mbagala kuu", "chamazi", "kijichi", "charambe", "temeke", "kilwa road"] },
-            { name: "Kigamboni", district: "Kigamboni", city: "Dar es Salaam", lat: -6.8428, lng: 39.3264, cat: "district", tags: ["ferry", "kivukoni", "kibada", "mjimwema", "gezaulole", "kisota", "tuangoma", "dege", "kigamboni bridge", "beach", "south beach", "tungi", "vijibweni", "mnma", "mwalimu nyerere"] },
-            { name: "Kigamboni Ferry", district: "Kigamboni", city: "Dar es Salaam", lat: -6.8246, lng: 39.3029, cat: "subarea", tags: ["kigamboni", "kivukoni", "posta", "tungi", "vijibweni", "mjimwema", "mnma"] },
-            { name: "Kibada, Kigamboni", district: "Kigamboni", city: "Dar es Salaam", lat: -6.8856, lng: 39.3324, cat: "area", tags: ["kigamboni", "kisota", "tuangoma", "mjimwema", "gezaulole", "bridge"] },
-            { name: "Mjimwema, Kigamboni", district: "Kigamboni", city: "Dar es Salaam", lat: -6.8567, lng: 39.3547, cat: "area", tags: ["kigamboni", "beach", "ferry", "gezaulole", "kibada", "dege"] },
-            { name: "Gezaulole, Kigamboni", district: "Kigamboni", city: "Dar es Salaam", lat: -6.8794, lng: 39.3924, cat: "area", tags: ["kigamboni", "mjimwema", "kibada", "beach", "south beach"] },
-
-            // Major Tanzania Cities & Key Neighborhoods
-            { name: "Arusha", district: "Arusha", city: "Arusha", lat: -3.3869, lng: 36.6830, cat: "city", tags: ["clock tower", "njiro", "sakina", "uzunguni", "ngaramtoni", "usa river", "moshono", "kijenge", "iaa", "arusha city"] },
-            { name: "Njiro, Arusha", district: "Arusha", city: "Arusha", lat: -3.4041, lng: 36.7068, cat: "area", tags: ["arusha", "iaa", "kijenge", "moshono"] },
-            { name: "Dodoma", district: "Dodoma", city: "Dodoma", lat: -6.1630, lng: 35.7516, cat: "city", tags: ["capital", "udom", "area d", "area c", "kisasa", "makulu", "iyumbu", "nzuguni", "cbe", "st john", "mipango"] },
-            { name: "UDOM (University of Dodoma)", district: "Dodoma", city: "Dodoma", lat: -6.2151, lng: 35.8058, cat: "university", tags: ["dodoma", "iyumbu", "chimwaga", "ng'ong'ona", "student", "hostel"] },
-            { name: "Mwanza", district: "Nyamagana", city: "Mwanza", lat: -2.5164, lng: 32.9175, cat: "city", tags: ["rock city", "nyamagana", "ilemela", "capri point", "buzuruga", "nyegezi", "saut", "bugando", "kirumba", "pasiansi"] },
-            { name: "Zanzibar (Stone Town)", district: "Mjini", city: "Zanzibar", lat: -6.1659, lng: 39.1990, cat: "city", tags: ["unguja", "stone town", "mbweni", "chukwani", "nungwi", "paje", "kendwa", "fumba", "suza", "beach"] },
-            { name: "Morogoro", district: "Morogoro", city: "Morogoro", lat: -6.8278, lng: 37.6591, cat: "city", tags: ["sua", "mzumbe", "kihonda", "mazimbu", "msamvu", "kigurunyembe", "forest"] },
-            { name: "Mbeya", district: "Mbeya", city: "Mbeya", lat: -8.9094, lng: 33.4608, cat: "city", tags: ["must", "uyole", "forest", "mwanjelwa", "kabisa", "iyunga", "sae"] },
-            { name: "Moshi", district: "Moshi", city: "Kilimanjaro", lat: -3.3349, lng: 37.3404, cat: "city", tags: ["kilimanjaro", "kcmc", "shanty town", "mocu", "majengo", "pasua", "soweto"] },
-            { name: "Tanga", district: "Tanga", city: "Tanga", lat: -5.0689, lng: 39.0988, cat: "city", tags: ["raskazone", "chumbageni", "donge", "ngamiani", "mabawa", "coastal"] },
-            { name: "Bagamoyo", district: "Bagamoyo", city: "Pwani", lat: -6.4422, lng: 38.9042, cat: "city", tags: ["pwani", "kaole", "kiromo", "beach", "dar es salaam"] },
-            { name: "Kibaha", district: "Kibaha", city: "Pwani", lat: -6.7667, lng: 38.9167, cat: "city", tags: ["pwani", "maili moja", "tumbi", "kongowe", "picha ya ndege", "morogoro road"] }
-        ];
-        window.ROOMIFY_PLACE_GRAPH = ROOMIFY_PLACE_GRAPH;
+        // 100% Live Google Places & OpenStreetMap location intelligence + real database listings
+        window.ROOMIFY_PLACE_GRAPH = [];
 
         function ensureGoogleLocationServices() {
             if (!window.google || !window.google.maps) return false;
@@ -1768,30 +1712,38 @@
         function computeSmartPlaceMatches(rawQuery) {
             var q = String(rawQuery || "").trim().toLowerCase();
             var rooms = window.roomifyAllRooms || [];
+            var dynamicAreas = window.roomifyAreaSuggestions || [];
 
-            // Empty query -> Show popular & active areas immediately on focus
+            // Empty query -> Show active areas directly from real rooms in the database
             if (!q) {
-                var popular = ROOMIFY_PLACE_GRAPH
-                    .map(function(p) {
-                        var rc = countRoomsForPlace(p);
-                        var isPopularHub = ["Mikocheni", "Sinza", "Masaki", "Mwenge", "Mbezi Beach", "University of Dar es Salaam (UDSM)", "Kariakoo", "Kigamboni", "Kinondoni", "Ubungo"].indexOf(p.name) !== -1;
-                        return {
-                            type: "place",
-                            name: p.name,
-                            subtitle: p.district === p.city ? (p.city + ", Tanzania") : (p.district + ", " + p.city),
-                            lat: p.lat,
-                            lng: p.lng,
-                            cat: p.cat,
-                            roomCount: rc,
-                            score: (rc > 0 ? 100 + rc * 10 : 0) + (isPopularHub ? 40 : 0)
-                        };
-                    })
-                    .filter(function(item) { return item.score > 0; })
-                    .sort(function(a, b) { return b.score - a.score; })
-                    .slice(0, 7);
+                var areaCounts = {};
+                rooms.forEach(function(r) {
+                    if (!r) return;
+                    var a = r.areaName || r.city || (r.address ? r.address.split(",")[0].trim() : "");
+                    if (a && a.length > 2 && !a.startsWith("Coordinates:")) {
+                        areaCounts[a] = (areaCounts[a] || 0) + 1;
+                    }
+                });
+                dynamicAreas.forEach(function(da) {
+                    if (da && !areaCounts[da]) areaCounts[da] = 0;
+                });
+
+                var activeList = Object.keys(areaCounts).map(function(name) {
+                    return {
+                        type: "area-text",
+                        name: name,
+                        subtitle: "Roomify Active Area",
+                        lat: null,
+                        lng: null,
+                        cat: "area",
+                        roomCount: areaCounts[name]
+                    };
+                }).sort(function(a, b) {
+                    return b.roomCount - a.roomCount;
+                }).slice(0, 6);
 
                 return {
-                    primary: popular,
+                    primary: activeList,
                     related: [],
                     properties: [],
                     isPopularMode: true
@@ -1802,94 +1754,19 @@
             var primaryMatches = [];
             var seenNames = {};
 
-            // 1. Score all curated places & sub-areas & landmarks
-            for (var i = 0; i < ROOMIFY_PLACE_GRAPH.length; i++) {
-                var p = ROOMIFY_PLACE_GRAPH[i];
-                var nameL = p.name.toLowerCase();
-                var distL = (p.district || "").toLowerCase();
-                var cityL = (p.city || "").toLowerCase();
-                var tagsL = (p.tags || []).join(" ").toLowerCase();
-                var nameWords = nameL.split(/[\s,()\-]+/).filter(Boolean);
-                var combinedL = nameL + " " + distL + " " + cityL + " " + tagsL;
-
-                var score = 0;
-                var matchReason = "";
-
-                if (nameL === q) {
-                    score = 130;
-                    matchReason = "exact";
-                } else if (nameL.indexOf(q) === 0) {
-                    score = 105;
-                    matchReason = "prefix";
-                } else if (nameWords.some(function(w) { return w.indexOf(q) === 0; })) {
-                    score = 92;
-                    matchReason = "word-prefix";
-                } else if (nameL.indexOf(q) !== -1) {
-                    score = 80;
-                    matchReason = "substring";
-                } else if (tokens.length > 1 && tokens.every(function(t) { return combinedL.indexOf(t) !== -1; })) {
-                    score = 78;
-                    matchReason = "multi-token";
-                } else if (distL.indexOf(q) === 0 || cityL.indexOf(q) === 0) {
-                    score = 68;
-                    matchReason = "district";
-                } else if (tagsL.indexOf(q) !== -1) {
-                    // Distinguish direct tag prefix vs general tag match
-                    var tagPrefix = (p.tags || []).some(function(tg) { return tg.toLowerCase().indexOf(q) === 0; });
-                    score = tagPrefix ? 65 : 56;
-                    matchReason = "related-tag";
-                } else if (q.length >= 4) {
-                    // Typo tolerance against area name words (e.g. "mikoceni" -> "Mikocheni")
-                    var maxErr = q.length >= 6 ? 2 : 1;
-                    var bestDist = 99;
-                    for (var wi = 0; wi < nameWords.length; wi++) {
-                        var w = nameWords[wi];
-                        if (w.length < 3) continue;
-                        var cmp = w.length > q.length + 1 ? w.slice(0, q.length + 1) : w;
-                        var d = levenshteinLimited(q, cmp, maxErr);
-                        if (d < bestDist) bestDist = d;
-                    }
-                    if (bestDist <= maxErr) {
-                        score = 52 - bestDist * 8;
-                        matchReason = "fuzzy";
-                    } else if (q.length >= 3 && isSubsequence(q, nameL.replace(/\s+/g, ""))) {
-                        score = 38;
-                        matchReason = "subsequence";
-                    }
-                }
-
-                if (score > 0) {
-                    var rc = countRoomsForPlace(p);
-                    var boostedScore = score + Math.min(18, rc * 4);
-                    seenNames[nameL] = true;
-                    primaryMatches.push({
-                        type: "place",
-                        name: p.name,
-                        subtitle: p.district === p.city ? (p.city + ", Tanzania") : (p.district + ", " + p.city),
-                        lat: p.lat,
-                        lng: p.lng,
-                        cat: p.cat,
-                        district: p.district,
-                        tags: p.tags || [],
-                        roomCount: rc,
-                        score: boostedScore,
-                        matchReason: matchReason
-                    });
-                }
-            }
-
-            // 2. Include dynamic backend/room areas not already in curated graph
-            var dynamicAreas = window.roomifyAreaSuggestions || [];
+            // 1. Match against real active areas from database
             for (var ai = 0; ai < dynamicAreas.length; ai++) {
                 var areaStr = String(dynamicAreas[ai] || "").trim();
                 if (!areaStr) continue;
                 var areaL = areaStr.toLowerCase();
                 if (seenNames[areaL]) continue;
+
                 var aScore = 0;
                 if (areaL === q) aScore = 115;
                 else if (areaL.indexOf(q) === 0) aScore = 90;
                 else if (areaL.indexOf(q) !== -1) aScore = 72;
                 else if (tokens.length > 1 && tokens.every(function(t) { return areaL.indexOf(t) !== -1; })) aScore = 66;
+
                 if (aScore > 0) {
                     seenNames[areaL] = true;
                     var dynCount = countRoomsForPlace({ name: areaStr });
@@ -1901,77 +1778,12 @@
                         lng: null,
                         cat: "area",
                         roomCount: dynCount,
-                        score: aScore + Math.min(14, dynCount * 3),
-                        matchReason: "dynamic-area"
+                        score: aScore + Math.min(14, dynCount * 3)
                     });
                 }
             }
 
-            primaryMatches.sort(function(a, b) { return b.score - a.score; });
-
-            // Separate direct matches vs related-tag/district matches cleanly
-            var directList = [];
-            var relatedList = [];
-            var relatedSeen = {};
-
-            for (var pi = 0; pi < primaryMatches.length; pi++) {
-                var m = primaryMatches[pi];
-                if (m.matchReason === "related-tag" || (m.matchReason === "district" && directList.length >= 2)) {
-                    if (!relatedSeen[m.name.toLowerCase()]) {
-                        relatedSeen[m.name.toLowerCase()] = true;
-                        relatedList.push(m);
-                    }
-                } else {
-                    directList.push(m);
-                }
-            }
-
-            // 3. Geographic & Tag Expansion: Pull nearby sibling areas around the top direct match!
-            // Example: typing "Mikocheni" also surfaces Msasani, Kijitonyama, Mwenge, Kawe, Sinza
-            var anchor = directList[0] || relatedList[0];
-            if (anchor && anchor.lat && anchor.lng) {
-                var directNames = {};
-                directList.forEach(function(d) { directNames[d.name.toLowerCase()] = true; });
-                var anchorTags = (anchor.tags || []).map(function(t) { return t.toLowerCase(); });
-
-                var nearbyCandidates = [];
-                for (var gi = 0; gi < ROOMIFY_PLACE_GRAPH.length; gi++) {
-                    var cand = ROOMIFY_PLACE_GRAPH[gi];
-                    var candL = cand.name.toLowerCase();
-                    if (directNames[candL] || relatedSeen[candL]) continue;
-
-                    var distKm = haversineKm(anchor.lat, anchor.lng, cand.lat, cand.lng);
-                    var sharesTag = anchorTags.indexOf(candL) !== -1 ||
-                        (cand.tags || []).some(function(ct) { return ct.toLowerCase() === anchor.name.toLowerCase(); });
-                    var sameDistrict = anchor.district && cand.district && anchor.district === cand.district;
-
-                    if (distKm <= 4.2 || sharesTag || (anchor.cat === "district" && sameDistrict)) {
-                        var relScore = (sharesTag ? 40 : 0) + (sameDistrict ? 20 : 0) + Math.max(0, 30 - distKm * 6);
-                        var candRooms = countRoomsForPlace(cand);
-                        nearbyCandidates.push({
-                            type: "place",
-                            name: cand.name,
-                            subtitle: (distKm < 1 ? "< 1 km" : distKm.toFixed(1) + " km") + " from " + anchor.name.split(",")[0].split("(")[0].trim() + " · " + cand.district,
-                            lat: cand.lat,
-                            lng: cand.lng,
-                            cat: cand.cat,
-                            roomCount: candRooms,
-                            score: relScore + Math.min(12, candRooms * 3),
-                            matchReason: "nearby"
-                        });
-                    }
-                }
-
-                nearbyCandidates.sort(function(a, b) { return b.score - a.score; });
-                nearbyCandidates.slice(0, 5).forEach(function(nc) {
-                    if (!relatedSeen[nc.name.toLowerCase()]) {
-                        relatedSeen[nc.name.toLowerCase()] = true;
-                        relatedList.push(nc);
-                    }
-                });
-            }
-
-            // 4. Matching Roomify properties (by title, address, or neighbourhood)
+            // 2. Match against real Roomify properties in the database
             var matchingProperties = [];
             if (q.length >= 2 && rooms.length > 0) {
                 var propSeen = {};
@@ -2001,8 +1813,8 @@
             }
 
             return {
-                primary: directList.slice(0, 6),
-                related: relatedList.slice(0, 5),
+                primary: primaryMatches.sort(function(a, b) { return b.score - a.score; }).slice(0, 5),
+                related: [],
                 properties: matchingProperties,
                 isPopularMode: false
             };
@@ -2113,41 +1925,22 @@
                 dropdown.appendChild(item);
             }
 
-            // 1. Primary Matching Places & Areas (or Popular Areas when empty)
-            if (localResult.primary && localResult.primary.length > 0) {
-                appendSectionHeader(
-                    localResult.isPopularMode ? "Popular Areas in Tanzania" : "Matching Areas & Places",
-                    localResult.isPopularMode ? "Tap to explore" : ""
-                );
-                localResult.primary.forEach(function(p) {
-                    var key = p.name.toLowerCase().split(",")[0].trim();
-                    renderedKeys[key] = true;
-                    var icon = p.cat === "university" ? "🎓" : (p.cat === "landmark" ? "🏬" : (p.cat === "district" ? "🗺️" : (p.cat === "city" ? "🌆" : "📍")));
-                    var badge = "";
-                    if (p.roomCount > 0) {
-                        badge = '<span class="roomify-ac-badge">' + p.roomCount + (p.roomCount === 1 ? " room" : " rooms") + '</span>';
-                    } else if (p.cat === "district" || p.cat === "city") {
-                        badge = '<span class="roomify-ac-badge is-tag">' + (p.cat === "district" ? "District" : "City") + '</span>';
-                    }
-                    appendItem(p, icon, "is-area", badge);
+            // 1. Live Google Places & OpenStreetMap Locations across Tanzania
+            var dedupExternal = (externalPlaces || []).filter(function(ext) {
+                var key = String(ext.name || "").toLowerCase().split(",")[0].trim();
+                if (!key || renderedKeys[key]) return false;
+                renderedKeys[key] = true;
+                return true;
+            });
+
+            if (dedupExternal.length > 0) {
+                appendSectionHeader("Places in Tanzania", "Live Map Search");
+                dedupExternal.slice(0, 6).forEach(function(ext) {
+                    appendItem(ext, "📍", "is-google", '<span class="roomify-ac-badge is-tag">Live Map</span>');
                 });
             }
 
-            // 2. Related & Nearby Areas (shows all corresponding neighborhoods around the typed place/district)
-            if (localResult.related && localResult.related.length > 0) {
-                appendSectionHeader("Related & Nearby Areas", "Corresponding areas");
-                localResult.related.forEach(function(r) {
-                    var key = r.name.toLowerCase().split(",")[0].trim();
-                    renderedKeys[key] = true;
-                    var icon = r.cat === "university" ? "🎓" : (r.cat === "landmark" ? "🏬" : "🏘️");
-                    var badge = r.roomCount > 0
-                        ? '<span class="roomify-ac-badge">' + r.roomCount + (r.roomCount === 1 ? " room" : " rooms") + '</span>'
-                        : '<span class="roomify-ac-badge is-related">Nearby</span>';
-                    appendItem(r, icon, "is-related", badge);
-                });
-            }
-
-            // 3. Matching Roomify Properties
+            // 2. Matching Real Roomify Properties in Database
             if (localResult.properties && localResult.properties.length > 0) {
                 appendSectionHeader("Matching Properties", "Roomify");
                 localResult.properties.forEach(function(prop) {
@@ -2158,18 +1951,20 @@
                 });
             }
 
-            // 4. Live External Map Places (Google Places / Nominatim), deduplicated
-            var dedupExternal = (externalPlaces || []).filter(function(ext) {
-                var key = String(ext.name || "").toLowerCase().split(",")[0].trim();
-                if (!key || renderedKeys[key]) return false;
-                renderedKeys[key] = true;
-                return true;
-            });
-
-            if (dedupExternal.length > 0) {
-                appendSectionHeader("More Locations on Map", "Live search");
-                dedupExternal.slice(0, 5).forEach(function(ext) {
-                    appendItem(ext, "🧭", "is-google", '<span class="roomify-ac-badge is-tag">Map</span>');
+            // 3. Real Active Database Areas
+            if (localResult.primary && localResult.primary.length > 0) {
+                appendSectionHeader(
+                    localResult.isPopularMode ? "Active Roomify Areas" : "Matching Roomify Areas",
+                    localResult.isPopularMode ? "Tap to explore" : ""
+                );
+                localResult.primary.forEach(function(p) {
+                    var key = p.name.toLowerCase().split(",")[0].trim();
+                    if (renderedKeys[key]) return;
+                    renderedKeys[key] = true;
+                    var badge = p.roomCount > 0
+                        ? '<span class="roomify-ac-badge">' + p.roomCount + (p.roomCount === 1 ? " room" : " rooms") + '</span>'
+                        : '';
+                    appendItem(p, "🏘️", "is-area", badge);
                 });
             }
 
@@ -2177,8 +1972,8 @@
         }
 
         function fetchNominatimSuggestions(query, reqSeq, localResult) {
-            if (query.length < 3) return;
-            fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&countrycodes=tz&limit=5&q=" + encodeURIComponent(query))
+            if (query.length < 2) return;
+            fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&countrycodes=tz&limit=6&q=" + encodeURIComponent(query))
                 .then(function(r) { return r.json(); })
                 .then(function(list) {
                     if (reqSeq !== autocompleteRequestSeq) return;
@@ -2213,12 +2008,11 @@
                 return;
             }
 
-            // Phase 1 (0ms Instant): Smart fuzzy + related-area + active listings match
+            // Phase 1 (Instant): Real database areas & properties
             var localResult = computeSmartPlaceMatches(query);
             renderSmartAutocomplete(query, localResult, []);
 
-            // Phase 2 (Debounced Live): Enrich with Google Places Autocomplete (biased to map viewport), fallback to Nominatim
-            if (query.length < 2) return;
+            // Phase 2 (Live 100% Google Places & OpenStreetMap for Tanzania):
             if (autocompleteDebounceTimer) clearTimeout(autocompleteDebounceTimer);
             autocompleteDebounceTimer = setTimeout(function() {
                 if (reqSeq !== autocompleteRequestSeq) return;
@@ -2232,7 +2026,7 @@
                     try {
                         if (window.roomifyMap && typeof window.roomifyMap.getCenter === "function") {
                             reqOptions.location = window.roomifyMap.getCenter();
-                            reqOptions.radius = 25000;
+                            reqOptions.radius = 35000;
                         }
                     } catch (e) {}
 
@@ -2264,7 +2058,7 @@
                 } else {
                     fetchNominatimSuggestions(query, reqSeq, localResult);
                 }
-            }, 130);
+            }, 100);
         }
 
         input.addEventListener("input", function () {
@@ -2812,6 +2606,31 @@
 
         document.body.appendChild(sidebar);
 
+        // Mobile swipe-down gesture on header to smoothly dismiss bottom-sheet
+        var sbHeader = sidebar.querySelector(".roomify-sidebar-header");
+        if (sbHeader) {
+            var touchStartY = 0;
+            var touchCurrentY = 0;
+            sbHeader.addEventListener("touchstart", function (e) {
+                if (e.touches && e.touches.length > 0) {
+                    touchStartY = e.touches[0].clientY;
+                    touchCurrentY = touchStartY;
+                }
+            }, { passive: true });
+            sbHeader.addEventListener("touchmove", function (e) {
+                if (e.touches && e.touches.length > 0) {
+                    touchCurrentY = e.touches[0].clientY;
+                }
+            }, { passive: true });
+            sbHeader.addEventListener("touchend", function () {
+                if (touchCurrentY - touchStartY > 50) {
+                    closeSidebar();
+                }
+                touchStartY = 0;
+                touchCurrentY = 0;
+            }, { passive: true });
+        }
+
         // Wire Smart Related-Area + Google Places + Nominatim autocomplete on sidebar location input
         const quickSearchInput = document.getElementById("sidebar-search-input");
         const sidebarDropdown = document.getElementById("sidebar-autocomplete-dropdown");
@@ -2896,15 +2715,6 @@
                     });
                 }
 
-                if (localRes && localRes.related && localRes.related.length > 0) {
-                    addHeader("Related & Nearby Areas");
-                    localRes.related.slice(0, 4).forEach(function(r) {
-                        seen[r.name.toLowerCase().split(",")[0].trim()] = true;
-                        var b = r.roomCount > 0 ? (r.roomCount + (r.roomCount === 1 ? " room" : " rooms")) : "Nearby";
-                        addRow(r, "🏘️", "is-related", b, r.roomCount > 0 ? "" : "is-related");
-                    });
-                }
-
                 var extFiltered = (extList || []).filter(function(ext) {
                     var k = String(ext.name || "").toLowerCase().split(",")[0].trim();
                     if (!k || seen[k]) return false;
@@ -2912,9 +2722,25 @@
                     return true;
                 });
                 if (extFiltered.length > 0) {
-                    addHeader("More Map Locations");
-                    extFiltered.slice(0, 4).forEach(function(ext) {
-                        addRow(ext, "🧭", "is-google", "Map", "is-tag");
+                    addHeader("Places in Tanzania");
+                    extFiltered.slice(0, 5).forEach(function(ext) {
+                        addRow(ext, "📍", "is-google", "Live Map", "is-tag");
+                    });
+                }
+
+                if (localRes && localRes.properties && localRes.properties.length > 0) {
+                    addHeader("Matching Properties");
+                    localRes.properties.slice(0, 3).forEach(function(prop) {
+                        addRow(prop, "🏠", "is-property", prop.priceLabel || "Listing", "");
+                    });
+                }
+
+                if (localRes && localRes.primary && localRes.primary.length > 0) {
+                    addHeader(localRes.isPopularMode ? "Active Roomify Areas" : "Matching Areas");
+                    localRes.primary.slice(0, 5).forEach(function(p) {
+                        seen[p.name.toLowerCase().split(",")[0].trim()] = true;
+                        var b = p.roomCount > 0 ? (p.roomCount + (p.roomCount === 1 ? " room" : " rooms")) : "";
+                        addRow(p, "🏘️", "is-area", b, "");
                     });
                 }
 
@@ -2928,7 +2754,7 @@
                     : { primary: [], related: [], properties: [], isPopularMode: false };
                 renderSidebarDropdown(q, localRes, []);
 
-                if (!q || q.length < 2) return;
+                if (!q) return;
                 if (sbAcTimer) clearTimeout(sbAcTimer);
                 sbAcTimer = setTimeout(function() {
                     if (seq !== sbAcSeq) return;
@@ -2941,7 +2767,7 @@
                             function(preds, status) {
                                 if (seq !== sbAcSeq) return;
                                 if (status === google.maps.places.PlacesServiceStatus.OK && Array.isArray(preds) && preds.length > 0) {
-                                    var gList = preds.slice(0, 4).map(function(pr) {
+                                    var gList = preds.slice(0, 5).map(function(pr) {
                                         return {
                                             type: "google",
                                             name: (pr.structured_formatting && pr.structured_formatting.main_text) || pr.description,
@@ -2950,11 +2776,47 @@
                                         };
                                     });
                                     renderSidebarDropdown(q, localRes, gList);
+                                } else if (q.length >= 2) {
+                                    fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&countrycodes=tz&limit=5&q=" + encodeURIComponent(q))
+                                        .then(function(r) { return r.json(); })
+                                        .then(function(list) {
+                                            if (seq !== sbAcSeq || !Array.isArray(list) || list.length === 0) return;
+                                            var osmList = list.map(function(item) {
+                                                var parts = String(item.display_name || q).split(",").map(function(s) { return s.trim(); }).filter(Boolean);
+                                                return {
+                                                    type: "osm",
+                                                    name: item.name || parts[0] || q,
+                                                    subtitle: parts.slice(1, 3).join(", ") || "Tanzania",
+                                                    lat: Number(item.lat),
+                                                    lng: Number(item.lon)
+                                                };
+                                            });
+                                            renderSidebarDropdown(q, localRes, osmList);
+                                        })
+                                        .catch(function() {});
                                 }
                             }
                         );
+                    } else if (q.length >= 2) {
+                        fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&countrycodes=tz&limit=5&q=" + encodeURIComponent(q))
+                            .then(function(r) { return r.json(); })
+                            .then(function(list) {
+                                if (seq !== sbAcSeq || !Array.isArray(list) || list.length === 0) return;
+                                var osmList = list.map(function(item) {
+                                    var parts = String(item.display_name || q).split(",").map(function(s) { return s.trim(); }).filter(Boolean);
+                                    return {
+                                        type: "osm",
+                                        name: item.name || parts[0] || q,
+                                        subtitle: parts.slice(1, 3).join(", ") || "Tanzania",
+                                        lat: Number(item.lat),
+                                        lng: Number(item.lon)
+                                    };
+                                });
+                                renderSidebarDropdown(q, localRes, osmList);
+                            })
+                            .catch(function() {});
                     }
-                }, 140);
+                }, 100);
             }
 
             quickSearchInput.addEventListener("input", function() {
@@ -3366,7 +3228,7 @@
         if (!window.roomifyIsMapPage) return;
 
         var sidebar = document.getElementById("roomify-sidebar");
-        var backdrop = document.getElementById("roomify-sidebar-backdrop");
+        var backdrop = document.getElementById("roomify-sidebar-backdrop") || createBackdrop();
 
         if (!sidebar) {
             return;
@@ -3376,14 +3238,12 @@
             closeSidebar();
         } else {
             sidebar.classList.add("map-active");
+            sidebar.style.display = "flex";
+            void sidebar.offsetHeight; // trigger reflow for smooth slide-up animation
             sidebar.classList.add("open");
 
             if (backdrop) {
-                backdrop.style.display = "block";
-                backdrop.style.pointerEvents = "auto";
                 backdrop.classList.add("open");
-            } else {
-                createBackdrop();
             }
             updateSidebarVisibility();
         }
@@ -3400,8 +3260,6 @@
 
         if (backdrop) {
             backdrop.classList.remove("open");
-            backdrop.style.display = "none";
-            backdrop.style.pointerEvents = "none";
         }
 
         updateSidebarVisibility();
@@ -3410,14 +3268,16 @@
     window.roomifyCloseSidebar = closeSidebar;
 
     function createBackdrop() {
-        if (document.getElementById("roomify-sidebar-backdrop")) return;
+        var existing = document.getElementById("roomify-sidebar-backdrop");
+        if (existing) return existing;
         var backdrop = document.createElement("div");
         backdrop.id = "roomify-sidebar-backdrop";
-        backdrop.style.cssText = "position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.4); z-index:9998; display:block; pointer-events:auto;";
+        backdrop.className = "roomify-sidebar-backdrop";
         backdrop.onclick = function() {
             closeSidebar();
         };
         document.body.appendChild(backdrop);
+        return backdrop;
     }
 
 
@@ -3443,7 +3303,6 @@
         var backdrop = document.getElementById("roomify-sidebar-backdrop");
         if (backdrop) {
             backdrop.classList.remove("open");
-            backdrop.style.display = "none";
         }
 
         if (destination !== "map" && destination !== "explore") {
