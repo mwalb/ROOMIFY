@@ -859,23 +859,71 @@
             }
 
             .roomify-chip {
-                padding: 10px 18px;
-                border: 1px solid #E0E0E0;
+                padding: 8px 14px;
+                border: 1.5px solid #CBD5E1;
                 border-radius: 12px;
-                font-size: 14px;
+                font-size: 13.5px;
                 font-weight: 600;
                 cursor: pointer;
-                transition: all 0.2s;
-                background: white;
+                transition: all 0.2s ease;
+                background: #FFFFFF;
                 display: flex;
                 align-items: center;
-                color: #333;
+                gap: 8px;
+                color: #334155;
+                user-select: none;
+                box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
             }
 
+            .roomify-chip:hover {
+                background: #F8FAFC;
+                border-color: #94A3B8;
+                transform: translateY(-1px);
+            }
+
+            /* Dedicated Checkbox Icon inside each chip */
+            .roomify-chip-checkbox {
+                width: 18px;
+                height: 18px;
+                border: 2px solid #94A3B8;
+                border-radius: 5px;
+                background: #FFFFFF;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+                transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+
+            .roomify-chip-checkbox svg {
+                display: none;
+                width: 12px;
+                height: 12px;
+                stroke: #FFFFFF;
+                stroke-width: 3.5;
+                stroke-linecap: round;
+                stroke-linejoin: round;
+                fill: none;
+            }
+
+            /* Highly Prominent Active / Selected State */
             .roomify-chip.active {
-                background: #E8EAF6;
-                color: #3F4494;
-                border-color: #3F4494;
+                background: linear-gradient(135deg, #1A237E, #283593) !important;
+                color: #FFFFFF !important;
+                border-color: #1A237E !important;
+                box-shadow: 0 4px 14px rgba(26, 35, 126, 0.35) !important;
+                transform: translateY(-1px) scale(1.02);
+                font-weight: 700 !important;
+            }
+
+            .roomify-chip.active .roomify-chip-checkbox {
+                background: #10B981 !important;
+                border-color: #10B981 !important;
+                box-shadow: 0 2px 6px rgba(16, 185, 129, 0.4);
+            }
+
+            .roomify-chip.active .roomify-chip-checkbox svg {
+                display: block !important;
             }
 
             .roomify-chip .dot {
@@ -2559,37 +2607,38 @@
                         </div>
 
                         <!-- What are you looking for? -->
-                        <div style="font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 8px;">What are you looking for?</div>
+                        <div style="font-size: 13px; font-weight: 700; color: #1E293B; margin-bottom: 8px;">What are you looking for?</div>
                         <div class="roomify-chip-group" id="type-chips" style="display: flex; gap: 8px; overflow-x: auto; margin-bottom: 16px; padding-bottom: 4px;">
-                            <div class="roomify-chip active" data-type="ALL" style="padding: 6px 12px; border-radius: 8px; background: #F1F5F9; cursor: pointer; font-size: 13px; white-space: nowrap;">All</div>
-                            <div class="roomify-chip" data-type="Room" style="padding: 6px 12px; border-radius: 8px; background: #F1F5F9; cursor: pointer; font-size: 13px; white-space: nowrap;">Room</div>
-                            <div class="roomify-chip" data-type="Apartment" style="padding: 6px 12px; border-radius: 8px; background: #F1F5F9; cursor: pointer; font-size: 13px; white-space: nowrap;">Apartment</div>
-                            <div class="roomify-chip" data-type="Studio" style="padding: 6px 12px; border-radius: 8px; background: #F1F5F9; cursor: pointer; font-size: 13px; white-space: nowrap;">Studio</div>
-                            <div class="roomify-chip" data-type="House" style="padding: 6px 12px; border-radius: 8px; background: #F1F5F9; cursor: pointer; font-size: 13px; white-space: nowrap;">House</div>
-                            <div class="roomify-chip" data-type="Office" style="padding: 6px 12px; border-radius: 8px; background: #F1F5F9; cursor: pointer; font-size: 13px; white-space: nowrap;">Office</div>
+                            <div class="roomify-chip active" data-type="ALL"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>All</span></div>
+                            <div class="roomify-chip" data-type="Room"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>Room</span></div>
+                            <div class="roomify-chip" data-type="Apartment"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>Apartment</span></div>
+                            <div class="roomify-chip" data-type="Studio"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>Studio</span></div>
+                            <div class="roomify-chip" data-type="House"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>House</span></div>
+                            <div class="roomify-chip" data-type="Office"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>Office</span></div>
                         </div>
 
                         <!-- Max Budget Field (Placeholder "Max budget", no separate heading above) -->
                         <div style="margin-bottom: 16px;">
-                            <input type="text" id="sidebar-budget-input" placeholder="Max budget" style="width: 100%; height: 48px; border: 1px solid #CBD5E1; border-radius: 14px; padding: 0 14px; outline: none; font-size: 14px; background: #ffffff;">
+                            <input type="text" id="sidebar-budget-input" placeholder="Max budget" style="width: 100%; height: 48px; border: 1.5px solid #CBD5E1; border-radius: 14px; padding: 0 14px; outline: none; font-size: 14px; background: #ffffff; color: #0F172A; font-weight: 600;">
                         </div>
 
                         <!-- Status Section inside Preferences card -->
-                        <div style="font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 8px;">Status</div>
+                        <div style="font-size: 13px; font-weight: 700; color: #1E293B; margin-bottom: 8px;">Status</div>
                         <div class="roomify-chip-group" id="status-chips" style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px;">
-                            <div class="roomify-chip" data-status="ALL" style="padding: 6px 12px; border-radius: 8px; background: #F1F5F9; cursor: pointer; font-size: 13px;">All</div>
-                            <div class="roomify-chip active" data-status="AVAILABLE" style="padding: 6px 12px; border-radius: 8px; background: #F1F5F9; cursor: pointer; font-size: 13px;">Available</div>
-                            <div class="roomify-chip" data-status="PENDING" style="padding: 6px 12px; border-radius: 8px; background: #F1F5F9; cursor: pointer; font-size: 13px;">Pending</div>
-                            <div class="roomify-chip" data-status="RENTED" style="padding: 6px 12px; border-radius: 8px; background: #F1F5F9; cursor: pointer; font-size: 13px;">Rented</div>
+                            <div class="roomify-chip" data-status="ALL"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>All</span></div>
+                            <div class="roomify-chip active" data-status="AVAILABLE"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>Available</span></div>
+                            <div class="roomify-chip" data-status="PENDING"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>Pending</span></div>
+                            <div class="roomify-chip" data-status="RENTED"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>Rented</span></div>
                         </div>
 
                         <!-- APPLY FILTER & CLEAR FILTER Buttons -->
                         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                            <div id="sidebar-filter-btn" style="flex: 1; min-width: 110px; display: flex; align-items: center; justify-content: center; background: #1A237E; color: white; border-radius: 14px; height: 48px; font-weight: 700; cursor: pointer; font-size: 13px; letter-spacing: 0.5px;">
-                                Apply Filter
+                            <div id="sidebar-filter-btn" style="flex: 1; min-width: 120px; display: flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(135deg, #1A237E, #283593); color: white; border-radius: 14px; height: 48px; font-weight: 700; cursor: pointer; font-size: 13.5px; letter-spacing: 0.5px; box-shadow: 0 4px 14px rgba(26, 35, 126, 0.35); transition: all 0.2s ease;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                                <span>Apply Filter</span>
                             </div>
-                            <div id="sidebar-clear-btn" onclick="window.roomifyClearSidebarFilters()" style="flex: 1; min-width: 110px; display: flex; align-items: center; justify-content: center; background: #ffffff; color: #1A237E; border: 1.5px solid #1A237E; border-radius: 14px; height: 48px; font-weight: 700; cursor: pointer; font-size: 13px; letter-spacing: 0.5px;">
-                                Clear Filter
+                            <div id="sidebar-clear-btn" onclick="window.roomifyClearSidebarFilters()" style="flex: 1; min-width: 110px; display: flex; align-items: center; justify-content: center; gap: 6px; background: #ffffff; color: #475569; border: 1.5px solid #CBD5E1; border-radius: 14px; height: 48px; font-weight: 700; cursor: pointer; font-size: 13.5px; letter-spacing: 0.5px; transition: all 0.2s ease;">
+                                <span>Clear</span>
                             </div>
                         </div>
 
