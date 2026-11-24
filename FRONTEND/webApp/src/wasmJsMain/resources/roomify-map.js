@@ -172,13 +172,27 @@
             sidebar.classList.add("map-active");
             if (isSmall) {
                 sidebar.style.display = "flex";
-                if (sidebar.classList.contains("open")) {
+                // Default to open on small screens so bottom sheet slides up automatically
+                if (!sidebar.classList.contains("user-closed")) {
+                    sidebar.classList.add("open");
                     sidebar.style.pointerEvents = "auto";
+                    if (backdrop) {
+                        backdrop.classList.add("open");
+                    }
+                } else if (sidebar.classList.contains("open")) {
+                    sidebar.style.pointerEvents = "auto";
+                    if (backdrop) {
+                        backdrop.classList.add("open");
+                    }
                 } else {
                     sidebar.style.pointerEvents = "none";
+                    if (backdrop) {
+                        backdrop.classList.remove("open");
+                    }
                 }
             } else {
                 sidebar.classList.remove("open");
+                sidebar.classList.remove("user-closed");
                 sidebar.style.display = "flex";
                 sidebar.style.pointerEvents = "auto";
                 if (backdrop) {
@@ -252,6 +266,12 @@
             }, 300);
         } else {
             console.error("[ROOMIFY MAP] map container NOT FOUND");
+        }
+
+        // Reset user-closed flag whenever entering the map so the sheet slides up by default
+        var existingSidebar = document.getElementById("roomify-sidebar");
+        if (existingSidebar) {
+            existingSidebar.classList.remove("user-closed");
         }
 
         updateSidebarVisibility();
@@ -3224,11 +3244,30 @@
     };
 
 
+    function openSidebar() {
+        var sidebar = document.getElementById("roomify-sidebar");
+        var backdrop = document.getElementById("roomify-sidebar-backdrop") || createBackdrop();
+
+        if (!sidebar) return;
+
+        sidebar.classList.remove("user-closed");
+        sidebar.classList.add("map-active");
+        sidebar.style.display = "flex";
+        void sidebar.offsetHeight; // trigger reflow for smooth slide-up animation
+        sidebar.classList.add("open");
+
+        if (backdrop) {
+            backdrop.classList.add("open");
+        }
+        updateSidebarVisibility();
+    }
+
+    window.roomifyOpenSidebar = openSidebar;
+
     function toggleSidebar() {
         if (!window.roomifyIsMapPage) return;
 
         var sidebar = document.getElementById("roomify-sidebar");
-        var backdrop = document.getElementById("roomify-sidebar-backdrop") || createBackdrop();
 
         if (!sidebar) {
             return;
@@ -3237,15 +3276,7 @@
         if (sidebar.classList.contains("open")) {
             closeSidebar();
         } else {
-            sidebar.classList.add("map-active");
-            sidebar.style.display = "flex";
-            void sidebar.offsetHeight; // trigger reflow for smooth slide-up animation
-            sidebar.classList.add("open");
-
-            if (backdrop) {
-                backdrop.classList.add("open");
-            }
-            updateSidebarVisibility();
+            openSidebar();
         }
     }
 
@@ -3255,6 +3286,7 @@
         var backdrop = document.getElementById("roomify-sidebar-backdrop");
 
         if (sidebar) {
+            sidebar.classList.add("user-closed");
             sidebar.classList.remove("open");
         }
 
