@@ -4,6 +4,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -436,16 +437,38 @@ fun FurnitureDashboard(
                                         .clickable { selectedCategory = item.name }
                                         .hoverable(interactionSource)
                                         .pointerHoverIcon(PointerIcon.Hand),
-                                    shape = RoundedCornerShape(14.dp),
+                                    shape = RoundedCornerShape(12.dp),
                                     color = if (isSelected) BrandNavy else if (isHovered) Color(0xFFF1F5F9) else Color.White,
-                                    border = BorderStroke(1.dp, if (isSelected) BrandNavy else BorderColor),
-                                    shadowElevation = if (isSelected) 2.dp else 0.dp
+                                    border = BorderStroke(1.5.dp, if (isSelected) BrandNavy else BorderColor),
+                                    shadowElevation = if (isSelected) 3.dp else 0.dp
                                 ) {
                                     Row(
-                                        modifier = Modifier.padding(horizontal = 14.dp),
+                                        modifier = Modifier.padding(horizontal = 12.dp),
                                         verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
+                                        // Checkbox indicator box
+                                        Box(
+                                            modifier = Modifier
+                                                .size(16.dp)
+                                                .clip(RoundedCornerShape(4.dp))
+                                                .background(if (isSelected) Color(0xFF10B981) else Color.Transparent)
+                                                .then(
+                                                    if (!isSelected) Modifier.border(1.5.dp, Color(0xFF94A3B8), RoundedCornerShape(4.dp))
+                                                    else Modifier
+                                                ),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            if (isSelected) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Check,
+                                                    contentDescription = "Selected",
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(12.dp)
+                                                )
+                                            }
+                                        }
+
                                         Icon(
                                             item.icon,
                                             contentDescription = null,
@@ -454,7 +477,7 @@ fun FurnitureDashboard(
                                         )
                                         Text(
                                             item.name,
-                                            fontSize = 12.sp,
+                                            fontSize = 12.5.sp,
                                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                             color = if (isSelected) Color.White else Color(0xFF334155),
                                             softWrap = false,

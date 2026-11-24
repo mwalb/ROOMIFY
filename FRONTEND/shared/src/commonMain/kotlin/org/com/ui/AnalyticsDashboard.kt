@@ -157,17 +157,46 @@ fun AnalyticsContent(
                         Surface(
                             modifier = Modifier
                                 .weight(1f)
-                                .height(if (isCompact) 40.dp else 44.dp)
+                                .height(if (isCompact) 42.dp else 44.dp)
                                 .clickable { selectedTab = index },
-                            shape = RoundedCornerShape(10.dp),
-                            color = if (isSelected) PrimaryColor else Color(0xFFF1F5F9),
-                            border = if (isSelected) null else androidx.compose.foundation.BorderStroke(1.dp, CardBorderColor)
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isSelected) PrimaryColor else Color.White,
+                            border = androidx.compose.foundation.BorderStroke(1.5.dp, if (isSelected) PrimaryColor else CardBorderColor),
+                            shadowElevation = if (isSelected) 3.dp else 0.dp
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
+                            Row(
+                                modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Checkbox indicator box
+                                Box(
+                                    modifier = Modifier
+                                        .size(15.dp)
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(if (isSelected) Color(0xFF10B981) else Color.Transparent)
+                                        .then(
+                                            if (!isSelected) Modifier.border(1.5.dp, SubtitleColor, RoundedCornerShape(4.dp))
+                                            else Modifier
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (isSelected) {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = "Selected",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(11.dp)
+                                        )
+                                    }
+                                }
+
+                                Spacer(Modifier.width(6.dp))
+
                                 Text(
                                     text = title,
                                     color = if (isSelected) Color.White else Color(0xFF475569),
-                                    fontSize = if (isCompact) 12.sp else 14.sp,
+                                    fontSize = if (isCompact) 12.sp else 13.5.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis

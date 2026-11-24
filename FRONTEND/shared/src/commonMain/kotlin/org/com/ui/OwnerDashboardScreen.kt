@@ -478,8 +478,26 @@ private fun OwnerSidebarNavItem(title: String, icon: ImageVector, active: Boolea
                 title,
                 color = if (active) Color.White else Color.White.copy(alpha = 0.7f),
                 fontSize = 14.sp,
-                fontWeight = if (active) FontWeight.Bold else FontWeight.Medium
+                fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
+                modifier = Modifier.weight(1f)
             )
+
+            if (active) {
+                Box(
+                    modifier = Modifier
+                        .size(18.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color(0xFF10B981)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "Active",
+                        tint = Color.White,
+                        modifier = Modifier.size(12.dp)
+                    )
+                }
+            }
         }
     }
 }

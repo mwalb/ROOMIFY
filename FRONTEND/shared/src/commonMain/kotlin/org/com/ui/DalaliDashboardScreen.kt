@@ -529,8 +529,26 @@ private fun SidebarNavItem(title: String, icon: ImageVector, active: Boolean, on
                 title,
                 color = if (active) Color.White else Color.White.copy(alpha = 0.7f),
                 fontSize = 13.sp,
-                fontWeight = if (active) FontWeight.Black else FontWeight.Bold
+                fontWeight = if (active) FontWeight.Black else FontWeight.Bold,
+                modifier = Modifier.weight(1f)
             )
+
+            if (active) {
+                Box(
+                    modifier = Modifier
+                        .size(18.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color(0xFF10B981)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "Active",
+                        tint = Color.White,
+                        modifier = Modifier.size(12.dp)
+                    )
+                }
+            }
         }
     }
 }

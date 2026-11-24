@@ -2,6 +2,7 @@ package org.com.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -1357,16 +1358,45 @@ fun UnifiedPropertiesContent(
 fun PropertyTabPill(label: String, isSelected: Boolean, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
-        color = if (isSelected) NavySidebarBg else Color(0xFFF1F5F9),
-        shape = RoundedCornerShape(10.dp)
+        color = if (isSelected) NavySidebarBg else Color.White,
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.5.dp, if (isSelected) NavySidebarBg else BorderGray),
+        shadowElevation = if (isSelected) 3.dp else 0.dp
     ) {
-        Text(
-            text = label,
-            color = if (isSelected) Color.White else MutedTextGray,
-            fontSize = 13.sp,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
-        )
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Checkbox indicator box
+            Box(
+                modifier = Modifier
+                    .size(16.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(if (isSelected) SuccessGreen else Color.Transparent)
+                    .then(
+                        if (!isSelected) Modifier.border(1.5.dp, MutedTextGray, RoundedCornerShape(4.dp))
+                        else Modifier
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isSelected) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "Selected",
+                        tint = Color.White,
+                        modifier = Modifier.size(12.dp)
+                    )
+                }
+            }
+
+            Text(
+                text = label,
+                color = if (isSelected) Color.White else PrimaryTextDark,
+                fontSize = 13.sp,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+            )
+        }
     }
 }
 
@@ -1829,16 +1859,45 @@ fun UnifiedUsersContent(
 fun UserRoleFilterPill(label: String, isSelected: Boolean, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
-        color = if (isSelected) NavySidebarBg else Color(0xFFF1F5F9),
-        shape = RoundedCornerShape(10.dp)
+        color = if (isSelected) NavySidebarBg else Color.White,
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.5.dp, if (isSelected) NavySidebarBg else BorderGray),
+        shadowElevation = if (isSelected) 3.dp else 0.dp
     ) {
-        Text(
-            text = label,
-            color = if (isSelected) Color.White else MutedTextGray,
-            fontSize = 13.sp,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
-        )
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Checkbox indicator box
+            Box(
+                modifier = Modifier
+                    .size(16.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(if (isSelected) SuccessGreen else Color.Transparent)
+                    .then(
+                        if (!isSelected) Modifier.border(1.5.dp, MutedTextGray, RoundedCornerShape(4.dp))
+                        else Modifier
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isSelected) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "Selected",
+                        tint = Color.White,
+                        modifier = Modifier.size(12.dp)
+                    )
+                }
+            }
+
+            Text(
+                text = label,
+                color = if (isSelected) Color.White else PrimaryTextDark,
+                fontSize = 13.sp,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+            )
+        }
     }
 }
 
