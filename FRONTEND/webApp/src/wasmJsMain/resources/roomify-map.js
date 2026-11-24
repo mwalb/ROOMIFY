@@ -56,15 +56,19 @@
             if (!room) return;
             var addr = room.address || room.city || room.areaName || room.location || "";
             if (addr) {
-                var parts = addr.split(",");
-                if (parts.length > 0 && parts[0].trim()) {
-                    areas.add(parts[0].trim());
+                var clean = String(addr).replace(/^Coordinates:\s*[-\d.,\s]+/i, '').trim();
+                var isRawCoords = /^-?\d+(\.\d+)?,[\s]*-?\d+(\.\d+)?$/.test(clean);
+                if (!isRawCoords && clean) {
+                    var parts = clean.split(",");
+                    if (parts.length > 0 && parts[0].trim()) {
+                        areas.add(parts[0].trim());
+                    }
                 }
             }
         });
         if (areas.size > 0) {
             window.roomifyAreaSuggestions = Array.from(areas);
-            console.log("Roomify: Derived " + window.roomifyAreaSuggestions.length + " area suggestions from loaded rooms");
+            console.log("Roomify: Derived " + window.roomifyAreaSuggestions.length + " real area suggestions from loaded rooms");
         }
     }
 
@@ -2126,13 +2130,15 @@
                 } else {
                     fetchNominatimSuggestions(query, reqSeq, localResult);
                 }
-            }, 100);
+            }, 50);
         }
 
         input.addEventListener("input", function () {
             var query = input.value.trim();
             window.roomifySearchQuery = query;
             clear.style.display = query.length > 0 ? "flex" : "none";
+            // Instant hot reload of matching database listings on first typed character
+            filterRooms(query);
             updateAutocompleteDropdown(query, true);
         });
 
@@ -2889,7 +2895,9 @@
             }
 
             quickSearchInput.addEventListener("input", function() {
-                refreshSidebarAutocomplete(quickSearchInput.value.trim());
+                var q = quickSearchInput.value.trim();
+                applySidebarFilters();
+                refreshSidebarAutocomplete(q);
             });
             quickSearchInput.addEventListener("focus", function() {
                 refreshSidebarAutocomplete(quickSearchInput.value.trim());
@@ -3993,7 +4001,7 @@
 
     function buildBuildingPopupContent(building) {
         var title = escapeHtml(building.title || "Multi-Unit Building");
-        var address = escapeHtml(building.address || "Location specified");
+        var address = escapeHtml(formatLocationDisplayJs(building.address, building.rooms ? building.rooms[0] : null));
         var total = building.totalRooms;
         var available = building.availableRooms;
 
@@ -4653,15 +4661,28 @@
      */
 
     function formatLocationDisplayJs(str, room) {
+        if (room) {
+            if (room.areaName && String(room.areaName).trim().length > 0 && !String(room.areaName).startsWith("Coordinates:")) {
+                var area = String(room.areaName).trim();
+                var city = (room.city && !String(room.city).startsWith("Coordinates:")) ? String(room.city).trim() : "Dar es Salaam";
+                return area.toLowerCase().includes(city.toLowerCase()) ? area : (area + ", " + city);
+            }
+            if (Array.isArray(room.neighbourhoodPlaces) && room.neighbourhoodPlaces.length > 0) {
+                return room.neighbourhoodPlaces[0];
+            }
+            if (room.location && !String(room.location).startsWith("Coordinates:") && String(room.location).trim().length > 0) {
+                return String(room.location).trim();
+            }
+            if (room.city && !String(room.city).startsWith("Coordinates:") && String(room.city).trim().length > 0) {
+                return String(room.city).trim() + ", Tanzania";
+            }
+        }
         if (str) {
-            var clean = String(str).replace(/^Coordinates:/i, '').trim();
+            var clean = String(str).replace(/^Coordinates:\s*[-\d.,\s]+/i, '').trim();
             var isCoords = /^-?\d+(\.\d+)?,[\s]*-?\d+(\.\d+)?$/.test(clean);
             if (!isCoords && clean.length > 0) {
                 return clean;
             }
-        }
-        if (room && Array.isArray(room.neighbourhoodPlaces) && room.neighbourhoodPlaces.length > 0) {
-            return room.neighbourhoodPlaces[0];
         }
         return "Dar es Salaam, Tanzania";
     }
