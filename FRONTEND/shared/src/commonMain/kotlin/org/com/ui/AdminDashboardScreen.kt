@@ -1245,8 +1245,8 @@ fun UnifiedPropertiesContent(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
-                                    Icon(Icons.Default.LocationOn, null, tint = AdminPrimaryNavy, modifier = Modifier.size(13.dp))
-                                    Text(suggestion.name, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = AdminPrimaryNavy)
+                                    Icon(Icons.Default.LocationOn, null, tint = NavySidebarBg, modifier = Modifier.size(13.dp))
+                                    Text(suggestion.name, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = NavySidebarBg)
                                 }
                             }
                         }
