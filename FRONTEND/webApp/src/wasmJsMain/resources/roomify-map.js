@@ -1291,6 +1291,144 @@
                 text-transform: uppercase;
             }
 
+            /* High-End Animated Building Complex Hero Badge */
+            @keyframes roomifyBldGlowPulse {
+                0%, 100% {
+                    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.4), 0 4px 14px -2px rgba(30, 27, 75, 0.5);
+                }
+                50% {
+                    box-shadow: 0 0 12px 2px rgba(56, 189, 248, 0.65), 0 6px 20px -2px rgba(30, 27, 75, 0.7);
+                }
+            }
+
+            @keyframes roomifyBldShimmerMove {
+                0% { background-position: -200% 0; }
+                100% { background-position: 200% 0; }
+            }
+
+            @keyframes roomifyBldBeaconPulse {
+                0% { transform: scale(0.9); opacity: 0.9; }
+                50% { transform: scale(1.6); opacity: 0; }
+                100% { transform: scale(0.9); opacity: 0; }
+            }
+
+            @keyframes roomifyBldDotBreathe {
+                0%, 100% { opacity: 0.5; transform: scale(0.9); }
+                50% { opacity: 1; transform: scale(1.2); }
+            }
+
+            .roomify-building-hero-badge {
+                position: relative;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 8px 12px;
+                margin-bottom: 8px;
+                border-radius: 12px;
+                background: linear-gradient(135deg, #0A0F1D 0%, #141C38 50%, #1E2958 100%);
+                border: 1.5px solid #38BDF8;
+                animation: roomifyBldGlowPulse 3s infinite ease-in-out;
+                overflow: hidden;
+            }
+
+            .roomify-building-hero-badge::before {
+                content: '';
+                position: absolute;
+                top: 0; left: 0; right: 0; bottom: 0;
+                background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+                background-size: 200% 100%;
+                animation: roomifyBldShimmerMove 3.5s infinite linear;
+                pointer-events: none;
+            }
+
+            .roomify-bld-badge-icon {
+                position: relative;
+                width: 32px;
+                height: 32px;
+                border-radius: 9px;
+                background: rgba(255, 255, 255, 0.12);
+                border: 1px solid rgba(255, 255, 255, 0.25);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 16px;
+                flex-shrink: 0;
+            }
+
+            .roomify-bld-pulse-beacon {
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                border-radius: 9px;
+                border: 1.5px solid #38BDF8;
+                animation: roomifyBldBeaconPulse 2s infinite ease-out;
+                pointer-events: none;
+            }
+
+            .roomify-bld-badge-content {
+                flex: 1;
+                min-width: 0;
+            }
+
+            .roomify-bld-badge-label {
+                font-size: 9.5px;
+                font-weight: 900;
+                letter-spacing: 0.8px;
+                color: #38BDF8;
+                text-transform: uppercase;
+                line-height: 1.2;
+            }
+
+            .roomify-bld-badge-stats {
+                margin-top: 3px;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+
+            .roomify-bld-avail-pill {
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+                font-size: 10.5px;
+                font-weight: 800;
+                padding: 2px 7px;
+                border-radius: 6px;
+                color: #FFFFFF;
+                line-height: 1.3;
+            }
+
+            .roomify-bld-avail-pill.is-available {
+                background: rgba(16, 185, 129, 0.85);
+                border: 0.5px solid #34D399;
+            }
+
+            .roomify-bld-avail-pill.is-full {
+                background: rgba(217, 119, 6, 0.85);
+                border: 0.5px solid #FBBF24;
+            }
+
+            .roomify-bld-live-dot {
+                width: 5px;
+                height: 5px;
+                border-radius: 50%;
+                background: #FFFFFF;
+                animation: roomifyBldDotBreathe 1.5s infinite ease-in-out;
+            }
+
+            .roomify-bld-accent-tag {
+                font-size: 8.5px;
+                font-weight: 900;
+                letter-spacing: 0.6px;
+                padding: 3px 6px;
+                border-radius: 6px;
+                background: linear-gradient(135deg, #F59E0B, #D97706);
+                color: #FFFFFF;
+                border: 0.5px solid #FDE68A;
+                text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+                flex-shrink: 0;
+            }
+
             .roomify-popup-image-container {
                 width: 100%;
                 height: 150px;
@@ -4035,7 +4173,22 @@
             '<div class="roomify-popup">' +
             '<div class="roomify-popup-header">' +
             '<div style="flex:1;min-width:0;">' +
-            '<div class="roomify-popup-property-type">Building / Multi-Unit</div>' +
+            '<div class="roomify-building-hero-badge">' +
+                '<div class="roomify-bld-badge-icon">' +
+                    '<span class="roomify-bld-pulse-beacon"></span>' +
+                    '🏢' +
+                '</div>' +
+                '<div class="roomify-bld-badge-content">' +
+                    '<div class="roomify-bld-badge-label">RESIDENTIAL COMPLEX • MULTI-UNIT</div>' +
+                    '<div class="roomify-bld-badge-stats">' +
+                        '<span class="roomify-bld-avail-pill ' + (available > 0 ? 'is-available' : 'is-full') + '">' +
+                            '<span class="roomify-bld-live-dot"></span>' +
+                            available + ' / ' + total + ' Units Available' +
+                        '</span>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="roomify-bld-accent-tag">★ COMPLEX</div>' +
+            '</div>' +
             '<div class="roomify-popup-title" title="' + title + '">' + title + '</div>' +
             '</div>' +
             '<button class="roomify-popup-close" data-roomify-close-popup="true">✕</button>' +
@@ -4595,34 +4748,150 @@
         isSaved
     ) {
         var priceText = "From " + formatCompactPrice(minPrice);
-        var roomsText = availableRooms + " / " + totalRooms + " rooms";
-        var text = priceText + " • " + roomsText;
+        var availText = availableRooms + "/" + totalRooms + " Avail";
+        if (availableRooms === 0) availText = "Full (" + totalRooms + ")";
 
-        var color = selected ? ROOMIFY_SELECTED_ORANGE : (isSaved ? ROOMIFY_SAVED_PINK : "#16A34A");
-        if (availableRooms === 0) color = "#D97706";
+        // Distinct luxury color themes for large buildings
+        var bgGradId = "bld_grad_" + Math.abs(totalRooms * 31 + availableRooms * 17 + (selected ? 7 : 0));
+        var borderStroke = selected ? "#FDE047" : (isSaved ? "#F472B6" : (availableRooms > 0 ? "#38BDF8" : "#F59E0B"));
+        var accentPillColor = selected ? "#B45309" : (availableRooms > 0 ? "#059669" : "#D97706");
 
-        var scale = selected ? 1.35 : 1.0;
-        var width = Math.max(170, (text.length * 7.5) + 44) * scale;
-        var height = 55 * scale;
+        var scale = selected ? 1.25 : 1.0;
+        var baseW = 196;
+        var baseH = 76;
+        var width = baseW * scale;
+        var height = baseH * scale;
 
-        var buildingVectorSvg = '<g transform="translate(18, 14)"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V9h2v4h4v2z" fill="#FFFFFF"/></g>';
+        // Skyscraper Architectural SVG with illuminated window lights and top rooftop beacon
+        var skyscraperIconSvg =
+            '<g transform="translate(14, 21)">' +
+                // Left tower
+                '<rect x="2" y="10" width="13" height="24" rx="2" fill="#FFFFFF" fill-opacity="0.95"/>' +
+                // Right tower (higher penthouse)
+                '<rect x="16" y="5" width="13" height="29" rx="2" fill="#FFFFFF" fill-opacity="0.95"/>' +
+                // Rooftop Spire Antenna with blinking red obstruction beacon
+                '<line x1="22.5" y1="0" x2="22.5" y2="5" stroke="#FDE047" stroke-width="1.6"/>' +
+                '<circle cx="22.5" cy="1" r="1.8" fill="#EF4444">' +
+                    '<animate attributeName="opacity" values="0.3;1;0.3" dur="1.2s" repeatCount="indefinite"/>' +
+                '</circle>' +
+                // Tower windows - lit with animated golden shimmer
+                '<rect x="5" y="13" width="2.5" height="3" rx="0.5" fill="#1E1B4B"/>' +
+                '<rect x="9.5" y="13" width="2.5" height="3" rx="0.5" fill="#FDE047"/>' +
+                '<rect x="5" y="18" width="2.5" height="3" rx="0.5" fill="#FDE047"/>' +
+                '<rect x="9.5" y="18" width="2.5" height="3" rx="0.5" fill="#1E1B4B"/>' +
+                '<rect x="5" y="23" width="2.5" height="3" rx="0.5" fill="#1E1B4B"/>' +
+                '<rect x="9.5" y="23" width="2.5" height="3" rx="0.5" fill="#FDE047"/>' +
+                '<rect x="5" y="28" width="2.5" height="3" rx="0.5" fill="#FDE047"/>' +
+                '<rect x="9.5" y="28" width="2.5" height="3" rx="0.5" fill="#1E1B4B"/>' +
+                // Right tower windows
+                '<rect x="19" y="8" width="2.5" height="3" rx="0.5" fill="#FDE047"/>' +
+                '<rect x="23.5" y="8" width="2.5" height="3" rx="0.5" fill="#1E1B4B"/>' +
+                '<rect x="19" y="13" width="2.5" height="3" rx="0.5" fill="#1E1B4B"/>' +
+                '<rect x="23.5" y="13" width="2.5" height="3" rx="0.5" fill="#FDE047"/>' +
+                '<rect x="19" y="18" width="2.5" height="3" rx="0.5" fill="#FDE047"/>' +
+                '<rect x="23.5" y="18" width="2.5" height="3" rx="0.5" fill="#1E1B4B"/>' +
+                '<rect x="19" y="23" width="2.5" height="3" rx="0.5" fill="#1E1B4B"/>' +
+                '<rect x="23.5" y="23" width="2.5" height="3" rx="0.5" fill="#FDE047"/>' +
+                '<rect x="19" y="28" width="2.5" height="3" rx="0.5" fill="#FDE047"/>' +
+                '<rect x="23.5" y="28" width="2.5" height="3" rx="0.5" fill="#1E1B4B"/>' +
+            '</g>';
+
+        var pinCenterX = baseW / 2;
+        var pinTipY = 66;
 
         var svg =
             '<svg xmlns="http://www.w3.org/2000/svg" ' +
             'width="' + width + '" height="' + height + '" ' +
-            'viewBox="0 0 ' + width + ' 55">' +
+            'viewBox="0 0 ' + baseW + ' ' + baseH + '">' +
             '<defs>' +
-            '<filter id="shadow_bld" x="-50%" y="-50%" width="200%" height="200%">' +
-                '<feDropShadow dx="0" dy="1.5" stdDeviation="2.5" flood-opacity="0.38"/>' +
-            '</filter>' +
+                // Drop shadow
+                '<filter id="bld_shadow" x="-30%" y="-30%" width="160%" height="160%">' +
+                    '<feDropShadow dx="0" dy="3" stdDeviation="3.5" flood-color="#000000" flood-opacity="0.45"/>' +
+                '</filter>' +
+                // Main body gradient
+                '<linearGradient id="' + bgGradId + '" x1="0%" y1="0%" x2="100%" y2="100%">' +
+                    (selected
+                        ? '<stop offset="0%" stop-color="#9A3412"/><stop offset="50%" stop-color="#C2410C"/><stop offset="100%" stop-color="#EA580C"/>'
+                        : (isSaved
+                            ? '<stop offset="0%" stop-color="#831843"/><stop offset="50%" stop-color="#9D174D"/><stop offset="100%" stop-color="#BE185D"/>'
+                            : '<stop offset="0%" stop-color="#0A0F1D"/><stop offset="45%" stop-color="#141C38"/><stop offset="100%" stop-color="#1E2958"/>'
+                        )
+                    ) +
+                '</linearGradient>' +
+                // Metallic shimmer beam sweep animation
+                '<linearGradient id="bld_shimmer" x1="0%" y1="0%" x2="100%" y2="0%">' +
+                    '<stop offset="0%" stop-color="#FFFFFF" stop-opacity="0"><animate attributeName="offset" values="-1; 1.8" dur="3.2s" repeatCount="indefinite"/></stop>' +
+                    '<stop offset="12%" stop-color="#FFFFFF" stop-opacity="0.35"><animate attributeName="offset" values="-0.88; 1.92" dur="3.2s" repeatCount="indefinite"/></stop>' +
+                    '<stop offset="25%" stop-color="#FFFFFF" stop-opacity="0"><animate attributeName="offset" values="-0.75; 2.05" dur="3.2s" repeatCount="indefinite"/></stop>' +
+                '</linearGradient>' +
+                // Crown gradient
+                '<linearGradient id="bld_crown_grad" x1="0%" y1="0%" x2="100%" y2="0%">' +
+                    '<stop offset="0%" stop-color="#1E1B4B"/><stop offset="100%" stop-color="#312E81"/>' +
+                '</linearGradient>' +
             '</defs>' +
-            '<g filter="url(#shadow_bld)">' +
-                '<rect x="5" y="5" rx="18" ry="18" width="' + (width - 10) + '" height="38" fill="' + color + '" stroke="#FFFFFF" stroke-width="2"/>' +
-                '<path d="M' + (width/2 - 7) + ' 43 L' + (width/2) + ' 52 L' + (width/2 + 7) + ' 43" fill="' + color + '"/>' +
-                '<circle cx="28" cy="24" r="14" fill="rgba(255,255,255,0.2)"/>' +
-                buildingVectorSvg +
-                '<text x="' + ((width + 28)/2) + '" y="30" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="900" fill="#ffffff">' +
-                    escapeHtml(text) +
+
+            // ANIMATED RADAR BEACON AT PIN TIP
+            '<g transform="translate(' + pinCenterX + ',' + (pinTipY + 4) + ')">' +
+                '<circle cx="0" cy="0" r="4" fill="none" stroke="' + borderStroke + '" stroke-width="2.5">' +
+                    '<animate attributeName="r" values="3; 14; 22" dur="2s" repeatCount="indefinite"/>' +
+                    '<animate attributeName="opacity" values="1; 0.4; 0" dur="2s" repeatCount="indefinite"/>' +
+                '</circle>' +
+                '<circle cx="0" cy="0" r="3" fill="none" stroke="#FFFFFF" stroke-width="1.5">' +
+                    '<animate attributeName="r" values="2; 10; 18" begin="0.8s" dur="2s" repeatCount="indefinite"/>' +
+                    '<animate attributeName="opacity" values="1; 0.35; 0" begin="0.8s" dur="2s" repeatCount="indefinite"/>' +
+                '</circle>' +
+            '</g>' +
+
+            // MAIN BADGE BODY WITH SHADOW
+            '<g filter="url(#bld_shadow)">' +
+                // Pointer arrow triangle pointing down
+                '<path d="M ' + (pinCenterX - 9) + ' 58 L ' + pinCenterX + ' ' + pinTipY + ' L ' + (pinCenterX + 9) + ' 58 Z" fill="' + (selected ? '#C2410C' : '#141C38') + '"/>' +
+
+                // Main rounded card
+                '<rect x="6" y="6" width="184" height="52" rx="13" ry="13" fill="url(#' + bgGradId + ')" stroke="' + borderStroke + '" stroke-width="2"/>' +
+
+                // Shimmer overlay
+                '<rect x="6" y="6" width="184" height="52" rx="13" ry="13" fill="url(#bld_shimmer)" pointer-events="none"/>' +
+
+                // Top Architectural Crown Strip
+                '<path d="M 6 18 L 6 13 Q 6 6 13 6 L 183 6 Q 190 6 190 13 L 190 18 Z" fill="url(#bld_crown_grad)" fill-opacity="0.9"/>' +
+                '<line x1="6" y1="18" x2="190" y2="18" stroke="' + borderStroke + '" stroke-width="0.75" stroke-opacity="0.6"/>' +
+
+                // Crown text: Architectural Tag
+                '<text x="14" y="14.5" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif" font-size="8.5" font-weight="900" fill="#38BDF8" letter-spacing="1">' +
+                    '🏢 RESIDENTIAL COMPLEX' +
+                '</text>' +
+
+                // Crown right side: LIVE indicator
+                '<circle cx="178" cy="12" r="2.5" fill="#10B981">' +
+                    '<animate attributeName="opacity" values="0.3;1;0.3" dur="1.4s" repeatCount="indefinite"/>' +
+                '</circle>' +
+                '<text x="172" y="14" text-anchor="end" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif" font-size="7.5" font-weight="800" fill="#A7F3D0" letter-spacing="0.5">' +
+                    'LIVE' +
+                '</text>' +
+
+                // Left Skyscraper icon housing
+                '<rect x="11" y="22" width="34" height="32" rx="8" ry="8" fill="#1E293B" fill-opacity="0.6" stroke="#475569" stroke-width="0.8"/>' +
+                skyscraperIconSvg +
+
+                // Price display (Bold, modern typography)
+                '<text x="52" y="36" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif" font-size="12.5" font-weight="900" fill="#FFFFFF" letter-spacing="-0.3">' +
+                    escapeHtml(priceText) +
+                '</text>' +
+
+                // Subtitle / Range indicator
+                '<text x="52" y="48" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif" font-size="8" font-weight="700" fill="#94A3B8" letter-spacing="0.4">' +
+                    'PER UNIT / MONTH' +
+                '</text>' +
+
+                // Right Units Badge Pill
+                '<rect x="122" y="26" width="62" height="24" rx="12" ry="12" fill="' + accentPillColor + '" stroke="#FFFFFF" stroke-width="1.2"/>' +
+                // Animated pulsing dot inside units pill
+                '<circle cx="132" cy="38" r="3" fill="#FFFFFF">' +
+                    '<animate attributeName="opacity" values="0.4;1;0.4" dur="1.6s" repeatCount="indefinite"/>' +
+                '</circle>' +
+                '<text x="156" y="41.5" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif" font-size="9" font-weight="900" fill="#FFFFFF" letter-spacing="0.3">' +
+                    escapeHtml(availText) +
                 '</text>' +
             '</g>' +
             '</svg>';
@@ -4630,7 +4899,7 @@
         return {
             url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg),
             scaledSize: new google.maps.Size(width, height),
-            anchor: new google.maps.Point(width / 2, height - 2)
+            anchor: new google.maps.Point(width / 2, height - 6)
         };
     }
 
@@ -5290,14 +5559,30 @@
         window.roomifyMarkers.forEach(function (entry) {
             if (!entry) return;
 
-            var selected = String(entry.room.id) === String(window.roomifySelectedRoomId);
+            var isBuilding = !!entry.building;
+            var selected = isBuilding
+                ? (entry.building.rooms.some(r => String(r.id) === String(window.roomifySelectedRoomId)))
+                : (String(entry.room.id) === String(window.roomifySelectedRoomId));
             var hovered = entry.hovered || false;
-            var isViewed = window.roomifyViewedRoomIds.has(Number(entry.room.id));
-            var isSaved = window.roomifySavedRoomIds.has(Number(entry.room.id));
+            var isViewed = isBuilding
+                ? (entry.building.rooms.some(r => window.roomifyViewedRoomIds.has(Number(r.id))))
+                : window.roomifyViewedRoomIds.has(Number(entry.room.id));
+            var isSaved = isBuilding
+                ? (entry.building.rooms.some(r => window.roomifySavedRoomIds.has(Number(r.id))))
+                : window.roomifySavedRoomIds.has(Number(entry.room.id));
 
             var icon;
             if (showDots) {
                 icon = createDotIcon(entry.room.status, selected, hovered, isViewed, isSaved);
+            } else if (isBuilding) {
+                icon = createBuildingPriceIcon(
+                    entry.building.minPrice,
+                    entry.building.totalRooms,
+                    entry.building.availableRooms,
+                    selected,
+                    isViewed,
+                    isSaved
+                );
             } else {
                 icon = createPriceIcon(
                     entry.room.price,

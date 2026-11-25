@@ -1863,12 +1863,44 @@ private fun ComplexOverviewCard(property: Property) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = Color.White,
-        border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+        color = Color(0xFF0F172A),
+        border = BorderStroke(1.5.dp, Color(0xFF38BDF8)),
+        shadowElevation = 4.dp
     ) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(property.title ?: "Complex Overview", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF0F172A))
-            Text(property.address ?: "", fontSize = 12.sp, color = Color(0xFF64748B))
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Surface(
+                    color = Color(0xFF1E293B),
+                    shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.5f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        Icon(Icons.Default.CorporateFare, null, tint = Color(0xFF38BDF8), modifier = Modifier.size(14.dp))
+                        Text("RESIDENTIAL COMPLEX", color = Color(0xFF38BDF8), fontSize = 10.sp, fontWeight = FontWeight.Black, letterSpacing = 0.5.sp)
+                    }
+                }
+                Surface(
+                    color = Color(0xFF065F46),
+                    shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(0.8.dp, Color(0xFF34D399))
+                ) {
+                    Text("MULTI-UNIT HUB", color = Color(0xFFA7F3D0), fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                }
+            }
+            Text(property.title ?: "Complex Overview", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = Color.White)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.LocationOn, null, tint = Color(0xFF94A3B8), modifier = Modifier.size(13.dp))
+                Spacer(Modifier.width(4.dp))
+                Text(property.address ?: "", fontSize = 12.sp, color = Color(0xFF94A3B8))
+            }
         }
     }
 }

@@ -124,16 +124,30 @@ private fun SavedRoomCard(room: Room, onClick: () -> Unit) {
                 if (room.propertyId != null) {
                     Surface(
                         modifier = Modifier.align(Alignment.TopStart).padding(12.dp),
-                        color = PrimaryColor,
-                        shape = CircleShape,
-                        shadowElevation = 4.dp
+                        color = Color(0xFF0F172A),
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.2.dp, Color(0xFF38BDF8)),
+                        shadowElevation = 6.dp
                     ) {
-                        Icon(
-                            Icons.Default.CorporateFare,
-                            null,
-                            tint = Color.White,
-                            modifier = Modifier.padding(8.dp).size(16.dp)
-                        )
+                        Row(
+                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.CorporateFare,
+                                null,
+                                tint = Color(0xFF38BDF8),
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Text(
+                                "COMPLEX",
+                                color = Color.White,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 0.8.sp
+                            )
+                        }
                     }
                 }
 

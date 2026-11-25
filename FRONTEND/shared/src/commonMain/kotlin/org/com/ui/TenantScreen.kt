@@ -778,6 +778,25 @@ private fun TenantPropertyCard(room: Room, onClick: () -> Unit) {
                     }
                 )
 
+                if (room.propertyId != null) {
+                    Surface(
+                        modifier = Modifier.align(Alignment.TopStart).padding(8.dp),
+                        color = Color(0xFF0F172A),
+                        shape = RoundedCornerShape(8.dp),
+                        border = BorderStroke(1.dp, Color(0xFF38BDF8)),
+                        shadowElevation = 4.dp
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            Icon(Icons.Default.CorporateFare, null, tint = Color(0xFF38BDF8), modifier = Modifier.size(12.dp))
+                            Text("COMPLEX", color = Color.White, fontSize = 8.5.sp, fontWeight = FontWeight.Black, letterSpacing = 0.5.sp)
+                        }
+                    }
+                }
+
                 Surface(
                     modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
                     color = Color.Black.copy(alpha = 0.65f),
