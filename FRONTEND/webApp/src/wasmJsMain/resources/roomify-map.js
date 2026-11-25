@@ -4747,150 +4747,38 @@
         isViewed,
         isSaved
     ) {
-        var priceText = "From " + formatCompactPrice(minPrice);
-        var availText = availableRooms + "/" + totalRooms + " Avail";
-        if (availableRooms === 0) availText = "Full (" + totalRooms + ")";
+        var priceText = formatCompactPrice(minPrice);
+        var availText = (availableRooms > 0 ? (availableRooms + "/" + totalRooms + " Avail") : ("Full (" + totalRooms + ")"));
 
-        // Distinct luxury color themes for large buildings
-        var bgGradId = "bld_grad_" + Math.abs(totalRooms * 31 + availableRooms * 17 + (selected ? 7 : 0));
-        var borderStroke = selected ? "#FDE047" : (isSaved ? "#F472B6" : (availableRooms > 0 ? "#38BDF8" : "#F59E0B"));
-        var accentPillColor = selected ? "#B45309" : (availableRooms > 0 ? "#059669" : "#D97706");
+        var color = selected ? ROOMIFY_SELECTED_ORANGE : (isSaved ? ROOMIFY_SAVED_PINK : (availableRooms > 0 ? "#16A34A" : "#64748B"));
+        var scale = selected ? 1.35 : 1.0;
+        var width = 120 * scale;
+        var height = 55 * scale;
 
-        var scale = selected ? 1.25 : 1.0;
-        var baseW = 196;
-        var baseH = 76;
-        var width = baseW * scale;
-        var height = baseH * scale;
-
-        // Skyscraper Architectural SVG with illuminated window lights and top rooftop beacon
-        var skyscraperIconSvg =
-            '<g transform="translate(14, 21)">' +
-                // Left tower
-                '<rect x="2" y="10" width="13" height="24" rx="2" fill="#FFFFFF" fill-opacity="0.95"/>' +
-                // Right tower (higher penthouse)
-                '<rect x="16" y="5" width="13" height="29" rx="2" fill="#FFFFFF" fill-opacity="0.95"/>' +
-                // Rooftop Spire Antenna with blinking red obstruction beacon
-                '<line x1="22.5" y1="0" x2="22.5" y2="5" stroke="#FDE047" stroke-width="1.6"/>' +
-                '<circle cx="22.5" cy="1" r="1.8" fill="#EF4444">' +
-                    '<animate attributeName="opacity" values="0.3;1;0.3" dur="1.2s" repeatCount="indefinite"/>' +
-                '</circle>' +
-                // Tower windows - lit with animated golden shimmer
-                '<rect x="5" y="13" width="2.5" height="3" rx="0.5" fill="#1E1B4B"/>' +
-                '<rect x="9.5" y="13" width="2.5" height="3" rx="0.5" fill="#FDE047"/>' +
-                '<rect x="5" y="18" width="2.5" height="3" rx="0.5" fill="#FDE047"/>' +
-                '<rect x="9.5" y="18" width="2.5" height="3" rx="0.5" fill="#1E1B4B"/>' +
-                '<rect x="5" y="23" width="2.5" height="3" rx="0.5" fill="#1E1B4B"/>' +
-                '<rect x="9.5" y="23" width="2.5" height="3" rx="0.5" fill="#FDE047"/>' +
-                '<rect x="5" y="28" width="2.5" height="3" rx="0.5" fill="#FDE047"/>' +
-                '<rect x="9.5" y="28" width="2.5" height="3" rx="0.5" fill="#1E1B4B"/>' +
-                // Right tower windows
-                '<rect x="19" y="8" width="2.5" height="3" rx="0.5" fill="#FDE047"/>' +
-                '<rect x="23.5" y="8" width="2.5" height="3" rx="0.5" fill="#1E1B4B"/>' +
-                '<rect x="19" y="13" width="2.5" height="3" rx="0.5" fill="#1E1B4B"/>' +
-                '<rect x="23.5" y="13" width="2.5" height="3" rx="0.5" fill="#FDE047"/>' +
-                '<rect x="19" y="18" width="2.5" height="3" rx="0.5" fill="#FDE047"/>' +
-                '<rect x="23.5" y="18" width="2.5" height="3" rx="0.5" fill="#1E1B4B"/>' +
-                '<rect x="19" y="23" width="2.5" height="3" rx="0.5" fill="#1E1B4B"/>' +
-                '<rect x="23.5" y="23" width="2.5" height="3" rx="0.5" fill="#FDE047"/>' +
-                '<rect x="19" y="28" width="2.5" height="3" rx="0.5" fill="#FDE047"/>' +
-                '<rect x="23.5" y="28" width="2.5" height="3" rx="0.5" fill="#1E1B4B"/>' +
-            '</g>';
-
-        var pinCenterX = baseW / 2;
-        var pinTipY = 66;
+        // Building vector icon
+        var buildingIconSvg = '<g transform="translate(17, 15)"><path d="M2 18V3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v15H2zm3-13h3v2.5H5V5zm0 4h3v2.5H5V9zm0 4h3v2.5H5V13zm5-8h3v2.5h-3V5zm0 4h3v2.5h-3V9zm0 4h3v2.5h-3V13z" fill="#FFFFFF"/></g>';
 
         var svg =
             '<svg xmlns="http://www.w3.org/2000/svg" ' +
             'width="' + width + '" height="' + height + '" ' +
-            'viewBox="0 0 ' + baseW + ' ' + baseH + '">' +
+            'viewBox="0 0 120 55">' +
             '<defs>' +
-                // Drop shadow
-                '<filter id="bld_shadow" x="-30%" y="-30%" width="160%" height="160%">' +
-                    '<feDropShadow dx="0" dy="3" stdDeviation="3.5" flood-color="#000000" flood-opacity="0.45"/>' +
-                '</filter>' +
-                // Main body gradient
-                '<linearGradient id="' + bgGradId + '" x1="0%" y1="0%" x2="100%" y2="100%">' +
-                    (selected
-                        ? '<stop offset="0%" stop-color="#9A3412"/><stop offset="50%" stop-color="#C2410C"/><stop offset="100%" stop-color="#EA580C"/>'
-                        : (isSaved
-                            ? '<stop offset="0%" stop-color="#831843"/><stop offset="50%" stop-color="#9D174D"/><stop offset="100%" stop-color="#BE185D"/>'
-                            : '<stop offset="0%" stop-color="#0A0F1D"/><stop offset="45%" stop-color="#141C38"/><stop offset="100%" stop-color="#1E2958"/>'
-                        )
-                    ) +
-                '</linearGradient>' +
-                // Metallic shimmer beam sweep animation
-                '<linearGradient id="bld_shimmer" x1="0%" y1="0%" x2="100%" y2="0%">' +
-                    '<stop offset="0%" stop-color="#FFFFFF" stop-opacity="0"><animate attributeName="offset" values="-1; 1.8" dur="3.2s" repeatCount="indefinite"/></stop>' +
-                    '<stop offset="12%" stop-color="#FFFFFF" stop-opacity="0.35"><animate attributeName="offset" values="-0.88; 1.92" dur="3.2s" repeatCount="indefinite"/></stop>' +
-                    '<stop offset="25%" stop-color="#FFFFFF" stop-opacity="0"><animate attributeName="offset" values="-0.75; 2.05" dur="3.2s" repeatCount="indefinite"/></stop>' +
-                '</linearGradient>' +
-                // Crown gradient
-                '<linearGradient id="bld_crown_grad" x1="0%" y1="0%" x2="100%" y2="0%">' +
-                    '<stop offset="0%" stop-color="#1E1B4B"/><stop offset="100%" stop-color="#312E81"/>' +
-                '</linearGradient>' +
+            '<filter id="bld_shadow" x="-50%" y="-50%" width="200%" height="200%">' +
+                '<feDropShadow dx="0" dy="1.5" stdDeviation="2.5" flood-opacity="0.35"/>' +
+            '</filter>' +
             '</defs>' +
-
-            // ANIMATED RADAR BEACON AT PIN TIP
-            '<g transform="translate(' + pinCenterX + ',' + (pinTipY + 4) + ')">' +
-                '<circle cx="0" cy="0" r="4" fill="none" stroke="' + borderStroke + '" stroke-width="2.5">' +
-                    '<animate attributeName="r" values="3; 14; 22" dur="2s" repeatCount="indefinite"/>' +
-                    '<animate attributeName="opacity" values="1; 0.4; 0" dur="2s" repeatCount="indefinite"/>' +
-                '</circle>' +
-                '<circle cx="0" cy="0" r="3" fill="none" stroke="#FFFFFF" stroke-width="1.5">' +
-                    '<animate attributeName="r" values="2; 10; 18" begin="0.8s" dur="2s" repeatCount="indefinite"/>' +
-                    '<animate attributeName="opacity" values="1; 0.35; 0" begin="0.8s" dur="2s" repeatCount="indefinite"/>' +
-                '</circle>' +
-            '</g>' +
-
-            // MAIN BADGE BODY WITH SHADOW
             '<g filter="url(#bld_shadow)">' +
-                // Pointer arrow triangle pointing down
-                '<path d="M ' + (pinCenterX - 9) + ' 58 L ' + pinCenterX + ' ' + pinTipY + ' L ' + (pinCenterX + 9) + ' 58 Z" fill="' + (selected ? '#C2410C' : '#141C38') + '"/>' +
-
-                // Main rounded card
-                '<rect x="6" y="6" width="184" height="52" rx="13" ry="13" fill="url(#' + bgGradId + ')" stroke="' + borderStroke + '" stroke-width="2"/>' +
-
-                // Shimmer overlay
-                '<rect x="6" y="6" width="184" height="52" rx="13" ry="13" fill="url(#bld_shimmer)" pointer-events="none"/>' +
-
-                // Top Architectural Crown Strip
-                '<path d="M 6 18 L 6 13 Q 6 6 13 6 L 183 6 Q 190 6 190 13 L 190 18 Z" fill="url(#bld_crown_grad)" fill-opacity="0.9"/>' +
-                '<line x1="6" y1="18" x2="190" y2="18" stroke="' + borderStroke + '" stroke-width="0.75" stroke-opacity="0.6"/>' +
-
-                // Crown text: Architectural Tag
-                '<text x="14" y="14.5" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif" font-size="8.5" font-weight="900" fill="#38BDF8" letter-spacing="1">' +
-                    '🏢 RESIDENTIAL COMPLEX' +
-                '</text>' +
-
-                // Crown right side: LIVE indicator
-                '<circle cx="178" cy="12" r="2.5" fill="#10B981">' +
-                    '<animate attributeName="opacity" values="0.3;1;0.3" dur="1.4s" repeatCount="indefinite"/>' +
-                '</circle>' +
-                '<text x="172" y="14" text-anchor="end" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif" font-size="7.5" font-weight="800" fill="#A7F3D0" letter-spacing="0.5">' +
-                    'LIVE' +
-                '</text>' +
-
-                // Left Skyscraper icon housing
-                '<rect x="11" y="22" width="34" height="32" rx="8" ry="8" fill="#1E293B" fill-opacity="0.6" stroke="#475569" stroke-width="0.8"/>' +
-                skyscraperIconSvg +
-
-                // Price display (Bold, modern typography)
-                '<text x="52" y="36" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif" font-size="12.5" font-weight="900" fill="#FFFFFF" letter-spacing="-0.3">' +
+                '<rect x="5" y="5" rx="18" ry="18" width="110" height="38" fill="' + color + '"/>' +
+                '<path d="M53 43 L60 52 L67 43" fill="' + color + '"/>' +
+                // Background circle for the building icon
+                '<circle cx="26" cy="24" r="13" fill="rgba(255,255,255,0.22)"/>' +
+                buildingIconSvg +
+                // Price text (Line 1)
+                '<text x="71" y="21" text-anchor="middle" font-family="Arial,sans-serif" font-size="11.5" font-weight="900" fill="#ffffff">' +
                     escapeHtml(priceText) +
                 '</text>' +
-
-                // Subtitle / Range indicator
-                '<text x="52" y="48" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif" font-size="8" font-weight="700" fill="#94A3B8" letter-spacing="0.4">' +
-                    'PER UNIT / MONTH' +
-                '</text>' +
-
-                // Right Units Badge Pill
-                '<rect x="122" y="26" width="62" height="24" rx="12" ry="12" fill="' + accentPillColor + '" stroke="#FFFFFF" stroke-width="1.2"/>' +
-                // Animated pulsing dot inside units pill
-                '<circle cx="132" cy="38" r="3" fill="#FFFFFF">' +
-                    '<animate attributeName="opacity" values="0.4;1;0.4" dur="1.6s" repeatCount="indefinite"/>' +
-                '</circle>' +
-                '<text x="156" y="41.5" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif" font-size="9" font-weight="900" fill="#FFFFFF" letter-spacing="0.3">' +
+                // Units availability badge (Line 2)
+                '<text x="71" y="33" text-anchor="middle" font-family="Arial,sans-serif" font-size="8.5" font-weight="800" fill="rgba(255,255,255,0.92)" letter-spacing="0.2">' +
                     escapeHtml(availText) +
                 '</text>' +
             '</g>' +
@@ -4899,7 +4787,7 @@
         return {
             url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg),
             scaledSize: new google.maps.Size(width, height),
-            anchor: new google.maps.Point(width / 2, height - 6)
+            anchor: new google.maps.Point(width / 2, height - 2)
         };
     }
 
