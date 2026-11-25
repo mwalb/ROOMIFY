@@ -255,7 +255,7 @@ fun FurnitureDashboard(
                                 onValueChange = { searchQuery = it },
                                 placeholder = {
                                     Text(
-                                        "Tafuta sofa, meza, vitanda, maua, vioo...",
+                                        "Tafuta sofa, meza, vitanda, au eneo (Mikocheni, Sinza, Kariakoo...)",
                                         fontSize = 13.sp,
                                         color = Color(0xFF94A3B8),
                                         softWrap = false,
@@ -289,6 +289,45 @@ fun FurnitureDashboard(
                                 ),
                                 singleLine = true
                             )
+
+                            // Instant Place Suggestion Chips on typing
+                            if (searchQuery.isNotBlank()) {
+                                val placeSuggestions = remember(searchQuery) {
+                                    PlaceSuggestionEngine.suggest(searchQuery).primary.take(5)
+                                }
+                                if (placeSuggestions.isNotEmpty()) {
+                                    LazyRow(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        items(placeSuggestions) { suggestion ->
+                                            Surface(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .clickable { searchQuery = suggestion.name }
+                                                    .pointerHoverIcon(PointerIcon.Hand),
+                                                color = Color(0xFFEEF2FF),
+                                                border = BorderStroke(1.dp, Color(0xFFC7D2FE))
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                ) {
+                                                    Icon(Icons.Rounded.LocationOn, null, tint = BrandNavy, modifier = Modifier.size(13.dp))
+                                                    Text(
+                                                        suggestion.name,
+                                                        fontSize = 12.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = BrandNavy
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
 
                             // Segmented Tab Switcher (44.dp height)
                             Surface(
@@ -502,6 +541,7 @@ fun FurnitureDashboard(
                                     item.title.contains(searchQuery, ignoreCase = true) ||
                                     item.description.contains(searchQuery, ignoreCase = true) ||
                                     item.category.contains(searchQuery, ignoreCase = true) ||
+                                    item.displayLocation.contains(searchQuery, ignoreCase = true) ||
                                     (item.address?.contains(searchQuery, ignoreCase = true) ?: false)
 
                             matchesCategory && matchesSearch
@@ -559,6 +599,7 @@ fun FurnitureDashboard(
                             searchQuery.isBlank() ||
                                     shop.name.contains(searchQuery, ignoreCase = true) ||
                                     (shop.description?.contains(searchQuery, ignoreCase = true) ?: false) ||
+                                    shop.displayLocation.contains(searchQuery, ignoreCase = true) ||
                                     (shop.address?.contains(searchQuery, ignoreCase = true) ?: false)
                         }
 
@@ -882,7 +923,7 @@ fun ShopCard(shop: Shop, onClick: () -> Unit) {
                     Icon(Icons.Rounded.LocationOn, null, tint = Color(0xFF64748B), modifier = Modifier.size(13.dp))
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        shop.address ?: "Dar es Salaam",
+                        shop.displayLocation,
                         color = Color(0xFF64748B),
                         fontSize = 12.sp,
                         maxLines = 1,
@@ -1051,7 +1092,7 @@ fun FurnitureCard(
                     Icon(Icons.Rounded.LocationOn, null, tint = Color.Gray, modifier = Modifier.size(13.dp))
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        furniture.address ?: "Eneo halijatajwa",
+                        furniture.displayLocation,
                         color = Color.Gray,
                         fontSize = 12.sp,
                         maxLines = 1,

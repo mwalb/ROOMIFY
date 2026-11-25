@@ -11,6 +11,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -800,6 +801,19 @@ private fun PropertiesTabView(
     onAddProperty: () -> Unit,
     onViewProperty: (Room) -> Unit
 ) {
+    var searchQuery by remember { mutableStateOf("") }
+    val q = searchQuery.trim().lowercase()
+    val filteredProperties = remember(properties, q) {
+        if (q.isBlank()) properties
+        else properties.filter { room ->
+            val loc = room.displayLocation.lowercase()
+            (room.title?.lowercase()?.contains(q) == true) ||
+            (room.propertyType?.lowercase()?.contains(q) == true) ||
+            loc.contains(q) ||
+            (room.address?.lowercase()?.contains(q) == true)
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -819,6 +833,66 @@ private fun PropertiesTabView(
                 Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(6.dp))
                 Text("+ Add Property", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        // Search Bar for owner listings with instant search & place suggestions
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            placeholder = { Text("Search by title, property type, or place (Sinza, Mikocheni...)", fontSize = 13.sp) },
+            leadingIcon = { Icon(Icons.Default.Search, null, tint = SubtitleColor, modifier = Modifier.size(18.dp)) },
+            trailingIcon = {
+                if (searchQuery.isNotEmpty()) {
+                    IconButton(onClick = { searchQuery = "" }) {
+                        Icon(Icons.Default.Close, null, tint = SubtitleColor, modifier = Modifier.size(18.dp))
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White,
+                focusedBorderColor = PrimaryColor,
+                unfocusedBorderColor = CardBorderColor
+            ),
+            singleLine = true
+        )
+
+        // Instant Place Suggestions Chips
+        if (searchQuery.isNotBlank()) {
+            val placeSuggestions = remember(searchQuery) {
+                PlaceSuggestionEngine.suggest(searchQuery).primary.take(5)
+            }
+            if (placeSuggestions.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    items(placeSuggestions) { suggestion ->
+                        Surface(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { searchQuery = suggestion.name },
+                            color = Color(0xFFEEF2FF),
+                            border = BorderStroke(1.dp, Color(0xFFC7D2FE))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(Icons.Default.LocationOn, null, tint = PrimaryColor, modifier = Modifier.size(13.dp))
+                                Text(suggestion.name, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryColor)
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -865,6 +939,16 @@ private fun PropertiesTabView(
                     }
                 }
             }
+        } else if (filteredProperties.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Default.SearchOff, null, tint = Color.LightGray, modifier = Modifier.size(48.dp))
+                    Spacer(Modifier.height(12.dp))
+                    Text("No properties match \"$searchQuery\"", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                    Spacer(Modifier.height(4.dp))
+                    Text("Try searching another place name or clear the search query.", fontSize = 13.sp, color = SubtitleColor)
+                }
+            }
         } else {
             val columns = if (isExpanded) 3 else if (isMedium) 2 else 1
             LazyVerticalGrid(
@@ -873,7 +957,7 @@ private fun PropertiesTabView(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
-                items(properties) { room ->
+                items(filteredProperties) { room ->
                     OwnerPropertyCardItem(room = room, onClick = { onViewProperty(room) })
                 }
             }
@@ -914,6 +998,12 @@ private fun OwnerPropertyCardItem(room: Room, onClick: () -> Unit) {
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
                 Text(room.title ?: "Property", fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, color = Color(0xFF0F172A))
+                Spacer(Modifier.height(3.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.LocationOn, null, tint = Color.Gray, modifier = Modifier.size(12.dp))
+                    Spacer(Modifier.width(3.dp))
+                    Text(room.displayLocation, fontSize = 12.sp, color = SubtitleColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
                 Spacer(Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(room.formattedPrice, fontSize = 13.sp, color = PrimaryColor, fontWeight = FontWeight.Bold)

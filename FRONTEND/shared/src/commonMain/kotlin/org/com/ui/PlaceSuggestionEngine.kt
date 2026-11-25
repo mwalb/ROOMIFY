@@ -283,17 +283,38 @@ object PlaceSuggestionEngine {
             )
         }.toMutableList()
 
-        // Merge dynamic backend areas that match query and aren't already listed
+        // Merge dynamic backend areas that match query and aren't already listed (ignoring raw coordinates)
         for (rawArea in extraAreas) {
             val trimmed = rawArea.trim()
             if (trimmed.isBlank()) continue
             val lower = trimmed.lowercase()
-            if (lower in seenNames) continue
-            if (lower.startsWith(q) || lower.contains(q) || (tokens.size > 1 && tokens.all { lower.contains(it) })) {
-                seenNames.add(lower)
+
+            // Discard raw coordinates strings e.g. "Coordinates: -6.78, 39.2" or "-6.78, 39.2"
+            val isCoords = lower.startsWith("coordinates:") ||
+                Regex("^-?\\d+(\\.\\d+)?[,\\s]+-?\\d+(\\.\\d+)?$").matches(lower.removePrefix("coordinates:").trim()) ||
+                Regex("^-?[0-9.,\\s]+$").matches(trimmed)
+
+            val effectiveName = if (isCoords) {
+                // If it contains coordinates, resolve to real place name
+                val cleaned = lower.removePrefix("coordinates:").trim()
+                val parts = cleaned.split(Regex("[,\\s]+")).filter { it.isNotBlank() }
+                if (parts.size >= 2) {
+                    val pLat = parts[0].toDoubleOrNull() ?: 0.0
+                    val pLng = parts[1].toDoubleOrNull() ?: 0.0
+                    val nearest = findNearestPlace(pLat, pLng)
+                    nearest?.name
+                } else null
+            } else {
+                trimmed
+            } ?: continue
+
+            val effLower = effectiveName.lowercase()
+            if (effLower in seenNames) continue
+            if (effLower.startsWith(q) || effLower.contains(q) || (tokens.size > 1 && tokens.all { effLower.contains(it) })) {
+                seenNames.add(effLower)
                 primaryItems.add(
                     PlaceSuggestionItem(
-                        name = trimmed,
+                        name = effectiveName,
                         subtitle = "Active Roomify Area",
                         lat = 0.0,
                         lng = 0.0,
@@ -310,6 +331,78 @@ object PlaceSuggestionEngine {
             related = relatedItems.take(6),
             isPopularMode = false
         )
+    }
+
+    /**
+     * Resolves the closest known location node in Tanzania for given GPS coordinates.
+     */
+    fun findNearestPlace(lat: Double, lng: Double, maxKm: Double = 35.0): PlaceNode? {
+        if (lat == 0.0 && lng == 0.0) return null
+        var bestNode: PlaceNode? = null
+        var bestDist = Double.MAX_VALUE
+        for (p in places) {
+            val dist = haversineKm(lat, lng, p.lat, p.lng)
+            if (dist < bestDist && dist <= maxKm) {
+                bestDist = dist
+                bestNode = p
+            }
+        }
+        return bestNode
+    }
+
+    /**
+     * Ensures human-readable place names (e.g. "Mikocheni, Dar es Salaam", "Sinza, Ubungo")
+     * are returned instead of raw GPS coordinates.
+     */
+    fun resolvePlaceName(
+        address: String?,
+        lat: Double = 0.0,
+        lng: Double = 0.0,
+        neighbourhoodPlaces: List<String> = emptyList()
+    ): String {
+        val raw = address?.trim()
+        val isCoordAddress = raw != null && (
+            raw.startsWith("Coordinates:", ignoreCase = true) ||
+            Regex("^-?\\d+(\\.\\d+)?[,\\s]+-?\\d+(\\.\\d+)?$").matches(raw.removePrefix("Coordinates:").trim()) ||
+            Regex("^-?[0-9.,\\s]+$").matches(raw)
+        )
+
+        if (!raw.isNullOrBlank() && !isCoordAddress) {
+            val clean = raw.removePrefix("Coordinates:").trim()
+            if (clean.isNotBlank() && !Regex("^-?[0-9.,\\s]+$").matches(clean)) {
+                return clean
+            }
+        }
+
+        // Try extracting latitude and longitude
+        var parsedLat = lat
+        var parsedLng = lng
+        if ((parsedLat == 0.0 && parsedLng == 0.0) && raw != null && isCoordAddress) {
+            val coordsClean = raw.removePrefix("Coordinates:").trim()
+            val parts = coordsClean.split(Regex("[,\\s]+")).filter { it.isNotBlank() }
+            if (parts.size >= 2) {
+                parsedLat = parts[0].toDoubleOrNull() ?: 0.0
+                parsedLng = parts[1].toDoubleOrNull() ?: 0.0
+            }
+        }
+
+        if (parsedLat != 0.0 || parsedLng != 0.0) {
+            val nearest = findNearestPlace(parsedLat, parsedLng)
+            if (nearest != null) {
+                return if (nearest.district == nearest.city) "${nearest.name}, ${nearest.city}"
+                else "${nearest.name}, ${nearest.district}"
+            }
+        }
+
+        val cleanNeighbourhood = neighbourhoodPlaces.firstOrNull { nb ->
+            val trimmed = nb.trim()
+            trimmed.isNotBlank() && !trimmed.startsWith("Coordinates:", ignoreCase = true) && !Regex("^-?[0-9.,\\s]+$").matches(trimmed)
+        }
+        if (cleanNeighbourhood != null) {
+            return cleanNeighbourhood.trim()
+        }
+
+        return "Dar es Salaam, Tanzania"
     }
 
     private fun haversineKm(lat1: Double, lng1: Double, lat2: Double, lng2: Double): Double {

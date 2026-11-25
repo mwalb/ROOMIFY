@@ -734,14 +734,60 @@ actual fun PlatformLocationMap(
                     acDropdown.style.display = count > 0 ? "block" : "none";
                 }
 
+                const tzHubs = [
+                    { name: "Mikocheni", sub: "Kinondoni, Dar es Salaam", lat: -6.7689, lng: 39.2512, cat: "area" },
+                    { name: "Sinza", sub: "Ubungo, Dar es Salaam", lat: -6.7866, lng: 39.2275, cat: "area" },
+                    { name: "Masaki", sub: "Kinondoni, Dar es Salaam", lat: -6.7518, lng: 39.2798, cat: "area" },
+                    { name: "Oysterbay", sub: "Kinondoni, Dar es Salaam", lat: -6.7764, lng: 39.2792, cat: "area" },
+                    { name: "Kinondoni", sub: "Kinondoni, Dar es Salaam", lat: -6.7834, lng: 39.2665, cat: "district" },
+                    { name: "Mwenge", sub: "Kinondoni, Dar es Salaam", lat: -6.7689, lng: 39.2286, cat: "area" },
+                    { name: "Kijitonyama", sub: "Kinondoni, Dar es Salaam", lat: -6.7785, lng: 39.2422, cat: "area" },
+                    { name: "Mbezi Beach", sub: "Kinondoni, Dar es Salaam", lat: -6.7068, lng: 39.2148, cat: "area" },
+                    { name: "Ubungo", sub: "Ubungo, Dar es Salaam", lat: -6.7924, lng: 39.2083, cat: "district" },
+                    { name: "Kimara", sub: "Ubungo, Dar es Salaam", lat: -6.7918, lng: 39.1665, cat: "area" },
+                    { name: "Kariakoo", sub: "Ilala, Dar es Salaam", lat: -6.8211, lng: 39.2747, cat: "area" },
+                    { name: "Posta (CBD)", sub: "Ilala, Dar es Salaam", lat: -6.8161, lng: 39.2894, cat: "area" },
+                    { name: "Tabata", sub: "Ilala, Dar es Salaam", lat: -6.8286, lng: 39.2163, cat: "area" },
+                    { name: "Goba", sub: "Ubungo, Dar es Salaam", lat: -6.7166, lng: 39.1674, cat: "area" },
+                    { name: "Tegeta", sub: "Kinondoni, Dar es Salaam", lat: -6.6552, lng: 39.1932, cat: "area" },
+                    { name: "Kigamboni", sub: "Kigamboni, Dar es Salaam", lat: -6.8428, lng: 39.3264, cat: "district" },
+                    { name: "UDSM", sub: "Ubungo, Dar es Salaam", lat: -6.7795, lng: 39.2055, cat: "university" },
+                    { name: "Arusha", sub: "Arusha, Tanzania", lat: -3.3869, lng: 36.6830, cat: "city" },
+                    { name: "Dodoma", sub: "Dodoma, Tanzania", lat: -6.1630, lng: 35.7516, cat: "city" },
+                    { name: "Mwanza", sub: "Mwanza, Tanzania", lat: -2.5164, lng: 32.9175, cat: "city" },
+                    { name: "Morogoro", sub: "Morogoro, Tanzania", lat: -6.8278, lng: 37.6591, cat: "city" },
+                    { name: "Zanzibar", sub: "Zanzibar, Tanzania", lat: -6.1659, lng: 39.1990, cat: "city" }
+                ];
+
                 function updatePickerAutocomplete(q) {
                     const seq = ++acReqSeq;
-                    const localRes = (typeof window.roomifyComputeSmartPlaces === "function")
+                    let localRes = (typeof window.roomifyComputeSmartPlaces === "function")
                         ? window.roomifyComputeSmartPlaces(q)
-                        : { primary: [], related: [], isPopularMode: false };
+                        : (typeof window.parent !== "undefined" && typeof window.parent.roomifyComputeSmartPlaces === "function"
+                           ? window.parent.roomifyComputeSmartPlaces(q)
+                           : null);
+
+                    if (!localRes || (!localRes.primary?.length && !localRes.related?.length)) {
+                        const qLower = (q || "").toLowerCase().trim();
+                        if (!qLower) {
+                            localRes = {
+                                isPopularMode: true,
+                                primary: tzHubs.slice(0, 6).map(h => ({ name: h.name, subtitle: h.sub, lat: h.lat, lng: h.lng, cat: h.cat })),
+                                related: []
+                            };
+                        } else {
+                            const matched = tzHubs.filter(h => h.name.toLowerCase().startsWith(qLower) || h.name.toLowerCase().includes(qLower) || h.sub.toLowerCase().includes(qLower));
+                            localRes = {
+                                isPopularMode: false,
+                                primary: matched.slice(0, 6).map(h => ({ name: h.name, subtitle: h.sub, lat: h.lat, lng: h.lng, cat: h.cat })),
+                                related: []
+                            };
+                        }
+                    }
+
                     renderPickerDropdown(q, localRes, []);
 
-                    if (!q || q.length < 2) return;
+                    if (!q || q.length < 1) return;
                     if (acTimer) clearTimeout(acTimer);
                     acTimer = setTimeout(function() {
                         if (seq !== acReqSeq) return;
@@ -760,7 +806,7 @@ actual fun PlatformLocationMap(
                                             };
                                         });
                                         renderPickerDropdown(q, localRes, gItems);
-                                    } else if (q.length >= 3) {
+                                    } else if (q.length >= 1) {
                                         fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=tz&limit=4&q=" + encodeURIComponent(q))
                                             .then(function(r) { return r.json(); })
                                             .then(function(list) {
@@ -774,8 +820,19 @@ actual fun PlatformLocationMap(
                                     }
                                 }
                             );
+                        } else if (q.length >= 1) {
+                            fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=tz&limit=4&q=" + encodeURIComponent(q))
+                                .then(function(r) { return r.json(); })
+                                .then(function(list) {
+                                    if (seq !== acReqSeq || !Array.isArray(list)) return;
+                                    const osmItems = list.map(function(o) {
+                                        const parts = String(o.display_name || q).split(",").map(function(s) { return s.trim(); });
+                                        return { type: "osm", name: o.name || parts[0] || q, subtitle: parts.slice(1, 3).join(", "), lat: Number(o.lat), lng: Number(o.lon) };
+                                    });
+                                    renderPickerDropdown(q, localRes, osmItems);
+                                }).catch(function() {});
                         }
-                    }, 130);
+                    }, 50);
                 }
 
                 searchInput.addEventListener("input", function() {

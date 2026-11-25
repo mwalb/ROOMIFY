@@ -1160,6 +1160,7 @@ fun UnifiedPropertiesContent(
         val q = searchQuery.trim().lowercase()
         val matchesSearch = q.isBlank() ||
                 (room.title?.lowercase()?.contains(q) == true) ||
+                (room.displayLocation.lowercase().contains(q)) ||
                 (room.address?.lowercase()?.contains(q) == true) ||
                 (room.ownerName?.lowercase()?.contains(q) == true) ||
                 (room.dalaliName?.lowercase()?.contains(q) == true)
@@ -1181,6 +1182,13 @@ fun UnifiedPropertiesContent(
                         onValueChange = { searchQuery = it },
                         placeholder = { Text("Search properties, areas...", fontSize = 13.sp) },
                         leadingIcon = { Icon(Icons.Default.Search, null, tint = MutedTextGray) },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(Icons.Default.Close, null, tint = MutedTextGray, modifier = Modifier.size(18.dp))
+                                }
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth().height(48.dp),
                         shape = RoundedCornerShape(10.dp),
                         singleLine = true
@@ -1199,10 +1207,50 @@ fun UnifiedPropertiesContent(
                         onValueChange = { searchQuery = it },
                         placeholder = { Text("Search title, owner, area (Sinza, Masaki...)...", fontSize = 13.sp) },
                         leadingIcon = { Icon(Icons.Default.Search, null, tint = MutedTextGray) },
-                        modifier = Modifier.width(320.dp).height(50.dp),
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(Icons.Default.Close, null, tint = MutedTextGray, modifier = Modifier.size(18.dp))
+                                }
+                            }
+                        },
+                        modifier = Modifier.width(360.dp).height(50.dp),
                         shape = RoundedCornerShape(10.dp),
                         singleLine = true
                     )
+                }
+            }
+
+            // Instant Place Suggestions Chips
+            if (searchQuery.isNotBlank()) {
+                val placeSuggestions = remember(searchQuery) {
+                    PlaceSuggestionEngine.suggest(searchQuery).primary.take(5)
+                }
+                if (placeSuggestions.isNotEmpty()) {
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        items(placeSuggestions) { suggestion ->
+                            Surface(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable { searchQuery = suggestion.name },
+                                color = Color(0xFFEEF2FF),
+                                border = BorderStroke(1.dp, Color(0xFFC7D2FE))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(Icons.Default.LocationOn, null, tint = AdminPrimaryNavy, modifier = Modifier.size(13.dp))
+                                    Text(suggestion.name, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = AdminPrimaryNavy)
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -1445,7 +1493,7 @@ fun PropertyCardRow(
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        text = "Location: ${room.address ?: "N/A"}",
+                        text = "Location: ${room.displayLocation}",
                         fontSize = 12.sp,
                         color = MutedTextGray
                     )
@@ -1603,7 +1651,7 @@ fun PropertyDetailModal(room: Room, onDismiss: () -> Unit) {
                 modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("• Location: ${room.address ?: "N/A"}", fontSize = 13.sp)
+                Text("• Location: ${room.displayLocation}", fontSize = 13.sp)
                 Text("• Monthly Rent: ${room.formattedPrice}", fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 Text("• Owner / Dalali: ${room.ownerName ?: room.dalaliName ?: "N/A"}", fontSize = 13.sp)
                 Text("• Bedrooms: ${room.roomsCount} | Bathrooms: ${room.bathroomsCount}", fontSize = 13.sp)

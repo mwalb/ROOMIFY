@@ -165,7 +165,7 @@ private fun SavedRoomCard(room: Room, onClick: () -> Unit) {
                     Icon(Icons.Default.LocationOn, null, tint = Color.Gray, modifier = Modifier.size(14.dp))
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        room.address ?: "", 
+                        room.displayLocation, 
                         fontSize = 13.sp, 
                         color = Color.Gray, 
                         maxLines = 1, 

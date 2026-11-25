@@ -63,6 +63,7 @@ fun TenantScreen(
 ) {
     val scrollState = rememberScrollState()
     var isSidebarVisible by remember { mutableStateOf(true) }
+    var searchQuery by remember { mutableStateOf("") }
 
     BoxWithConstraints(
         modifier = Modifier
@@ -316,8 +317,67 @@ fun TenantScreen(
                                     horizontal = if (isMobile) 16.dp else 24.dp,
                                     vertical = if (isMobile) 16.dp else 24.dp
                                 ),
-                            verticalArrangement = Arrangement.spacedBy(if (isMobile) 16.dp else 24.dp)
+                            verticalArrangement = Arrangement.spacedBy(if (isMobile) 16.dp else 20.dp)
                         ) {
+                            // Instant Place Search Bar with Suggestions on 1st letter
+                            OutlinedTextField(
+                                value = searchQuery,
+                                onValueChange = { searchQuery = it },
+                                placeholder = { Text("Search places (e.g. Sinza, Mikocheni, Masaki, Mwenge...)", fontSize = 13.sp) },
+                                leadingIcon = { Icon(Icons.Default.Search, null, tint = Color.Gray, modifier = Modifier.size(18.dp)) },
+                                trailingIcon = {
+                                    if (searchQuery.isNotEmpty()) {
+                                        IconButton(onClick = { searchQuery = "" }) {
+                                            Icon(Icons.Default.Close, null, tint = Color.Gray, modifier = Modifier.size(18.dp))
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(14.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = Color.White,
+                                    unfocusedContainerColor = Color.White,
+                                    focusedBorderColor = PrimaryColor,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                                ),
+                                singleLine = true
+                            )
+
+                            if (searchQuery.isNotBlank()) {
+                                val placeSuggestions = remember(searchQuery) {
+                                    PlaceSuggestionEngine.suggest(searchQuery).primary.take(5)
+                                }
+                                if (placeSuggestions.isNotEmpty()) {
+                                    LazyRow(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        items(placeSuggestions) { suggestion ->
+                                            Surface(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .clickable {
+                                                        searchQuery = suggestion.name
+                                                        onSearch(null, suggestion.name, null, null)
+                                                    },
+                                                color = Color(0xFFEEF2FF),
+                                                border = BorderStroke(1.dp, Color(0xFFC7D2FE))
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                ) {
+                                                    Icon(Icons.Default.LocationOn, null, tint = PrimaryColor, modifier = Modifier.size(13.dp))
+                                                    Text(suggestion.name, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryColor)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
                             // High-Value Action Cards & Discovery Hero Section
                             DashboardActionsSection(
                                 isExpanded = isExpanded,
@@ -326,14 +386,23 @@ fun TenantScreen(
                                 onNavigate = onNavigate
                             )
 
-                            // RECOMMENDED FOR YOU
-                            if (allRooms.isNotEmpty()) {
-                                DashboardSectionWithAction("Recommended For You", null) {
+                            // RECOMMENDED FOR YOU (Hot reloaded by search place)
+                            val q = searchQuery.trim().lowercase()
+                            val recommendedRooms = allRooms.filter { room ->
+                                val matchesPlace = q.isBlank() ||
+                                    room.displayLocation.lowercase().contains(q) ||
+                                    (room.title?.lowercase()?.contains(q) == true) ||
+                                    (room.address?.lowercase()?.contains(q) == true)
+                                room.status == "AVAILABLE" && matchesPlace
+                            }
+
+                            if (recommendedRooms.isNotEmpty()) {
+                                DashboardSectionWithAction(if (q.isNotBlank()) "Matching Places (${recommendedRooms.size})" else "Recommended For You", null) {
                                     LazyRow(
                                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                                         contentPadding = PaddingValues(bottom = 8.dp)
                                     ) {
-                                        items(allRooms.filter { it.status == "AVAILABLE" }.take(6)) { room ->
+                                        items(recommendedRooms.take(8)) { room ->
                                             TenantPropertyCard(room) { onViewProperty(room) }
                                         }
                                     }
@@ -728,7 +797,7 @@ private fun TenantPropertyCard(room: Room, onClick: () -> Unit) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
                     Icon(Icons.Default.LocationOn, null, tint = Color.Gray, modifier = Modifier.size(12.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text(room.address ?: "", fontSize = 11.sp, color = Color.Gray, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(room.displayLocation, fontSize = 11.sp, color = Color.Gray, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 Spacer(Modifier.height(8.dp))
                 Text(room.formattedPrice, fontSize = 15.sp, color = PrimaryColor, fontWeight = FontWeight.Black)

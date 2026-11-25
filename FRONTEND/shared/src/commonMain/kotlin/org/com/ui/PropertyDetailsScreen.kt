@@ -1879,17 +1879,12 @@ private fun formatLocationDisplay(
     lng: Double? = null,
     neighbourhoodPlaces: List<String> = emptyList()
 ): String {
-    if (!rawLocation.isNullOrBlank()) {
-        val clean = rawLocation.removePrefix("Coordinates:").trim()
-        val isCoords = clean.matches(Regex("^-?\\d+(\\.\\d+)?,\\s*-?\\d+(\\.\\d+)?$"))
-        if (!isCoords && clean.isNotBlank()) {
-            return clean
-        }
-    }
-    if (neighbourhoodPlaces.isNotEmpty()) {
-        return neighbourhoodPlaces.first()
-    }
-    return "Dar es Salaam, Tanzania"
+    return PlaceSuggestionEngine.resolvePlaceName(
+        address = rawLocation,
+        lat = lat ?: 0.0,
+        lng = lng ?: 0.0,
+        neighbourhoodPlaces = neighbourhoodPlaces
+    )
 }
 
 @OptIn(ExperimentalLayoutApi::class)

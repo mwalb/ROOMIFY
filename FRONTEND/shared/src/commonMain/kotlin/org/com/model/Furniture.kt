@@ -56,4 +56,7 @@ data class Furniture(
         get() = images.map { getFullUrl(it) }
 
     fun getFullUrl(path: String): String = ApiClient.resolveUrl(path)
+
+    val displayLocation: String
+        get() = org.com.ui.PlaceSuggestionEngine.resolvePlaceName(address, latitude, longitude)
 }

@@ -1855,9 +1855,9 @@
                 }
             }
 
-            // 2. Match against real Roomify properties in the database
+            // 2. Match against real Roomify properties in the database (instant 1st character match)
             var matchingProperties = [];
-            if (q.length >= 2 && rooms.length > 0) {
+            if (q.length >= 1 && rooms.length > 0) {
                 var propSeen = {};
                 for (var ri = 0; ri < rooms.length; ri++) {
                     var rm = rooms[ri];
@@ -1873,7 +1873,7 @@
                         matchingProperties.push({
                             type: "property",
                             name: rm.title,
-                            subtitle: (rm.address && !String(rm.address).startsWith("Coordinates:")) ? rm.address : (rm.areaName || "Dar es Salaam"),
+                            subtitle: formatLocationDisplayJs(rm.address, rm),
                             priceLabel: rm.price ? (Number(rm.price).toLocaleString() + " TZS") : "",
                             lat: isFinite(rLat) ? rLat : null,
                             lng: isFinite(rLng) ? rLng : null,
@@ -2044,7 +2044,7 @@
         }
 
         function fetchNominatimSuggestions(query, reqSeq, localResult) {
-            if (query.length < 2) return;
+            if (query.length < 1) return;
             fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&countrycodes=tz&limit=6&q=" + encodeURIComponent(query))
                 .then(function(r) { return r.json(); })
                 .then(function(list) {
@@ -2851,7 +2851,7 @@
                                         };
                                     });
                                     renderSidebarDropdown(q, localRes, gList);
-                                } else if (q.length >= 2) {
+                                } else if (q.length >= 1) {
                                     fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&countrycodes=tz&limit=5&q=" + encodeURIComponent(q))
                                         .then(function(r) { return r.json(); })
                                         .then(function(list) {
@@ -2872,7 +2872,7 @@
                                 }
                             }
                         );
-                    } else if (q.length >= 2) {
+                    } else if (q.length >= 1) {
                         fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&countrycodes=tz&limit=5&q=" + encodeURIComponent(q))
                             .then(function(r) { return r.json(); })
                             .then(function(list) {

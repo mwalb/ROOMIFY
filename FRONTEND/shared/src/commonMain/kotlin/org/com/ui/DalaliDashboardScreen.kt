@@ -8,6 +8,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -64,6 +65,7 @@ fun DalaliDashboardScreen(
 ) {
     val strings = LocalRoomifyStrings.current
     var selectedTab by remember { mutableStateOf(0) }
+    var searchQuery by remember { mutableStateOf("") }
     var isSidebarVisible by remember { mutableStateOf(true) }
     val scrollState = rememberScrollState()
 
@@ -409,11 +411,84 @@ fun DalaliDashboardScreen(
                             }
                             1 -> {
                                 Text("Active Listings (${properties.size})", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Color.Gray)
+                                Spacer(Modifier.height(10.dp))
+
+                                // Instant place & property search bar
+                                OutlinedTextField(
+                                    value = searchQuery,
+                                    onValueChange = { searchQuery = it },
+                                    placeholder = { Text("Search by title, type, or place (Sinza, Mikocheni...)", fontSize = 13.sp) },
+                                    leadingIcon = { Icon(Icons.Default.Search, null, tint = Color.Gray, modifier = Modifier.size(18.dp)) },
+                                    trailingIcon = {
+                                        if (searchQuery.isNotEmpty()) {
+                                            IconButton(onClick = { searchQuery = "" }) {
+                                                Icon(Icons.Default.Close, null, tint = Color.Gray, modifier = Modifier.size(18.dp))
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedContainerColor = Color.White,
+                                        unfocusedContainerColor = Color.White,
+                                        focusedBorderColor = PrimaryColor,
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                                    ),
+                                    singleLine = true
+                                )
+
+                                if (searchQuery.isNotBlank()) {
+                                    val placeSuggestions = remember(searchQuery) {
+                                        PlaceSuggestionEngine.suggest(searchQuery).primary.take(5)
+                                    }
+                                    if (placeSuggestions.isNotEmpty()) {
+                                        Spacer(Modifier.height(8.dp))
+                                        LazyRow(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            items(placeSuggestions) { suggestion ->
+                                                Surface(
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(8.dp))
+                                                        .clickable { searchQuery = suggestion.name },
+                                                    color = Color(0xFFEEF2FF),
+                                                    border = BorderStroke(1.dp, Color(0xFFC7D2FE))
+                                                ) {
+                                                    Row(
+                                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                    ) {
+                                                        Icon(Icons.Default.LocationOn, null, tint = PrimaryColor, modifier = Modifier.size(13.dp))
+                                                        Text(suggestion.name, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryColor)
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Spacer(Modifier.height(12.dp))
+
+                                val q = searchQuery.trim().lowercase()
+                                val filteredProperties = properties.filter { room ->
+                                    val loc = room.displayLocation.lowercase()
+                                    q.isBlank() ||
+                                        (room.title?.lowercase()?.contains(q) == true) ||
+                                        (room.propertyType?.lowercase()?.contains(q) == true) ||
+                                        loc.contains(q) ||
+                                        (room.address?.lowercase()?.contains(q) == true)
+                                }
+
                                 if (properties.isEmpty()) {
                                     EmptyStatePlaceholder("No assigned properties")
+                                } else if (filteredProperties.isEmpty()) {
+                                    EmptyStatePlaceholder("No properties match \"$searchQuery\"")
                                 } else {
                                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                        properties.forEach { room ->
+                                        filteredProperties.forEach { room ->
                                             DalaliPropertyCard(room, onClick = { onViewProperty(room) })
                                         }
                                     }
@@ -652,7 +727,11 @@ private fun DalaliPropertyCard(room: Room, onClick: () -> Unit) {
             Column(Modifier.weight(1f)) {
                 Text(room.title ?: "Property", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF0F172A), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.height(2.dp))
-                Text(room.address ?: room.locationSummary, fontSize = 12.sp, color = Color.Gray, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.LocationOn, null, tint = Color.Gray, modifier = Modifier.size(12.dp))
+                    Spacer(Modifier.width(3.dp))
+                    Text(room.displayLocation, fontSize = 12.sp, color = Color.Gray, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
                 Spacer(Modifier.height(4.dp))
                 Text(room.formattedPrice, fontWeight = FontWeight.Black, fontSize = 14.sp, color = PrimaryColor)
             }
