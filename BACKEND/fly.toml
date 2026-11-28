@@ -3,7 +3,7 @@
 # See https://docs.fly.io/reference/configuration for information about how to use this file.
 #
 
-app = 'roomifytz-backend-windblown-shoreline-4420'
+app = 'roomifytz-api'
 primary_region = 'fra'
 
 [build]
