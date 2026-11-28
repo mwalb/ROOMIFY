@@ -673,13 +673,8 @@ fun TenantScreen(
                                 }
                             }
 
-                            // High-Value Action Cards & Discovery Hero Section
-                            DashboardActionsSection(
-                                isExpanded = isExpanded,
-                                isMobile = isMobile,
-                                onExploreRooms = onExploreRooms,
-                                onNavigate = onNavigate
-                            )
+                            // Primary Discovery Hero Card
+                            PrimaryDiscoveryHeroCard(onExploreRooms = onExploreRooms)
 
                             // RECOMMENDED FOR YOU (Hot reloaded by search place, budget slang & custom typed filters)
                             val q = searchQuery.trim().lowercase()
@@ -836,124 +831,7 @@ private fun TenantSidebarNavItem(title: String, icon: ImageVector, active: Boole
     }
 }
 
-@Composable
-private fun DashboardActionsSection(
-    isExpanded: Boolean,
-    isMobile: Boolean,
-    onExploreRooms: () -> Unit,
-    onNavigate: (String) -> Unit
-) {
-    if (isExpanded) {
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            // Primary Discovery Hero Card
-            PrimaryDiscoveryHeroCard(onExploreRooms = onExploreRooms)
 
-            // 3 Secondary High-Value Action Cards
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                ActionCardItem(
-                    title = "Saved Places",
-                    subtitle = "Saved rooms & wishlist",
-                    icon = Icons.Default.Favorite,
-                    iconBgColor = Color(0xFFFCE7F3),
-                    iconTintColor = Color(0xFFEC4899),
-                    modifier = Modifier.weight(1f),
-                    onClick = { onNavigate("saved") }
-                )
-                ActionCardItem(
-                    title = "My Bookings",
-                    subtitle = "Booking requests & status",
-                    icon = Icons.AutoMirrored.Filled.ListAlt,
-                    iconBgColor = Color(0xFFFEF3C7),
-                    iconTintColor = Color(0xFFD97706),
-                    modifier = Modifier.weight(1f),
-                    onClick = { onNavigate("bookings") }
-                )
-                ActionCardItem(
-                    title = "Messages",
-                    subtitle = "Conversations with owners/dalalis",
-                    icon = Icons.Default.Email,
-                    iconBgColor = Color(0xFFE0E7FF),
-                    iconTintColor = PrimaryColor,
-                    modifier = Modifier.weight(1f),
-                    onClick = { onNavigate("messages") }
-                )
-            }
-        }
-    } else {
-        // Compact / Medium Layout: Stacked
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            PrimaryDiscoveryHeroCard(onExploreRooms = onExploreRooms)
-
-            if (isMobile) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    ActionCardItem(
-                        title = "Saved Places",
-                        subtitle = "Saved rooms & wishlist",
-                        icon = Icons.Default.Favorite,
-                        iconBgColor = Color(0xFFFCE7F3),
-                        iconTintColor = Color(0xFFEC4899),
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = { onNavigate("saved") }
-                    )
-                    ActionCardItem(
-                        title = "My Bookings",
-                        subtitle = "Booking requests & status",
-                        icon = Icons.AutoMirrored.Filled.ListAlt,
-                        iconBgColor = Color(0xFFFEF3C7),
-                        iconTintColor = Color(0xFFD97706),
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = { onNavigate("bookings") }
-                    )
-                    ActionCardItem(
-                        title = "Messages",
-                        subtitle = "Conversations with owners/dalalis",
-                        icon = Icons.Default.Email,
-                        iconBgColor = Color(0xFFE0E7FF),
-                        iconTintColor = PrimaryColor,
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = { onNavigate("messages") }
-                    )
-                }
-            } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    ActionCardItem(
-                        title = "Saved Places",
-                        subtitle = "Saved rooms & wishlist",
-                        icon = Icons.Default.Favorite,
-                        iconBgColor = Color(0xFFFCE7F3),
-                        iconTintColor = Color(0xFFEC4899),
-                        modifier = Modifier.weight(1f),
-                        onClick = { onNavigate("saved") }
-                    )
-                    ActionCardItem(
-                        title = "My Bookings",
-                        subtitle = "Booking requests & status",
-                        icon = Icons.AutoMirrored.Filled.ListAlt,
-                        iconBgColor = Color(0xFFFEF3C7),
-                        iconTintColor = Color(0xFFD97706),
-                        modifier = Modifier.weight(1f),
-                        onClick = { onNavigate("bookings") }
-                    )
-                    ActionCardItem(
-                        title = "Messages",
-                        subtitle = "Conversations with owners/dalalis",
-                        icon = Icons.Default.Email,
-                        iconBgColor = Color(0xFFE0E7FF),
-                        iconTintColor = PrimaryColor,
-                        modifier = Modifier.weight(1f),
-                        onClick = { onNavigate("messages") }
-                    )
-                }
-            }
-        }
-    }
-}
 
 @Composable
 private fun PrimaryDiscoveryHeroCard(onExploreRooms: () -> Unit) {
@@ -1026,58 +904,7 @@ private fun PrimaryDiscoveryHeroCard(onExploreRooms: () -> Unit) {
     }
 }
 
-@Composable
-private fun ActionCardItem(
-    title: String,
-    subtitle: String,
-    icon: ImageVector,
-    iconBgColor: Color,
-    iconTintColor: Color,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    Surface(
-        modifier = modifier
-            .pointerHoverIcon(PointerIcon.Hand)
-            .clickable { onClick() },
-        shape = RoundedCornerShape(20.dp),
-        color = Color.White,
-        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-        shadowElevation = 2.dp
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                color = iconBgColor,
-                shape = CircleShape,
-                modifier = Modifier.size(40.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(icon, null, tint = iconTintColor, modifier = Modifier.size(20.dp))
-                }
-            }
-            Spacer(Modifier.width(14.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF0F172A)
-                )
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = subtitle,
-                    fontSize = 11.sp,
-                    color = Color(0xFF64748B),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        }
-    }
-}
+
 
 @Composable
 private fun TenantPropertyCard(room: Room, onClick: () -> Unit) {
