@@ -1,24 +1,30 @@
-app = 'roomifytz-backend'
+# fly.toml app configuration file generated for roomifytz-backend-windblown-shoreline-4420 on 2026-11-28T09:03:08+03:00
+#
+# See https://docs.fly.io/reference/configuration for information about how to use this file.
+#
+
+app = 'roomifytz-backend-windblown-shoreline-4420'
 primary_region = 'fra'
 
 [build]
-
 [http_service]
-internal_port = 8080
-force_https = true
-auto_stop_machines = 'off'
-auto_start_machines = true
-min_machines_running = 1
-processes = ['app']
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'off'
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ['app']
+
+[checks]
+  [checks.alive]
+    port = 8080
+    type = 'tcp'
+    interval = '30s'
+    timeout = '10s'
+    grace_period = '5m0s'
 
 [[vm]]
-memory = '1gb'
-cpus = 1
-memory_mb = 1024
-
-[checks.alive]
-grace_period = "300s"
-interval = "30s"
-timeout = "10s"
-type = "tcp"
-port = 8080
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1
+  memory_mb = 1024

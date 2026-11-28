@@ -1,4 +1,4 @@
-app = 'roomifytz-backend'
+app = 'roomifytz-api'
 primary_region = 'fra'
 
 [build]
