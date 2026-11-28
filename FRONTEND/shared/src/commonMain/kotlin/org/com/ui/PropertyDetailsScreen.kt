@@ -117,6 +117,46 @@ fun PropertyDetailsScreen(
         }
     }
 
+    var isSubscribedToAlert by remember { mutableStateOf(false) }
+    var isSubscribingToAlert by remember { mutableStateOf(false) }
+    var subscriptionAlertMsg by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(currentUser?.id, room.id) {
+        if (currentUser != null && room.id != null) {
+            try {
+                val subRes = RoomifyApi.checkSubscription(room.id)
+                if (subRes.success) {
+                    isSubscribedToAlert = subRes.data == true
+                }
+            } catch (e: Exception) {
+                // Ignore
+            }
+        }
+    }
+
+    val onSubscribeToAlert: () -> Unit = {
+        if (currentUser == null) {
+            onLoginRequired()
+        } else if (room.id != null && !isSubscribingToAlert && !isSubscribedToAlert) {
+            isSubscribingToAlert = true
+            scope.launch {
+                try {
+                    val res = RoomifyApi.subscribeToNotification(room.id)
+                    if (res.success) {
+                        isSubscribedToAlert = true
+                        subscriptionAlertMsg = "Ombi limetumwa kikamilifu! Mwenye nyumba amearifiwa na utapokea ujumbe punde chumba hiki kikiwa wazi."
+                    } else {
+                        subscriptionAlertMsg = res.message ?: "Haikufanikiwa kujiunga na taarifa"
+                    }
+                } catch (e: Exception) {
+                    subscriptionAlertMsg = "Kosa: ${e.message}"
+                } finally {
+                    isSubscribingToAlert = false
+                }
+            }
+        }
+    }
+
     LaunchedEffect(room.propertyId) {
         if (room.propertyId != null) {
             isLoadingComplex = true
@@ -142,6 +182,10 @@ fun PropertyDetailsScreen(
     val isOwnerView = isMyProperty && !previewAsTenant
     val statusUpper = (room.status ?: "AVAILABLE").uppercase().trim()
     val verificationStatus = (room.verificationStatus ?: "").uppercase().trim()
+    val isBooked = !room.isAvailable ||
+        statusUpper == "RENTED" ||
+        statusUpper == "BOOKED" ||
+        statusUpper == "OCCUPIED"
 
     BoxWithConstraints(
         modifier = Modifier
@@ -506,6 +550,11 @@ fun PropertyDetailsScreen(
                                         TenantActionButtons(
                                             room = room,
                                             currentUser = currentUser,
+                                            isBooked = isBooked,
+                                            isSubscribedToAlert = isSubscribedToAlert,
+                                            isSubscribingToAlert = isSubscribingToAlert,
+                                            subscriptionAlertMsg = subscriptionAlertMsg,
+                                            onSubscribeToAlert = onSubscribeToAlert,
                                             onBookNow = onBookNow,
                                             onMessageOwner = onMessageOwner,
                                             onCallOwner = onCallOwner,
@@ -920,19 +969,53 @@ fun PropertyDetailsScreen(
                                         }
                                     }
 
-                                    Button(
-                                        onClick = {
-                                            if (currentUser == null) {
-                                                onLoginRequired()
+                                    if (isBooked) {
+                                        Button(
+                                            onClick = onSubscribeToAlert,
+                                            enabled = !isSubscribedToAlert && !isSubscribingToAlert,
+                                            modifier = Modifier.height(44.dp),
+                                            shape = RoundedCornerShape(10.dp),
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = Color(0xFFF59E0B),
+                                                disabledContainerColor = if (isSubscribedToAlert) Color(0xFFECFDF5) else Color(0xFFE2E8F0),
+                                                disabledContentColor = if (isSubscribedToAlert) Color(0xFF059669) else Color(0xFF64748B)
+                                            )
+                                        ) {
+                                            if (isSubscribingToAlert) {
+                                                CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
+                                                Spacer(Modifier.width(6.dp))
+                                                Text("Inatuma...", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
                                             } else {
-                                                onBookNow(room)
+                                                Icon(
+                                                    if (isSubscribedToAlert) Icons.Default.Check else Icons.Default.NotificationsActive,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(16.dp),
+                                                    tint = if (isSubscribedToAlert) Color(0xFF059669) else Color.White
+                                                )
+                                                Spacer(Modifier.width(6.dp))
+                                                Text(
+                                                    if (isSubscribedToAlert) "Utaarifiwa" else "Nijulishe Kikiwa Wazi",
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 12.sp,
+                                                    color = if (isSubscribedToAlert) Color(0xFF059669) else Color.White
+                                                )
                                             }
-                                        },
-                                        modifier = Modifier.height(44.dp),
-                                        shape = RoundedCornerShape(10.dp),
-                                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
-                                    ) {
-                                        Text("Book Viewing", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                        }
+                                    } else {
+                                        Button(
+                                            onClick = {
+                                                if (currentUser == null) {
+                                                    onLoginRequired()
+                                                } else {
+                                                    onBookNow(room)
+                                                }
+                                            },
+                                            modifier = Modifier.height(44.dp),
+                                            shape = RoundedCornerShape(10.dp),
+                                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                                        ) {
+                                            Text("Book Viewing", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                        }
                                     }
                                 }
                             }
@@ -1746,6 +1829,11 @@ private fun PropertySpecsRow(room: Room) {
 private fun TenantActionButtons(
     room: Room,
     currentUser: User?,
+    isBooked: Boolean,
+    isSubscribedToAlert: Boolean,
+    isSubscribingToAlert: Boolean,
+    subscriptionAlertMsg: String?,
+    onSubscribeToAlert: () -> Unit,
     onBookNow: (Room) -> Unit,
     onMessageOwner: (Room) -> Unit,
     onCallOwner: (Room) -> Unit,
@@ -1754,20 +1842,108 @@ private fun TenantActionButtons(
     val uriHandler = LocalUriHandler.current
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Button(
-            onClick = {
-                if (currentUser == null) onLoginRequired()
-                else onBookNow(room)
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(46.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
-        ) {
-            Icon(Icons.Default.EventAvailable, null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(8.dp))
-            Text("Book / Request Viewing", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        if (isBooked) {
+            // Disabled booking button indicating room is already booked/rented
+            Button(
+                onClick = {},
+                enabled = false,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(46.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    disabledContainerColor = Color(0xFFE2E8F0),
+                    disabledContentColor = Color(0xFF64748B)
+                )
+            ) {
+                Icon(Icons.Default.Lock, null, modifier = Modifier.size(18.dp), tint = Color(0xFF64748B))
+                Spacer(Modifier.width(8.dp))
+                Text("Already Booked / Rented (Imepangishwa)", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+            }
+
+            // Notification / Alert button for waiting prospective tenants
+            if (isSubscribedToAlert) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFFECFDF5),
+                    border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.5f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.NotificationsActive, null, tint = Color(0xFF059669), modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                "✓ Utaarifiwa Chumba Kikiwa Wazi",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                                color = Color(0xFF065F46)
+                            )
+                            Text(
+                                "Mwenye nyumba amearifiwa kwamba unakisubiri chumba hiki.",
+                                fontSize = 11.sp,
+                                color = Color(0xFF047857),
+                                lineHeight = 15.sp
+                            )
+                        }
+                    }
+                }
+            } else {
+                Button(
+                    onClick = onSubscribeToAlert,
+                    enabled = !isSubscribingToAlert,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(46.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF59E0B))
+                ) {
+                    if (isSubscribingToAlert) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color.White, strokeWidth = 2.dp)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Inatuma taarifa kwa mwenye nyumba...", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
+                    } else {
+                        Icon(Icons.Default.NotificationsActive, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("🔔 Nijulishe Kikiwa Wazi (Notify When Open)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
+                    }
+                }
+            }
+
+            if (subscriptionAlertMsg != null) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFFFEF3C7),
+                    border = BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.4f))
+                ) {
+                    Text(
+                        text = subscriptionAlertMsg,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        fontSize = 12.sp,
+                        color = Color(0xFF92400E)
+                    )
+                }
+            }
+        } else {
+            Button(
+                onClick = {
+                    if (currentUser == null) onLoginRequired()
+                    else onBookNow(room)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(46.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+            ) {
+                Icon(Icons.Default.EventAvailable, null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Book / Request Viewing", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            }
         }
 
         // WhatsApp Direct Chat Button (High-converting for Tanzania market)

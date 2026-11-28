@@ -430,4 +430,31 @@ public class NotificationService {
             System.err.println("❌ NotificationService: Error in notifyRoomAvailable: " + e.getMessage());
         }
     }
+
+    @Async
+    public void notifyOwnerWaitingTenant(Room room, User tenant) {
+        if (room == null || room.getId() == null) return;
+        try {
+            Long ownerId = room.getPostedBy();
+            if (ownerId == null) return;
+
+            User owner = userRepository.findById(ownerId).orElse(null);
+            String tenantName = tenant != null && tenant.getName() != null ? tenant.getName() : "A prospective tenant";
+            String roomTitle = room.getTitle() != null ? room.getTitle() : "Your Property";
+            String title = "Tenant Waiting: " + roomTitle;
+            String msg = tenantName + " requested to be notified as soon as '" + roomTitle + "' becomes vacant/open.";
+
+            sendInAppAndPush(ownerId, title, msg, "PROPERTY_WAITLIST", room.getId());
+
+            String ownerEmail = owner != null ? owner.getEmail() : room.getContactEmail();
+            if (ownerEmail != null && !ownerEmail.isBlank()) {
+                String ownerName = owner != null && owner.getName() != null ? owner.getName() : "Property Owner";
+                String location = room.getAddress() != null && !room.getAddress().isBlank() ? room.getAddress() : "Tanzania";
+                String html = emailService.buildTenantWaitingAlertEmail(ownerName, tenantName, roomTitle, location);
+                emailService.sendEmail(ownerEmail, ownerName, title, html);
+            }
+        } catch (Exception e) {
+            System.err.println("❌ NotificationService: Error in notifyOwnerWaitingTenant: " + e.getMessage());
+        }
+    }
 }

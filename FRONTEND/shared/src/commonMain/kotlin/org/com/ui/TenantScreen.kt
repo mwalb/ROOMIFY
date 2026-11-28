@@ -308,32 +308,6 @@ fun TenantScreen(
                                         )
                                     }
                                 }
-
-                                if (!isMobile) {
-                                    Button(
-                                        onClick = onExploreRooms,
-                                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
-                                        shape = RoundedCornerShape(12.dp)
-                                    ) {
-                                        Icon(Icons.Default.Search, null, tint = Color.White, modifier = Modifier.size(16.dp))
-                                        Spacer(Modifier.width(8.dp))
-                                        Text("Search Places", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                    }
-                                }
-                            }
-
-                            if (isMobile) {
-                                Spacer(Modifier.height(10.dp))
-                                Button(
-                                    onClick = onExploreRooms,
-                                    modifier = Modifier.fillMaxWidth().height(42.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
-                                    shape = RoundedCornerShape(12.dp)
-                                ) {
-                                    Icon(Icons.Default.Search, null, tint = Color.White, modifier = Modifier.size(16.dp))
-                                    Spacer(Modifier.width(8.dp))
-                                    Text("Explore & Search Places", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                }
                             }
                         }
                     }
@@ -775,9 +749,6 @@ fun TenantScreen(
                                 }
                             }
 
-                            // Primary Discovery Hero Card
-                            PrimaryDiscoveryHeroCard(onExploreRooms = onExploreRooms)
-
                             // RECOMMENDED FOR YOU (Hot reloaded by search place, budget slang & custom typed filters)
                             val q = searchQuery.trim().lowercase()
                             val minP = customMinPrice.toDoubleOrNull()
@@ -935,76 +906,7 @@ private fun TenantSidebarNavItem(title: String, icon: ImageVector, active: Boole
 
 
 
-@Composable
-private fun PrimaryDiscoveryHeroCard(onExploreRooms: () -> Unit) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .pointerHoverIcon(PointerIcon.Hand)
-            .clickable { onExploreRooms() },
-        shape = RoundedCornerShape(20.dp),
-        color = PrimaryColor,
-        shadowElevation = 4.dp
-    ) {
-        Row(
-            modifier = Modifier.padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(
-                modifier = Modifier.weight(1f),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Surface(
-                    color = Color.White.copy(alpha = 0.15f),
-                    shape = CircleShape,
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Rounded.Explore,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(26.dp)
-                        )
-                    }
-                }
-                Spacer(Modifier.width(16.dp))
-                Column {
-                    Text(
-                        text = "Explore & Filter Properties",
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = "Browse rooms, filter by price/area, or view on map",
-                        fontSize = 12.sp,
-                        color = Color.White.copy(alpha = 0.8f)
-                    )
-                }
-            }
 
-            Spacer(Modifier.width(12.dp))
-
-            Surface(
-                color = Color.White,
-                shape = CircleShape,
-                modifier = Modifier.size(36.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = "Explore",
-                        tint = PrimaryColor,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
-        }
-    }
-}
 
 
 

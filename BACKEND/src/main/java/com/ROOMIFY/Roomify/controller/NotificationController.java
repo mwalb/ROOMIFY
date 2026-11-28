@@ -45,6 +45,9 @@ public class NotificationController {
     @Autowired
     private com.ROOMIFY.Roomify.service.EmailService emailService;
 
+    @Autowired
+    private com.ROOMIFY.Roomify.service.NotificationService notificationService;
+
     private User getAuthenticatedUser() {
         try {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -162,11 +165,16 @@ public class NotificationController {
             }
 
             if (subscriptionRepository.existsByUserIdAndPropertyId(user.getId(), propertyId)) {
+                // Ensure owner is notified even if duplicate click
+                notificationService.notifyOwnerWaitingTenant(room, user);
                 return ResponseEntity.ok(new ApiResponse<>(true, null, "Already subscribed to notifications for this property"));
             }
 
             NotificationSubscription sub = new NotificationSubscription(user.getId(), propertyId);
             subscriptionRepository.save(sub);
+
+            // Notify owner that a prospective tenant is waiting for this property
+            notificationService.notifyOwnerWaitingTenant(room, user);
 
             return ResponseEntity.ok(new ApiResponse<>(true, null, "Successfully subscribed to availability notifications"));
         } catch (Exception e) {

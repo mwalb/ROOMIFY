@@ -445,6 +445,24 @@ public class EmailService {
         );
     }
 
+    public String buildTenantWaitingAlertEmail(String ownerName, String tenantName, String roomTitle, String location) {
+        return wrapInBrandedTemplate(
+                "Tenant Waiting: " + sanitize(roomTitle),
+                "Hello " + sanitize(ownerName) + ",",
+                """
+                <p>Great news! A prospective tenant has expressed interest in your property and requested to be notified immediately once it becomes vacant or open for rent.</p>
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px; margin: 20px 0;">
+                    <p style="font-size: 16px; font-weight: 700; color: #0f172a; margin: 0 0 8px 0;">%s</p>
+                    <p style="color: #64748b; margin: 4px 0;">📍 Location: %s</p>
+                    <p style="color: #1e3a8a; font-weight: 600; margin: 8px 0 0 0;">Interested Tenant: %s</p>
+                </div>
+                <p>When this property is ready for a new tenant, update its status to AVAILABLE in your Dashboard. Roomify will automatically notify all waiting tenants!</p>
+                """.formatted(sanitize(roomTitle), sanitize(location), sanitize(tenantName)),
+                "View My Properties",
+                "https://roomify.co.tz/dashboard"
+        );
+    }
+
     public String buildUserAccountStatusEmail(String userName, String status, String reason) {
         boolean isVerified = "VERIFIED".equalsIgnoreCase(status) || "ACTIVE".equalsIgnoreCase(status);
         String label = isVerified ? "ACCOUNT VERIFIED" : "ACCOUNT NOTICE";
