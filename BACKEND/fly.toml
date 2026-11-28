@@ -3,7 +3,7 @@
 # See https://docs.fly.io/reference/configuration for information about how to use this file.
 #
 
-app = 'roomifytz-api'
+app = 'roomifytz-api1'
 primary_region = 'fra'
 
 [build]
