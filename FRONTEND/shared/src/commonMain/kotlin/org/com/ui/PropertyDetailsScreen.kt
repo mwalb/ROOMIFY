@@ -2347,7 +2347,7 @@ private fun FlowRow(mainAxisSpacing: Dp, crossAxisSpacing: Dp, content: @Composa
     ) { content() }
 }
 
-private fun jsEncodeUri(str: String): String {
+fun jsEncodeUri(str: String): String {
     return str.replace(" ", "%20")
         .replace("\n", "%0A")
         .replace("'", "%27")
