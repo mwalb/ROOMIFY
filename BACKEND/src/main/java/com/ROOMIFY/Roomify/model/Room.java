@@ -92,6 +92,23 @@ public class Room {
     @Column(name = "unit_number")
     private String unitNumber;
 
+    // ==================== TANZANIA LOCAL TERMS & INFRASTRUCTURE (3NF ATTRIBUTES) ====================
+
+    @Column(name = "rent_advance_months")
+    private Integer rentAdvanceMonths = 6; // e.g. 1 (Monthly), 3, 6, 12 months advance
+
+    @Column(name = "road_condition")
+    private String roadCondition = "LAMI"; // "LAMI" (Tarmac), "CHANGARAWE" (Gravel/All-Weather), "VUMBI" (Dirt Road)
+
+    @Column(name = "is_flood_safe")
+    private Boolean isFloodSafe = true; // Flood-safe elevated area (Eneo Halituami Maji)
+
+    @Column(name = "nearest_campus")
+    private String nearestCampus; // e.g. "UDSM", "IFM", "CBE", "DIT", "Ardhi", "UDOM"
+
+    @Column(name = "campus_distance_minutes")
+    private Integer campusDistanceMinutes; // Walking / transit time to campus
+
     // ==================== DALALI (AGENT) & LISTING TYPE FIELDS ====================
 
     @Column(name = "listing_type")

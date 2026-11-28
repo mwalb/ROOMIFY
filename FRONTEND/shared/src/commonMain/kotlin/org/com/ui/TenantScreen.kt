@@ -64,6 +64,8 @@ fun TenantScreen(
     val scrollState = rememberScrollState()
     var isSidebarVisible by remember { mutableStateOf(true) }
     var searchQuery by remember { mutableStateOf("") }
+    var selectedBudgetSlang by remember { mutableStateOf<String?>(null) }
+    var selectedFeatureFilter by remember { mutableStateOf<String?>(null) }
 
     BoxWithConstraints(
         modifier = Modifier
@@ -378,6 +380,93 @@ fun TenantScreen(
                                 }
                             }
 
+                            // Tanzania Quick TZS Budget Slang Filter Chips
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("BAJETI YA HARAKA (TZS)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B), letterSpacing = 0.5.sp)
+                                    if (selectedBudgetSlang != null || selectedFeatureFilter != null) {
+                                        Text(
+                                            "Weka Upya (Reset)",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = PrimaryColor,
+                                            modifier = Modifier.clickable {
+                                                selectedBudgetSlang = null
+                                                selectedFeatureFilter = null
+                                            }
+                                        )
+                                    }
+                                }
+
+                                LazyRow(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    val budgetOptions = listOf(
+                                        null to "Zote",
+                                        "LAKI_1" to "Chini ya Laki 1",
+                                        "LAKI_1_2" to "Laki 1 - 2.5",
+                                        "LAKI_3_6" to "Laki 3 - 6",
+                                        "LAKI_7" to "Laki 7+"
+                                    )
+                                    items(budgetOptions) { (key, label) ->
+                                        val isSelected = selectedBudgetSlang == key
+                                        Surface(
+                                            shape = RoundedCornerShape(20.dp),
+                                            color = if (isSelected) PrimaryColor else Color.White,
+                                            border = BorderStroke(1.dp, if (isSelected) PrimaryColor else Color(0xFFCBD5E1)),
+                                            modifier = Modifier.clickable {
+                                                selectedBudgetSlang = if (isSelected) null else key
+                                            }
+                                        ) {
+                                            Text(
+                                                text = label,
+                                                fontSize = 12.sp,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                color = if (isSelected) Color.White else Color(0xFF334155),
+                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                            )
+                                        }
+                                    }
+                                }
+
+                                // Tanzania Feature Quick Filters (Road, Flood Safe, Campus, Flexible Advance)
+                                LazyRow(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    val featureOptions = listOf(
+                                        "LAMI" to "🛣️ Lami Tu",
+                                        "FLOOD_SAFE" to "🛡️ Salama Mafuriko",
+                                        "CAMPUS" to "🎓 Karibu na Chuo",
+                                        "MWEZI_1" to "📅 Mwezi kwa Mwezi"
+                                    )
+                                    items(featureOptions) { (key, label) ->
+                                        val isSelected = selectedFeatureFilter == key
+                                        Surface(
+                                            shape = RoundedCornerShape(20.dp),
+                                            color = if (isSelected) Color(0xFF0F172A) else Color.White,
+                                            border = BorderStroke(1.dp, if (isSelected) Color(0xFF0F172A) else Color(0xFFCBD5E1)),
+                                            modifier = Modifier.clickable {
+                                                selectedFeatureFilter = if (isSelected) null else key
+                                            }
+                                        ) {
+                                            Text(
+                                                text = label,
+                                                fontSize = 11.5.sp,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                color = if (isSelected) Color.White else Color(0xFF475569),
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
                             // High-Value Action Cards & Discovery Hero Section
                             DashboardActionsSection(
                                 isExpanded = isExpanded,
@@ -386,14 +475,31 @@ fun TenantScreen(
                                 onNavigate = onNavigate
                             )
 
-                            // RECOMMENDED FOR YOU (Hot reloaded by search place)
+                            // RECOMMENDED FOR YOU (Hot reloaded by search place, budget slang & feature filters)
                             val q = searchQuery.trim().lowercase()
                             val recommendedRooms = allRooms.filter { room ->
                                 val matchesPlace = q.isBlank() ||
                                     room.displayLocation.lowercase().contains(q) ||
                                     (room.title?.lowercase()?.contains(q) == true) ||
                                     (room.address?.lowercase()?.contains(q) == true)
-                                room.status == "AVAILABLE" && matchesPlace
+
+                                val matchesBudget = when (selectedBudgetSlang) {
+                                    "LAKI_1" -> room.price <= 100000.0
+                                    "LAKI_1_2" -> room.price in 100001.0..250000.0
+                                    "LAKI_3_6" -> room.price in 250001.0..600000.0
+                                    "LAKI_7" -> room.price > 600000.0
+                                    else -> true
+                                }
+
+                                val matchesFeature = when (selectedFeatureFilter) {
+                                    "LAMI" -> room.roadCondition.equals("LAMI", ignoreCase = true)
+                                    "FLOOD_SAFE" -> room.isFloodSafe
+                                    "CAMPUS" -> !room.nearestCampus.isNullOrBlank()
+                                    "MWEZI_1" -> room.rentAdvanceMonths <= 1
+                                    else -> true
+                                }
+
+                                room.status == "AVAILABLE" && matchesPlace && matchesBudget && matchesFeature
                             }
 
                             if (recommendedRooms.isNotEmpty()) {
@@ -819,7 +925,72 @@ private fun TenantPropertyCard(room: Room, onClick: () -> Unit) {
                     Text(room.displayLocation, fontSize = 11.sp, color = Color.Gray, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 Spacer(Modifier.height(8.dp))
-                Text(room.formattedPrice, fontSize = 15.sp, color = PrimaryColor, fontWeight = FontWeight.Black)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(room.formattedPrice, fontSize = 14.sp, color = PrimaryColor, fontWeight = FontWeight.Black)
+                    Surface(
+                        color = Color(0xFFF1F5F9),
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(
+                            "Miezi ${room.rentAdvanceMonths}",
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF475569)
+                        )
+                    }
+                }
+                Row(
+                    modifier = Modifier.padding(top = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    if (room.isFloodSafe) {
+                        Surface(
+                            color = Color(0xFFECFDF5),
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text(
+                                "🛡️ Salama",
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.5.dp),
+                                fontSize = 8.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF065F46)
+                            )
+                        }
+                    }
+                    if (!room.nearestCampus.isNullOrBlank()) {
+                        Surface(
+                            color = Color(0xFFEFF6FF),
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text(
+                                "🎓 ${room.nearestCampus}",
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.5.dp),
+                                fontSize = 8.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF1D4ED8)
+                            )
+                        }
+                    } else {
+                        Surface(
+                            color = Color(0xFFF8FAFC),
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text(
+                                room.roadConditionLabel,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.5.dp),
+                                fontSize = 8.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF64748B)
+                            )
+                        }
+                    }
+                }
             }
         }
     }

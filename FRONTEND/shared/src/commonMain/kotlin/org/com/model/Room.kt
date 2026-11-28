@@ -44,8 +44,31 @@ data class Room(
     val unitNumber: String? = null,
     val verificationStatus: String = "PENDING",
     val rejectionReason: String? = null,
-    val neighbourhoodPlaces: List<String> = emptyList()
+    val neighbourhoodPlaces: List<String> = emptyList(),
+    val rentAdvanceMonths: Int = 6,
+    val roadCondition: String = "LAMI",
+    val isFloodSafe: Boolean = true,
+    val nearestCampus: String? = null,
+    val campusDistanceMinutes: Int? = null
 ) {
+    val formattedAdvanceRent: String
+        get() {
+            val total = price * (if (rentAdvanceMonths > 0) rentAdvanceMonths else 1)
+            val formatted = total.toLong().toString()
+                .reversed()
+                .chunked(3)
+                .joinToString(",")
+                .reversed()
+            return "$formatted TZS (Miezi $rentAdvanceMonths Mbele)"
+        }
+
+    val roadConditionLabel: String
+        get() = when (roadCondition.uppercase()) {
+            "LAMI" -> "Barabara ya Lami"
+            "CHANGARAWE" -> "Changarawe Safi"
+            "VUMBI" -> "Barabara ya Vumbi"
+            else -> roadCondition
+        }
     val isDirectByOwner: Boolean
         get() = dalaliId == null || dalaliId <= 0L || listingType.equals("DIRECT_BY_OWNER", ignoreCase = true)
 

@@ -56,7 +56,16 @@ data class BookingRequest(
     val numberOfGuests: Int = 1,
 
     @SerialName("specialRequests")
-    val specialRequests: String? = null
+    val specialRequests: String? = null,
+
+    @SerialName("bookingType")
+    val bookingType: String = "RESERVATION",
+
+    @SerialName("viewingTimeSlot")
+    val viewingTimeSlot: String? = null,
+
+    @SerialName("meetingPoint")
+    val meetingPoint: String? = null
 
 ) {
 

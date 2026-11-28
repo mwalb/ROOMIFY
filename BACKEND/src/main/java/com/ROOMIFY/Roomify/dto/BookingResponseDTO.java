@@ -22,6 +22,9 @@ public class BookingResponseDTO {
     private Integer numberOfGuests;
     private String specialRequests;
     private String roomImageUrl;
+    private String bookingType; // VIEWING or RESERVATION
+    private String viewingTimeSlot; // MORNING, AFTERNOON, EVENING
+    private String meetingPoint;
 
     // Getters and setters for ALL fields
     public Double getRentAmount() { return rentAmount; }
@@ -76,4 +79,13 @@ public class BookingResponseDTO {
 
     public String getRoomImageUrl() { return roomImageUrl; }
     public void setRoomImageUrl(String roomImageUrl) { this.roomImageUrl = roomImageUrl; }
+
+    public String getBookingType() { return bookingType; }
+    public void setBookingType(String bookingType) { this.bookingType = bookingType; }
+
+    public String getViewingTimeSlot() { return viewingTimeSlot; }
+    public void setViewingTimeSlot(String viewingTimeSlot) { this.viewingTimeSlot = viewingTimeSlot; }
+
+    public String getMeetingPoint() { return meetingPoint; }
+    public void setMeetingPoint(String meetingPoint) { this.meetingPoint = meetingPoint; }
 }

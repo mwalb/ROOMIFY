@@ -25,6 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -67,9 +68,15 @@ fun BookingScreen(
     var currentStep by remember { mutableStateOf(BookingStep.DETAILS) }
 
     var startDate by remember { mutableStateOf(today.plus(1, DateTimeUnit.DAY)) }
-    var selectedDuration by remember { mutableStateOf("1 Month") }
-    var durationMonths by remember { mutableStateOf(1) }
-    var endDate by remember { mutableStateOf(startDate.plus(1, DateTimeUnit.MONTH)) }
+    var selectedDuration by remember { mutableStateOf(if (room.rentAdvanceMonths > 1) "${room.rentAdvanceMonths} Months" else "1 Month") }
+    var durationMonths by remember { mutableStateOf(if (room.rentAdvanceMonths > 1) room.rentAdvanceMonths else 1) }
+    var endDate by remember { mutableStateOf(startDate.plus(if (room.rentAdvanceMonths > 1) room.rentAdvanceMonths else 1, DateTimeUnit.MONTH)) }
+    
+    var bookingMode by remember { mutableStateOf("VIEWING") } // "VIEWING" or "RESERVATION"
+    var viewingTimeSlot by remember { mutableStateOf("Asubuhi (09:00 - 12:00)") }
+    var meetingPoint by remember { mutableStateOf("Kituo cha Mwendokasi / Daladala cha Karibu") }
+    var customMeetingPoint by remember { mutableStateOf("") }
+    val uriHandler = LocalUriHandler.current
     
     var guests by remember { mutableStateOf(1) }
     var specialRequests by remember { mutableStateOf("") }
@@ -155,52 +162,298 @@ fun BookingScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = PrimaryColor, modifier = Modifier.size(20.dp))
                     }
                     Text(
-                        text = when (currentStep) {
-                            BookingStep.DETAILS -> "1. Booking Details"
-                            BookingStep.PAYMENT -> "2. Payment Details"
-                            BookingStep.CONFIRMATION -> "3. Booking Confirmation"
+                        text = if (bookingMode == "VIEWING") {
+                            when (currentStep) {
+                                BookingStep.DETAILS -> "1. Ombi la Ukaguzi (Free Viewing)"
+                                else -> "2. Uthibitisho wa Ukaguzi"
+                            }
+                        } else {
+                            when (currentStep) {
+                                BookingStep.DETAILS -> "1. Booking Details"
+                                BookingStep.PAYMENT -> "2. Payment Details"
+                                BookingStep.CONFIRMATION -> "3. Booking Confirmation"
+                            }
                         },
                         modifier = Modifier.weight(1f),
                         textAlign = TextAlign.Center,
-                        fontSize = if (isCompact) 16.sp else 18.sp,
+                        fontSize = if (isCompact) 15.sp else 17.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = PrimaryColor
                     )
                     Spacer(Modifier.size(36.dp))
                 }
 
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(14.dp))
 
                 // Progress Stepper Bar
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    StepChip("1. Details", active = currentStep == BookingStep.DETAILS, completed = currentStep != BookingStep.DETAILS)
-                    Spacer(Modifier.width(8.dp))
-                    Text("•", color = Color(0xFF94A3B8))
-                    Spacer(Modifier.width(8.dp))
-                    StepChip("2. Payment", active = currentStep == BookingStep.PAYMENT, completed = currentStep == BookingStep.CONFIRMATION)
-                    Spacer(Modifier.width(8.dp))
-                    Text("•", color = Color(0xFF94A3B8))
-                    Spacer(Modifier.width(8.dp))
-                    StepChip("3. Confirmation", active = currentStep == BookingStep.CONFIRMATION, completed = currentStep == BookingStep.CONFIRMATION)
+                if (bookingMode == "VIEWING") {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        StepChip("1. Taarifa za Ukaguzi", active = currentStep == BookingStep.DETAILS, completed = currentStep == BookingStep.CONFIRMATION)
+                        Spacer(Modifier.width(8.dp))
+                        Text("•", color = Color(0xFF94A3B8))
+                        Spacer(Modifier.width(8.dp))
+                        StepChip("2. Uthibitisho", active = currentStep == BookingStep.CONFIRMATION, completed = currentStep == BookingStep.CONFIRMATION)
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        StepChip("1. Details", active = currentStep == BookingStep.DETAILS, completed = currentStep != BookingStep.DETAILS)
+                        Spacer(Modifier.width(8.dp))
+                        Text("•", color = Color(0xFF94A3B8))
+                        Spacer(Modifier.width(8.dp))
+                        StepChip("2. Payment", active = currentStep == BookingStep.PAYMENT, completed = currentStep == BookingStep.CONFIRMATION)
+                        Spacer(Modifier.width(8.dp))
+                        Text("•", color = Color(0xFF94A3B8))
+                        Spacer(Modifier.width(8.dp))
+                        StepChip("3. Confirmation", active = currentStep == BookingStep.CONFIRMATION, completed = currentStep == BookingStep.CONFIRMATION)
+                    }
                 }
 
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(18.dp))
 
                 when (currentStep) {
                     BookingStep.DETAILS -> {
                         // Step 1: Property Summary Card
                         PropertySummaryHeader(room)
 
-                        Spacer(Modifier.height(20.dp))
+                        Spacer(Modifier.height(16.dp))
 
-                        // Guests Dropdown Selection
-                        Column(Modifier.fillMaxWidth()) {
-                            Text("Number of Guests", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF64748B))
-                            Spacer(Modifier.height(8.dp))
+                        // Booking Mode Selector Tabs (Tanzania Unique: Viewing Appointment vs Reservation)
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFFF1F5F9),
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                        ) {
+                            Row(Modifier.padding(4.dp)) {
+                                Surface(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(42.dp)
+                                        .clickable { bookingMode = "VIEWING" },
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = if (bookingMode == "VIEWING") PrimaryColor else Color.Transparent
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(
+                                            "👀 Ombi la Ukaguzi (Free)",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (bookingMode == "VIEWING") Color.White else Color(0xFF475569)
+                                        )
+                                    }
+                                }
+
+                                Surface(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(42.dp)
+                                        .clickable { bookingMode = "RESERVATION" },
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = if (bookingMode == "RESERVATION") PrimaryColor else Color.Transparent
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(
+                                            "🏠 Weka Chumba (Reserve)",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (bookingMode == "RESERVATION") Color.White else Color(0xFF475569)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        if (bookingMode == "VIEWING") {
+                            // ==================== VIEWING FORM ====================
+                            Column(Modifier.fillMaxWidth()) {
+                                Text("Tarehe ya Kufanya Ukaguzi (Viewing Date)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF64748B))
+                                Spacer(Modifier.height(8.dp))
+                                OutlinedButton(
+                                    onClick = { showStartDatePicker = true },
+                                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                                    shape = RoundedCornerShape(12.dp),
+                                    border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF0F172A))
+                                ) {
+                                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.CalendarToday, null, tint = PrimaryColor, modifier = Modifier.size(20.dp))
+                                        Spacer(Modifier.width(12.dp))
+                                        Text(startDate.toString(), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                                    }
+                                }
+                            }
+
+                            Spacer(Modifier.height(16.dp))
+
+                            // Viewing Time Slot Picker
+                            Column(Modifier.fillMaxWidth()) {
+                                Text("Muda Unaofaa (Preferred Time Slot)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF64748B))
+                                Spacer(Modifier.height(8.dp))
+                                val slots = listOf("Asubuhi (09:00 - 12:00)", "Mchana (13:00 - 16:00)", "Jioni (16:00 - 18:30)")
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    slots.forEach { slot ->
+                                        val isSelected = viewingTimeSlot == slot
+                                        Surface(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(44.dp)
+                                                .clickable { viewingTimeSlot = slot },
+                                            shape = RoundedCornerShape(10.dp),
+                                            color = if (isSelected) PrimaryColor else Color(0xFFF1F5F9),
+                                            border = BorderStroke(1.dp, if (isSelected) PrimaryColor else Color(0xFFCBD5E1))
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 4.dp)) {
+                                                Text(
+                                                    text = slot.substringBefore(" ("),
+                                                    fontSize = 12.sp,
+                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                    color = if (isSelected) Color.White else Color(0xFF334155),
+                                                    textAlign = TextAlign.Center
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                                Spacer(Modifier.height(4.dp))
+                                Text(viewingTimeSlot, fontSize = 11.5.sp, color = PrimaryColor, fontWeight = FontWeight.Bold)
+                            }
+
+                            Spacer(Modifier.height(16.dp))
+
+                            // Meeting Point Picker
+                            Column(Modifier.fillMaxWidth()) {
+                                Text("Kituo cha Makutano (Meeting Point)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF64748B))
+                                Spacer(Modifier.height(8.dp))
+                                val meetingOptions = listOf("Kituo cha Mwendokasi/Daladala", "Moja kwa Moja Eneo la Nyumba")
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    meetingOptions.forEach { option ->
+                                        val isSelected = meetingPoint.startsWith(option.take(15))
+                                        Surface(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(46.dp)
+                                                .clickable { meetingPoint = option },
+                                            shape = RoundedCornerShape(10.dp),
+                                            color = if (isSelected) PrimaryColor.copy(alpha = 0.08f) else Color.White,
+                                            border = BorderStroke(1.dp, if (isSelected) PrimaryColor else Color(0xFFCBD5E1))
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 8.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                RadioButton(
+                                                    selected = isSelected,
+                                                    onClick = { meetingPoint = option },
+                                                    colors = RadioButtonDefaults.colors(selectedColor = PrimaryColor)
+                                                )
+                                                Text(
+                                                    option,
+                                                    fontSize = 11.sp,
+                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                    color = Color(0xFF0F172A),
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            Spacer(Modifier.height(16.dp))
+
+                            BookingTextField(
+                                value = specialRequests,
+                                onValueChange = { specialRequests = it },
+                                label = "Maelekezo au Ujumbe kwa Mwenye Nyumba / Dalali",
+                                placeholder = "Mfano: Nitafika na mwenzangu, nitapiga simu nikikaribia kituoni...",
+                                singleLine = false,
+                                modifier = Modifier.height(84.dp)
+                            )
+
+                            Spacer(Modifier.height(16.dp))
+
+                            Surface(
+                                color = Color(0xFFF0FDF4),
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(1.dp, Color(0xFFBBF7D0)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Filled.VerifiedUser, null, tint = Color(0xFF166534), modifier = Modifier.size(24.dp))
+                                    Spacer(Modifier.width(10.dp))
+                                    Column {
+                                        Text("Huduma ya Ukaguzi ni BURE (0 TZS)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF14532D))
+                                        Text(
+                                            "Hakuna malipo yoyote ya awali. Ombi lako litatumwa moja kwa moja kwa mwenye nyumba au dalali aliyeidhinishwa.",
+                                            fontSize = 11.5.sp,
+                                            color = Color(0xFF166534),
+                                            lineHeight = 16.sp
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(Modifier.height(24.dp))
+
+                            Button(
+                                onClick = {
+                                    scope.launch {
+                                        isSubmitting = true
+                                        errorMessage = null
+                                        val viewingBooking = Booking(
+                                            roomId = room.id,
+                                            roomTitle = room.title,
+                                            roomImageUrl = room.firstImageUrl,
+                                            startDate = startDate.toString(),
+                                            endDate = startDate.toString(),
+                                            numberOfGuests = 1,
+                                            specialRequests = specialRequests,
+                                            bookingType = "VIEWING",
+                                            viewingTimeSlot = viewingTimeSlot,
+                                            meetingPoint = meetingPoint,
+                                            rentAmount = 0.0,
+                                            facilitationFee = 0.0,
+                                            listingType = if (room.isDirectByOwner) "DIRECT_BY_OWNER" else "DALALI_VERIFIED",
+                                            dalaliId = room.dalaliId,
+                                            totalPrice = 0.0
+                                        )
+                                        val error = onConfirmBooking(viewingBooking, "FREE_VIEWING", "")
+                                        if (error == null) {
+                                            currentStep = BookingStep.CONFIRMATION
+                                        } else {
+                                            errorMessage = error
+                                        }
+                                        isSubmitting = false
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth().height(52.dp),
+                                shape = RoundedCornerShape(14.dp),
+                                enabled = !isSubmitting,
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                            ) {
+                                if (isSubmitting) {
+                                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                                } else {
+                                    Icon(Icons.Default.EventAvailable, null, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("TUMA OMBI LA UKAGUZI SASA (FREE)", fontWeight = FontWeight.Black, fontSize = 13.sp)
+                                }
+                            }
+                        } else {
+                            // ==================== RESERVATION FORM ====================
+                            // Guests Dropdown Selection
+                            Column(Modifier.fillMaxWidth()) {
+                                Text("Number of Guests", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF64748B))
+                                Spacer(Modifier.height(8.dp))
                             Box {
                                 OutlinedButton(
                                     onClick = { showGuestDropdown = true },
@@ -371,6 +624,7 @@ fun BookingScreen(
                             Text("Check-out date must be after check-in date", color = Color.Red, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
                         }
                     }
+                }
 
                     BookingStep.PAYMENT -> {
                         // Step 2: Payment Details
@@ -577,6 +831,7 @@ fun BookingScreen(
                                         endDate = endDate.toString(),
                                         numberOfGuests = guests,
                                         specialRequests = specialRequests,
+                                        bookingType = "RESERVATION",
                                         rentAmount = totalRentTzs,
                                         facilitationFee = dalaliFee,
                                         listingType = if (room.isDirectByOwner) "DIRECT_BY_OWNER" else "DALALI_VERIFIED",
@@ -619,65 +874,142 @@ fun BookingScreen(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(Icons.Default.CheckCircle, null, tint = SuccessColor, modifier = Modifier.size(64.dp))
                             Spacer(Modifier.height(16.dp))
-                            Text("Booking Request Submitted!", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, color = Color(0xFF0F172A))
-                            Spacer(Modifier.height(8.dp))
-                            
-                            val isHandPay = selectedPaymentMethod.contains("Hand", ignoreCase = true)
 
-                            // Pending Status Yellow Chip
-                            Surface(
-                                color = PendingYellow.copy(alpha = 0.12f),
-                                shape = RoundedCornerShape(20.dp),
-                                border = BorderStroke(1.dp, PendingYellow.copy(alpha = 0.4f)),
-                                modifier = Modifier.padding(vertical = 6.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                            if (bookingMode == "VIEWING") {
+                                Text("Ombi la Ukaguzi Limewasilishwa!", fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, color = Color(0xFF0F172A))
+                                Spacer(Modifier.height(8.dp))
+
+                                Surface(
+                                    color = Color(0xFFEFF6FF),
+                                    shape = RoundedCornerShape(20.dp),
+                                    border = BorderStroke(1.dp, Color(0xFFBFDBFE)),
+                                    modifier = Modifier.padding(vertical = 4.dp)
                                 ) {
-                                    Box(
-                                        modifier = Modifier.size(8.dp).clip(CircleShape).background(PendingYellow)
-                                    )
-                                    Spacer(Modifier.width(8.dp))
-                                    Text("Status: PENDING CONFIRMATION", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PendingYellow)
-                                }
-                            }
-
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                                text = if (isHandPay)
-                                    "Your property viewing & room reservation request has been submitted to the landlord. Payment status: PENDING DIRECT CASH PAYMENT UPON ARRIVAL."
-                                else
-                                    "Your booking request has been submitted and is pending owner confirmation. Payment status: PROCESSING / AWAITING CHECK-IN.",
-                                color = Color(0xFF475569),
-                                fontSize = 13.sp,
-                                textAlign = TextAlign.Center,
-                                lineHeight = 18.sp
-                            )
-                            Spacer(Modifier.height(20.dp))
-
-                            Surface(
-                                color = Color(0xFFF8FAFC),
-                                shape = RoundedCornerShape(14.dp),
-                                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column(Modifier.padding(16.dp)) {
-                                    Text("Booking Summary Details", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = PrimaryColor)
-                                    Spacer(Modifier.height(8.dp))
-                                    Text("• Property: ${room.title}", fontSize = 13.sp, color = Color(0xFF0F172A), fontWeight = FontWeight.Medium)
-                                    Text("• Location: ${room.locationSummary}", fontSize = 12.sp, color = Color(0xFF64748B))
-                                    Text("• Dates: $startDate to $endDate ($selectedDuration)", fontSize = 12.sp, color = Color(0xFF334155))
-                                    Text("• Payment Method: $selectedPaymentMethod", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF334155))
-                                    Text("• Landlord Rent: ${formatTzs(totalRentTzs)} (100% Direct)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryColor)
-                                    if (!room.isDirectByOwner) {
-                                        Text("• Dalali Fee: ${room.formattedFacilitationFee}", fontSize = 12.sp, color = PrimaryLight)
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(Icons.Default.EventAvailable, null, tint = Color(0xFF2563EB), modifier = Modifier.size(16.dp))
+                                        Spacer(Modifier.width(8.dp))
+                                        Text("UKAGUZI WA NYUMBA: UMETHIBITISHWA", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1D4ED8))
                                     }
-                                    Text("• Total Amount: ${formatTzs(totalPaymentTzs)}", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = PrimaryColor)
+                                }
+
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    text = "Mwenye nyumba au dalali amepokea ombi lako. Unaweza kuwasiliana naye kupitia WhatsApp au kumpigia simu kabla ya muda wa makutano.",
+                                    color = Color(0xFF475569),
+                                    fontSize = 12.5.sp,
+                                    textAlign = TextAlign.Center,
+                                    lineHeight = 17.sp
+                                )
+
+                                Spacer(Modifier.height(16.dp))
+
+                                Surface(
+                                    color = Color(0xFFF8FAFC),
+                                    shape = RoundedCornerShape(14.dp),
+                                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Text("Taarifa za Ukaguzi (Viewing Appointment)", fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = PrimaryColor)
+                                        Text("• Nyumba: ${room.title}", fontSize = 12.5.sp, color = Color(0xFF0F172A), fontWeight = FontWeight.Medium)
+                                        Text("• Eneo: ${room.locationSummary}", fontSize = 12.sp, color = Color(0xFF64748B))
+                                        Text("• Tarehe: $startDate", fontSize = 12.sp, color = Color(0xFF334155))
+                                        Text("• Muda: $viewingTimeSlot", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1E293B))
+                                        Text("• Kituo cha Makutano: $meetingPoint", fontSize = 12.sp, color = Color(0xFF334155))
+                                        Text("• Gharama ya Ukaguzi: 0 TZS (BURE KABISA)", fontSize = 12.5.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF059669))
+                                    }
+                                }
+
+                                Spacer(Modifier.height(16.dp))
+
+                                // WhatsApp Direct Chat Button
+                                val rawPhone = room.contactPhone ?: "255712000000"
+                                val cleanPhone = rawPhone.replace(Regex("[^0-9]"), "").let {
+                                    if (it.startsWith("0")) "255" + it.substring(1) else it
+                                }
+                                val waText = "Habari, nimeomba ukaguzi wa nyumba ya '${room.title ?: "chumba"}' tarehe $startDate, $viewingTimeSlot katika kituo cha '$meetingPoint' kupitia Roomify App."
+                                val waUrl = "https://wa.me/$cleanPhone?text=${jsEncodeUri(waText)}"
+
+                                Button(
+                                    onClick = {
+                                        try {
+                                            uriHandler.openUri(waUrl)
+                                        } catch (e: Exception) {
+                                            println("WhatsApp error: ${e.message}")
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366))
+                                ) {
+                                    Text("💬", fontSize = 16.sp)
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("Wasiliana na Mwenye Nyumba (WhatsApp)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
+                                }
+                            } else {
+                                Text("Booking Request Submitted!", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, color = Color(0xFF0F172A))
+                                Spacer(Modifier.height(8.dp))
+                                
+                                val isHandPay = selectedPaymentMethod.contains("Hand", ignoreCase = true)
+
+                                // Pending Status Yellow Chip
+                                Surface(
+                                    color = PendingYellow.copy(alpha = 0.12f),
+                                    shape = RoundedCornerShape(20.dp),
+                                    border = BorderStroke(1.dp, PendingYellow.copy(alpha = 0.4f)),
+                                    modifier = Modifier.padding(vertical = 6.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(
+                                            modifier = Modifier.size(8.dp).clip(CircleShape).background(PendingYellow)
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                        Text("Status: PENDING CONFIRMATION", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PendingYellow)
+                                    }
+                                }
+
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    text = if (isHandPay)
+                                        "Your property viewing & room reservation request has been submitted to the landlord. Payment status: PENDING DIRECT CASH PAYMENT UPON ARRIVAL."
+                                    else
+                                        "Your booking request has been submitted and is pending owner confirmation. Payment status: PROCESSING / AWAITING CHECK-IN.",
+                                    color = Color(0xFF475569),
+                                    fontSize = 13.sp,
+                                    textAlign = TextAlign.Center,
+                                    lineHeight = 18.sp
+                                )
+                                Spacer(Modifier.height(20.dp))
+
+                                Surface(
+                                    color = Color(0xFFF8FAFC),
+                                    shape = RoundedCornerShape(14.dp),
+                                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(Modifier.padding(16.dp)) {
+                                        Text("Booking Summary Details", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = PrimaryColor)
+                                        Spacer(Modifier.height(8.dp))
+                                        Text("• Property: ${room.title}", fontSize = 13.sp, color = Color(0xFF0F172A), fontWeight = FontWeight.Medium)
+                                        Text("• Location: ${room.locationSummary}", fontSize = 12.sp, color = Color(0xFF64748B))
+                                        Text("• Dates: $startDate to $endDate ($selectedDuration)", fontSize = 12.sp, color = Color(0xFF334155))
+                                        Text("• Payment Method: $selectedPaymentMethod", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF334155))
+                                        Text("• Landlord Rent: ${formatTzs(totalRentTzs)} (100% Direct)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryColor)
+                                        if (!room.isDirectByOwner) {
+                                            Text("• Dalali Fee: ${room.formattedFacilitationFee}", fontSize = 12.sp, color = PrimaryLight)
+                                        }
+                                        Text("• Total Amount: ${formatTzs(totalPaymentTzs)}", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = PrimaryColor)
+                                    }
                                 }
                             }
 
-                            Spacer(Modifier.height(24.dp))
+                            Spacer(Modifier.height(20.dp))
 
                             Button(
                                 onClick = onBack,

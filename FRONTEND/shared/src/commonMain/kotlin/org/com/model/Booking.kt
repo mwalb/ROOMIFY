@@ -22,6 +22,9 @@ data class Booking(
     val endDate: String = "",
     val numberOfGuests: Int = 1,
     val specialRequests: String? = null,
+    val bookingType: String = "RESERVATION", // VIEWING or RESERVATION
+    val viewingTimeSlot: String? = null, // e.g. "Asubuhi (09:00 - 12:00)", "Mchana (13:00 - 16:00)", "Jioni (16:00 - 18:30)"
+    val meetingPoint: String? = null, // e.g. "Kituo cha Mwendokasi cha Kimara"
     val bookingDate: String? = null,
     val createdAt: String? = null
 )

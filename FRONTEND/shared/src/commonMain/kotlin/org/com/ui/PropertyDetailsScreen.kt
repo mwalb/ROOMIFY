@@ -91,6 +91,7 @@ fun PropertyDetailsScreen(
     var reviews by remember { mutableStateOf<List<Review>>(emptyList()) }
     var showWriteReviewDialog by remember { mutableStateOf(false) }
     var showRouteChoiceDialog by remember { mutableStateOf(false) }
+    var showContractDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(room.id) {
         try {
@@ -411,18 +412,82 @@ fun PropertyDetailsScreen(
                                                 fontWeight = FontWeight.Black,
                                                 color = PrimaryColor
                                             )
+                                            Spacer(Modifier.height(2.dp))
+                                            Text(
+                                                text = "Upfront: ${room.formattedAdvanceRent}",
+                                                fontSize = 11.5.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFF0284C7)
+                                            )
                                         }
 
                                         StatusBadgeChip(statusUpper = statusUpper, verificationStatus = verificationStatus)
                                     }
 
+                                    // Tanzanian Local Infrastructure & Weather attributes (3NF fields)
+                                    Spacer(Modifier.height(10.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Surface(
+                                            color = Color(0xFFF8FAFC),
+                                            shape = RoundedCornerShape(8.dp),
+                                            border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.5.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                            ) {
+                                                Icon(Icons.Default.DirectionsCar, null, tint = Color(0xFF475569), modifier = Modifier.size(13.dp))
+                                                Text(room.roadConditionLabel, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF334155))
+                                            }
+                                        }
+
+                                        if (room.isFloodSafe) {
+                                            Surface(
+                                                color = Color(0xFFECFDF5),
+                                                shape = RoundedCornerShape(8.dp),
+                                                border = BorderStroke(1.dp, Color(0xFFA7F3D0))
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.5.dp),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                ) {
+                                                    Icon(Icons.Filled.Shield, null, tint = Color(0xFF059669), modifier = Modifier.size(13.dp))
+                                                    Text("Salama Mafuriko", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF065F46))
+                                                }
+                                            }
+                                        }
+
+                                        if (!room.nearestCampus.isNullOrBlank()) {
+                                            Surface(
+                                                color = Color(0xFFEFF6FF),
+                                                shape = RoundedCornerShape(8.dp),
+                                                border = BorderStroke(1.dp, Color(0xFFBFDBFE))
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.5.dp),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                ) {
+                                                    Icon(Icons.Default.School, null, tint = Color(0xFF2563EB), modifier = Modifier.size(13.dp))
+                                                    Text("${room.campusDistanceMinutes ?: 10}m ${room.nearestCampus}", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1D4ED8))
+                                                }
+                                            }
+                                        }
+                                    }
+
                                     HorizontalDivider(
                                         color = Color(0xFFF1F5F9),
                                         thickness = 1.dp,
-                                        modifier = Modifier.padding(vertical = 16.dp)
+                                        modifier = Modifier.padding(vertical = 14.dp)
                                     )
 
-                                    // Interactive Tools (AI Room Arranger & Show Route)
+                                    // Interactive Tools (AI Room Arranger & Show Route & Lease Agreement)
                                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                         Surface(
                                             modifier = Modifier
@@ -458,6 +523,20 @@ fun PropertyDetailsScreen(
                                             Icon(Icons.Rounded.Directions, null, modifier = Modifier.size(18.dp))
                                             Spacer(Modifier.width(8.dp))
                                             Text("Show Route to Property", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                        }
+
+                                        OutlinedButton(
+                                            onClick = { showContractDialog = true },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(42.dp),
+                                            shape = RoundedCornerShape(12.dp),
+                                            border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF0F172A))
+                                        ) {
+                                            Icon(Icons.Default.Description, null, modifier = Modifier.size(18.dp), tint = PrimaryColor)
+                                            Spacer(Modifier.width(8.dp))
+                                            Text("Tazama Mkataba wa Pango (Lease Agreement)", fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
                                         }
                                     }
 
@@ -1008,6 +1087,164 @@ fun PropertyDetailsScreen(
                                 )
                             }
                             Icon(Icons.AutoMirrored.Filled.OpenInNew, null, tint = Color(0xFF059669), modifier = Modifier.size(18.dp))
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Tanzania Standard Tenancy Lease Agreement Dialog (Mkataba wa Upangaji)
+    if (showContractDialog) {
+        Dialog(
+            onDismissRequest = { showContractDialog = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = Color.White,
+                shadowElevation = 16.dp,
+                modifier = Modifier
+                    .fillMaxWidth(0.92f)
+                    .widthIn(max = 640.dp)
+                    .fillMaxHeight(0.88f)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp)
+                ) {
+                    // Header
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(Color(0xFFFEF3C7), RoundedCornerShape(10.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.Description, null, tint = Color(0xFFB45309), modifier = Modifier.size(22.dp))
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            Column {
+                                Text("Mkataba wa Upangaji Nyumba", fontSize = 16.sp, fontWeight = FontWeight.Black, color = Color(0xFF0F172A))
+                                Text("Jamhuri ya Muungano wa Tanzania • Standard Tenancy", fontSize = 11.sp, color = Color(0xFF64748B))
+                            }
+                        }
+                        IconButton(
+                            onClick = { showContractDialog = false },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(Icons.Default.Close, null, tint = Color(0xFF64748B), modifier = Modifier.size(20.dp))
+                        }
+                    }
+
+                    HorizontalDivider(Modifier.padding(vertical = 14.dp))
+
+                    // Contract Content Scrollable
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState())
+                            .background(Color(0xFFF8FAFC), RoundedCornerShape(14.dp))
+                            .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(14.dp))
+                            .padding(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Text(
+                            text = "MKATABA WA UPANGAJI WA MAKAZI",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 15.sp,
+                            color = Color(0xFF0F172A),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Text(
+                            text = "Mkataba huu unafanyika leo tarehe baina ya MWENYE NYUMBA na MPANGAJI kwa ajili ya pango la chumba/nyumba kulingana na sheria za Jamhuri ya Muungano wa Tanzania.",
+                            fontSize = 12.sp,
+                            color = Color(0xFF334155),
+                            lineHeight = 17.sp
+                        )
+
+                        // 1. Parties
+                        Surface(color = Color.White, shape = RoundedCornerShape(10.dp), border = BorderStroke(1.dp, Color(0xFFCBD5E1))) {
+                            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text("1. WAHUSIKA (PARTIES)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = PrimaryColor)
+                                Text("• Mwenye Nyumba: ${room.ownerName ?: "Landlord"} (Simu: ${room.contactPhone ?: "N/A"})", fontSize = 12.sp, color = Color(0xFF1E293B))
+                                Text("• Mpangaji: ${currentUser?.name ?: "Mteja Rasmi (Mtumiaji wa Roomify)"} (NIDA: Imehifadhiwa)", fontSize = 12.sp, color = Color(0xFF1E293B))
+                                Text("• Eneo la Nyumba: ${room.locationSummary}", fontSize = 12.sp, color = Color(0xFF1E293B))
+                            }
+                        }
+
+                        // 2. Financials
+                        Surface(color = Color.White, shape = RoundedCornerShape(10.dp), border = BorderStroke(1.dp, Color(0xFFCBD5E1))) {
+                            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text("2. KODI YA PANGO NA MALIPO YA AWALI", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = PrimaryColor)
+                                Text("• Kodi kwa Mwezi: ${room.formattedPrice}", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1E293B))
+                                Text("• Utaratibu wa Malipo ya Awali: Miezi ${room.rentAdvanceMonths} mbele", fontSize = 12.sp, color = Color(0xFF1E293B))
+                                Text("• Jumla ya Kodi ya Awali: ${room.formattedAdvanceRent}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF059669))
+                                Text("• Njia ya Malipo: Simu (M-Pesa / Tigo Pesa / Airtel Money) au Mkononi (Cash)", fontSize = 11.5.sp, color = Color(0xFF64748B))
+                            }
+                        }
+
+                        // 3. Terms & Infrastructure
+                        Surface(color = Color.White, shape = RoundedCornerShape(10.dp), border = BorderStroke(1.dp, Color(0xFFCBD5E1))) {
+                            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text("3. MASHARTI YA UMEME, MAJI NA NOTISI", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = PrimaryColor)
+                                Text("• Umeme (LUKU): Mpangaji atagharamia matumizi ya umeme kulingana na sub-meter au mgawanyo sawa wa vyumba.", fontSize = 11.5.sp, color = Color(0xFF334155))
+                                Text("• Maji (DAWASA): Mpangaji atalipia bili ya maji kulingana na ankara ya mwezi.", fontSize = 11.5.sp, color = Color(0xFF334155))
+                                Text("• Ufikiaji na Mazingira: ${room.roadConditionLabel} • ${if (room.isFloodSafe) "Eneo salama dhidi ya mafuriko" else "Tahadhari kipindi cha masika"}.", fontSize = 11.5.sp, color = Color(0xFF334155))
+                                Text("• Ilani ya Kuhama (Notice): Upande wowote unalazimika kutoa notisi ya mwezi mmoja (siku 30) kabla ya kusitisha mkataba.", fontSize = 11.5.sp, color = Color(0xFF334155))
+                            }
+                        }
+
+                        // 4. Mjumbe / Ward Witness
+                        Surface(color = Color(0xFFFEF3C7).copy(alpha = 0.5f), shape = RoundedCornerShape(10.dp), border = BorderStroke(1.dp, Color(0xFFFDE68A))) {
+                            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text("4. UTHIBITISHO WA SERIKALI YA MTAA / MJUMBE WA SHINA", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF92400E))
+                                Text("Mkataba huu unatambuliwa na Serikali ya Mtaa wa eneo husika.", fontSize = 11.sp, color = Color(0xFF78350F))
+                                Spacer(Modifier.height(4.dp))
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    Text("Saini ya Mwenye Nyumba: _________", fontSize = 11.sp, color = Color(0xFF1E293B))
+                                    Text("Saini ya Mpangaji: _________", fontSize = 11.sp, color = Color(0xFF1E293B))
+                                }
+                                Text("Jina na Muhuri wa Mjumbe / Serikali ya Mtaa: ________________________", fontSize = 11.sp, color = Color(0xFF1E293B))
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(14.dp))
+
+                    // Dialog Actions
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { showContractDialog = false },
+                            modifier = Modifier.weight(1f).height(44.dp),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Text("Funga (Close)", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        }
+
+                        Button(
+                            onClick = {
+                                // Close dialog and open print prompt
+                                showContractDialog = false
+                            },
+                            modifier = Modifier.weight(1f).height(44.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                        ) {
+                            Icon(Icons.Default.Download, null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Pakua Mkataba (PDF)", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                         }
                     }
                 }

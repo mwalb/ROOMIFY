@@ -795,10 +795,20 @@ private fun DalaliBookingRequestCard(booking: Booking, onAccept: () -> Unit, onR
                 }
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(booking.userName ?: "Guest", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF0F172A))
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(booking.userName ?: "Guest", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF0F172A))
+                        if ("VIEWING".equals(booking.bookingType, ignoreCase = true)) {
+                            Surface(color = Color(0xFFEFF6FF), shape = RoundedCornerShape(6.dp)) {
+                                Text("👀 UKAGUZI", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2563EB), modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp))
+                            }
+                        }
+                    }
                     Text(booking.roomTitle ?: "Property", fontSize = 12.sp, color = Color.Gray, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    if ("VIEWING".equals(booking.bookingType, ignoreCase = true)) {
+                        Text("Muda: ${booking.viewingTimeSlot ?: "Asubuhi"} • Eneo: ${booking.meetingPoint ?: "Kituoni"}", fontSize = 11.sp, color = Color(0xFF1D4ED8), fontWeight = FontWeight.SemiBold)
+                    }
                 }
-                Text("TZS ${booking.totalPrice.toInt()}", fontWeight = FontWeight.Black, fontSize = 14.sp, color = PrimaryColor)
+                Text(if ("VIEWING".equals(booking.bookingType, ignoreCase = true)) "FREE" else "TZS ${booking.totalPrice.toInt()}", fontWeight = FontWeight.Black, fontSize = 14.sp, color = PrimaryColor)
             }
             Spacer(Modifier.height(14.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {

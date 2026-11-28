@@ -65,3 +65,19 @@ CREATE TABLE IF NOT EXISTS in_app_notifications (
     created_at TIMESTAMP(6) WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- ============================================================================
+-- 3NF Compliant Tanzanian Local Rental Market Enhancements
+-- ============================================================================
+-- Attributes describing physical rental property offering directly (Room PK dependency)
+ALTER TABLE rooms ADD COLUMN IF NOT EXISTS rent_advance_months INTEGER DEFAULT 6;
+ALTER TABLE rooms ADD COLUMN IF NOT EXISTS road_condition VARCHAR(50) DEFAULT 'LAMI';
+ALTER TABLE rooms ADD COLUMN IF NOT EXISTS is_flood_safe BOOLEAN DEFAULT TRUE;
+ALTER TABLE rooms ADD COLUMN IF NOT EXISTS nearest_campus VARCHAR(100);
+ALTER TABLE rooms ADD COLUMN IF NOT EXISTS campus_distance_minutes INTEGER;
+
+-- Attributes describing in-person physical inspection / viewing vs binding reservation (Booking PK dependency)
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS booking_type VARCHAR(50) DEFAULT 'RESERVATION';
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS viewing_time_slot VARCHAR(100);
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS meeting_point VARCHAR(255);
+
+

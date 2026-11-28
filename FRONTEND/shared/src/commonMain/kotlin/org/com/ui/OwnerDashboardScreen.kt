@@ -1141,12 +1141,23 @@ private fun BookingRequestCardItem(booking: Booking, onAccept: () -> Unit, onRej
                 }
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(booking.userName ?: "Guest Tenant", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF0F172A))
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(booking.userName ?: "Guest Tenant", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF0F172A))
+                        if ("VIEWING".equals(booking.bookingType, ignoreCase = true)) {
+                            Surface(color = Color(0xFFEFF6FF), shape = RoundedCornerShape(6.dp)) {
+                                Text("👀 UKAGUZI", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2563EB), modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp))
+                            }
+                        }
+                    }
                     Text(booking.roomTitle ?: "Property", fontSize = 12.sp, color = SubtitleColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text("100% Direct Rent (No broker deduction)", fontSize = 11.sp, color = SuccessColor, fontWeight = FontWeight.SemiBold)
+                    if ("VIEWING".equals(booking.bookingType, ignoreCase = true)) {
+                        Text("Muda: ${booking.viewingTimeSlot ?: "Asubuhi"} • Eneo: ${booking.meetingPoint ?: "Kituoni"}", fontSize = 11.sp, color = Color(0xFF1D4ED8), fontWeight = FontWeight.SemiBold)
+                    } else {
+                        Text("100% Direct Rent (No broker deduction)", fontSize = 11.sp, color = SuccessColor, fontWeight = FontWeight.SemiBold)
+                    }
                 }
                 val rentVal = if (booking.rentAmount > 0) booking.rentAmount else booking.totalPrice
-                Text("TZS ${rentVal.toLong()}", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = PrimaryColor)
+                Text(if ("VIEWING".equals(booking.bookingType, ignoreCase = true)) "FREE" else "TZS ${rentVal.toLong()}", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = PrimaryColor)
             }
             if (booking.status == "PENDING") {
                 Spacer(Modifier.height(14.dp))

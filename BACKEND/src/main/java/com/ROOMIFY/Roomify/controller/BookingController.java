@@ -80,13 +80,16 @@ public class BookingController {
                         .body(new ApiResponse<>(false, null, "Property is currently not available for booking"));
             }
 
-            // FOURTH: Check if room already has an ACTIVE or PENDING booking
-            boolean exists = bookingRepository.existsBlockingBookingByRoomId(bookingRequest.getRoomId());
-            System.out.println("Checking for blocking bookings for room " + bookingRequest.getRoomId() + ": " + exists);
-            
-            if (exists) {
-                return ResponseEntity.status(HttpStatus.CONFLICT)
-                        .body(new ApiResponse<>(false, null, "Property already has a pending or active booking request"));
+            // FOURTH: Check if room already has an ACTIVE or PENDING booking (only blocks for full reservations)
+            boolean isReservation = bookingRequest.getBookingType() == null || "RESERVATION".equalsIgnoreCase(bookingRequest.getBookingType());
+            if (isReservation) {
+                boolean exists = bookingRepository.existsBlockingBookingByRoomId(bookingRequest.getRoomId());
+                System.out.println("Checking for blocking bookings for room " + bookingRequest.getRoomId() + ": " + exists);
+                
+                if (exists) {
+                    return ResponseEntity.status(HttpStatus.CONFLICT)
+                            .body(new ApiResponse<>(false, null, "Property already has a pending or active booking request"));
+                }
             }
 
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -120,6 +123,9 @@ public class BookingController {
             booking.setEndDate(endDate);
             booking.setNumberOfGuests(bookingRequest.getNumberOfGuests());
             booking.setSpecialRequests(bookingRequest.getSpecialRequests());
+            booking.setBookingType(bookingRequest.getBookingType() != null ? bookingRequest.getBookingType() : "RESERVATION");
+            booking.setViewingTimeSlot(bookingRequest.getViewingTimeSlot());
+            booking.setMeetingPoint(bookingRequest.getMeetingPoint());
 
             Booking savedBooking = bookingRepository.save(booking);
 
@@ -434,6 +440,9 @@ public class BookingController {
         dto.setCreatedAt(booking.getCreatedAt());
         dto.setNumberOfGuests(booking.getNumberOfGuests());
         dto.setSpecialRequests(booking.getSpecialRequests());
+        dto.setBookingType(booking.getBookingType() != null ? booking.getBookingType() : "RESERVATION");
+        dto.setViewingTimeSlot(booking.getViewingTimeSlot());
+        dto.setMeetingPoint(booking.getMeetingPoint());
 
         User user = booking.getUser();
         if (user != null) {
@@ -450,5 +459,5 @@ public class BookingController {
         }
 
         return dto;
-    }
+    }production
 }

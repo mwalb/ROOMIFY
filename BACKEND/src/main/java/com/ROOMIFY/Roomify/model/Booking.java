@@ -65,6 +65,17 @@ public class Booking {
     @Column(name = "special_requests", length = 500)
     private String specialRequests;
 
+    // ==================== TANZANIA VIEWING & TENANCY DETAILS (3NF) ====================
+
+    @Column(name = "booking_type")
+    private String bookingType = "RESERVATION"; // "VIEWING" (Ukaguzi wa Nyumba) or "RESERVATION" (Ulipaji wa Chumba)
+
+    @Column(name = "viewing_time_slot")
+    private String viewingTimeSlot; // e.g. "ASUBUHI (09:00 - 12:00)", "MCHANA (13:00 - 16:00)", "JIONI (16:30 - 18:30)"
+
+    @Column(name = "meeting_point")
+    private String meetingPoint; // e.g. "Kituo cha Mwendokasi / Stand", "Moja kwa moja nyumbani"
+
     @PrePersist
     protected void onCreate() {
         LocalDateTime now = LocalDateTime.now();

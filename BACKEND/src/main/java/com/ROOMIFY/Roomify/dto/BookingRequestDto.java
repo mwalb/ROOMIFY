@@ -10,6 +10,9 @@ public class BookingRequestDto {
     private Integer numberOfGuests;
     private String specialRequests;
     private String bookingDate;
+    private String bookingType;
+    private String viewingTimeSlot;
+    private String meetingPoint;
 
     // Constructors
     public BookingRequestDto() {}
@@ -24,6 +27,9 @@ public class BookingRequestDto {
     public Integer getNumberOfGuests() { return numberOfGuests; }
     public String getSpecialRequests() { return specialRequests; }
     public String getBookingDate() { return bookingDate; }
+    public String getBookingType() { return bookingType; }
+    public String getViewingTimeSlot() { return viewingTimeSlot; }
+    public String getMeetingPoint() { return meetingPoint; }
 
     // Setters
     public void setRoomId(Long roomId) { this.roomId = roomId; }
@@ -35,4 +41,7 @@ public class BookingRequestDto {
     public void setNumberOfGuests(Integer numberOfGuests) { this.numberOfGuests = numberOfGuests; }
     public void setSpecialRequests(String specialRequests) { this.specialRequests = specialRequests; }
     public void setBookingDate(String bookingDate) { this.bookingDate = bookingDate; }
+    public void setBookingType(String bookingType) { this.bookingType = bookingType; }
+    public void setViewingTimeSlot(String viewingTimeSlot) { this.viewingTimeSlot = viewingTimeSlot; }
+    public void setMeetingPoint(String meetingPoint) { this.meetingPoint = meetingPoint; }
 }
