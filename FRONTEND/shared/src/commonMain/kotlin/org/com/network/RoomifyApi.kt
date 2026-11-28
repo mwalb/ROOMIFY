@@ -195,6 +195,14 @@ object RoomifyApi {
         }
     }
 
+    suspend fun syncSharedPropertyMedia(propertyId: Long, sourceUnitId: Long): ApiResponse<Unit> {
+        return try {
+            ApiClient.post("properties/$propertyId/sync-shared-media?sourceUnitId=$sourceUnitId", Unit)
+        } catch (e: Exception) {
+            ApiResponse(success = false, message = e.message ?: "Failed to sync shared media")
+        }
+    }
+
     suspend fun getOwnerProperties(ownerId: Long): ApiResponse<List<Property>> {
         return ApiClient.get("properties/owner/$ownerId")
     }

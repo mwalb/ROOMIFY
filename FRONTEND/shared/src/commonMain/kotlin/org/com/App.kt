@@ -1187,8 +1187,10 @@ fun App() {
                                             )
                                         },
                                         onSuccessDismissed = {
-                                            // Refresh map rooms
-                                            viewModel.loadRooms()
+                                            // Refresh map rooms in background without blocking UI transition
+                                            scope.launch {
+                                                viewModel.loadRooms()
+                                            }
                                             postRoomViewModel.reset()
                                             currentRoute = "ownerdashboard"
                                         },

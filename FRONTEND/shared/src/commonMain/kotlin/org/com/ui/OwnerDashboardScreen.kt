@@ -957,7 +957,7 @@ private fun PropertiesTabView(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
-                items(filteredProperties) { room ->
+                items(filteredProperties, key = { it.id ?: it.hashCode() }) { room ->
                     OwnerPropertyCardItem(room = room, onClick = { onViewProperty(room) })
                 }
             }

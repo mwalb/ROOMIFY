@@ -104,6 +104,41 @@ public class PropertyController {
         return ResponseEntity.ok(new ApiResponse<>(true, PropertyResponseDTO.fromEntity(saved, owner), "Property created"));
     }
 
+    @PostMapping("/{propertyId}/sync-shared-media")
+    @Transactional
+    public ResponseEntity<ApiResponse<Void>> syncSharedMedia(
+            @PathVariable Long propertyId,
+            @RequestParam Long sourceUnitId) {
+        try {
+            Room source = roomRepository.findById(sourceUnitId).orElse(null);
+            if (source != null && propertyId != null) {
+                List<Room> units = roomRepository.findByPropertyId(propertyId);
+                boolean hasImages = source.getImages() != null && !source.getImages().isEmpty();
+                boolean hasVideo = source.getVideoUrl() != null && !source.getVideoUrl().isBlank();
+
+                if (hasImages || hasVideo) {
+                    for (Room unit : units) {
+                        if (!unit.getId().equals(sourceUnitId)) {
+                            if (hasImages && (unit.getImages() == null || unit.getImages().isEmpty())) {
+                                unit.setImages(new ArrayList<>(source.getImages()));
+                                unit.setImageCount(source.getImages().size());
+                            }
+                            if (hasVideo && (unit.getVideoUrl() == null || unit.getVideoUrl().isBlank())) {
+                                unit.setVideoUrl(source.getVideoUrl());
+                                unit.setHasVideo(true);
+                            }
+                        }
+                    }
+                    roomRepository.saveAll(units);
+                }
+            }
+            return ResponseEntity.ok(new ApiResponse<>(true, null, "Shared media synced across units"));
+        } catch (Exception e) {
+            System.err.println("Error syncing shared media for property " + propertyId + ": " + e.getMessage());
+            return ResponseEntity.internalServerError().body(new ApiResponse<>(false, null, e.getMessage()));
+        }
+    }
+
     @GetMapping("/owner/{ownerId}")
     public ResponseEntity<ApiResponse<List<PropertyResponseDTO>>> getByOwner(@PathVariable Long ownerId) {
         return ResponseEntity.ok(new ApiResponse<>(true, toDTOList(repository.findByOwnerId(ownerId)), "Owner properties retrieved"));

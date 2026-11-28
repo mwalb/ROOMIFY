@@ -477,10 +477,10 @@ fun PostRoom(
         }
     }
 
-    // Status Overlays
+    // Status Overlays & Success Badge
     if (state.isSubmitting) LoadingOverlay(strings.postingYourProperty)
     if (state.errorMessage != null) StatusOverlay(false, state.errorMessage, "Try Again", onErrorDismissed)
-    if (state.successMessage != null) StatusOverlay(true, state.successMessage, "Go to Dashboard", onSuccessDismissed)
+    if (state.successMessage != null) MinimalSuccessBadge(state.successMessage, onSuccessDismissed)
 }
 
 @Composable
@@ -1601,6 +1601,114 @@ private fun LoadingOverlay(msg: String) {
                 CircularProgressIndicator(color = PrimaryColor)
                 Spacer(Modifier.height(12.dp))
                 Text(msg, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@Composable
+private fun MinimalSuccessBadge(msg: String, onDismiss: () -> Unit) {
+    val offsetY = remember { Animatable(-50f) }
+    val alpha = remember { Animatable(0f) }
+
+    LaunchedEffect(Unit) {
+        launch { offsetY.animateTo(0f, spring(dampingRatio = Spring.DampingRatioMediumBouncy)) }
+        launch { alpha.animateTo(1f, tween(300)) }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(top = 28.dp, start = 16.dp, end = 16.dp),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        Surface(
+            modifier = Modifier
+                .widthIn(max = 540.dp)
+                .fillMaxWidth()
+                .graphicsLayer {
+                    translationY = offsetY.value
+                    this.alpha = alpha.value
+                },
+            shape = RoundedCornerShape(20.dp),
+            color = Color.White,
+            border = BorderStroke(1.5.dp, Color(0xFF10B981).copy(alpha = 0.5f)),
+            shadowElevation = 12.dp
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(Color(0xFFDCFCE7), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = "Success",
+                            tint = Color(0xFF10B981),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                text = "Published Successfully",
+                                fontWeight = FontWeight.Black,
+                                fontSize = 14.sp,
+                                color = Color(0xFF0F172A)
+                            )
+                            Surface(
+                                color = Color(0xFFDCFCE7),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text(
+                                    text = msg,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF047857),
+                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = "Awaiting verification · Saved to your dashboard",
+                            fontSize = 11.5.sp,
+                            color = Color(0xFF64748B)
+                        )
+                    }
+                }
+
+                Spacer(Modifier.width(12.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Button(
+                        onClick = onDismiss,
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 7.dp),
+                        modifier = Modifier.height(34.dp)
+                    ) {
+                        Text("Dashboard", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(Icons.Default.Close, null, tint = Color(0xFF94A3B8), modifier = Modifier.size(16.dp))
+                    }
+                }
             }
         }
     }

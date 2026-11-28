@@ -348,7 +348,7 @@ class PostRoomViewModel(
                         handleMediaUploads(result.id!!, context)
                         _uiState.value = _uiState.value.copy(
                             isSubmitting = false,
-                            successMessage = "Property submitted successfully.\n\nYour property is waiting for property verification.\nIt will appear on the public map after an administrator verifies it."
+                            successMessage = "1 property published successfully"
                         )
                     }
                 } else {
@@ -399,43 +399,45 @@ class PostRoomViewModel(
                             sharedImagesUploaded = roomApi.uploadImages(firstUnitId, sharedBytes)
                         }
 
-                        // 3. Fetch the updated first unit once so we can share its stored media URLs with remaining units
-                        val updatedFirstUnit = if (firstUnitId != null && (sharedVideoUploaded || sharedImagesUploaded)) {
-                            roomApi.getRoomById(firstUnitId)
-                        } else null
-                        val sharedVideoUrl: String? = updatedFirstUnit?.videoUrl
-                        val sharedImageUrls: List<String> = updatedFirstUnit?.images ?: emptyList()
-
-                        // 3. Upload per-unit images & link shared media in parallel batches of 4
-                        coroutineScope {
-                            savedUnits.chunked(4).forEach { batch ->
-                                batch.map { savedUnit ->
-                                    async {
-                                        val index = savedUnits.indexOf(savedUnit)
-                                        val unitId = savedUnit.id ?: return@async
-                                        val unitImages = state.unitImages[index]
-                                        if (!unitImages.isNullOrEmpty()) {
-                                            val imageBytes = unitImages.map { it.readByteArray(context) }
-                                            roomApi.uploadImages(unitId, imageBytes)
+                        // 3. Upload custom unit images ONLY for units where the user actually provided specific photos
+                        val unitsWithCustomPhotos = savedUnits.filterIndexed { index, _ -> !state.unitImages[index].isNullOrEmpty() }
+                        if (unitsWithCustomPhotos.isNotEmpty()) {
+                            coroutineScope {
+                                unitsWithCustomPhotos.chunked(6).forEach { batch ->
+                                    batch.map { savedUnit ->
+                                        async {
+                                            val index = savedUnits.indexOf(savedUnit)
+                                            val unitId = savedUnit.id ?: return@async
+                                            val unitImages = state.unitImages[index]
+                                            if (!unitImages.isNullOrEmpty()) {
+                                                val imageBytes = unitImages.map { it.readByteArray(context) }
+                                                roomApi.uploadImages(unitId, imageBytes)
+                                            }
                                         }
-                                        // Share the already-uploaded building video/images with remaining units without re-uploading megabytes
-                                        if (unitId != firstUnitId && (!sharedVideoUrl.isNullOrBlank() || sharedImageUrls.isNotEmpty())) {
-                                            val patched = savedUnit.copy(
-                                                videoUrl = sharedVideoUrl ?: savedUnit.videoUrl,
-                                                hasVideo = !sharedVideoUrl.isNullOrBlank() || savedUnit.hasVideo,
-                                                images = if (savedUnit.images.isEmpty() && sharedImageUrls.isNotEmpty()) sharedImageUrls else savedUnit.images
-                                            )
-                                            roomApi.updateRoom(unitId, patched)
-                                        }
-                                    }
-                                }.awaitAll()
+                                    }.awaitAll()
+                                }
                             }
                         }
 
+                        // 4. Instantly propagate shared building images & video to all units on the backend (1 fast SQL query!)
+                        val propertyId = savedProperty.id
+                        if (propertyId != null && firstUnitId != null && (sharedVideoUploaded || sharedImagesUploaded)) {
+                            try {
+                                RoomifyApi.syncSharedPropertyMedia(propertyId, firstUnitId)
+                            } catch (e: Exception) {
+                                println("PostRoomViewModel: Non-critical warning syncing media: ${e.message}")
+                            }
+                        }
+
+                        val unitCount = savedUnits.size
                         _uiState.value = _uiState.value.copy(
                             isSubmitting = false,
-                            successMessage = "Property submitted successfully.\n\nYour property is waiting for property verification.\nIt will appear on the public map after an administrator verifies it."
+                            successMessage = "$unitCount units published successfully"
                         )
+                    } else {
+                        throw Exception(result.message)
+                    }
+                }
                     } else {
                         throw Exception(result.message)
                     }
