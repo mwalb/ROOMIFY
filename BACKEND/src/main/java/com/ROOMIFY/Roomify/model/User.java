@@ -47,6 +47,9 @@ public class User {
     @Column(columnDefinition = "TIMESTAMP")
     private LocalDateTime lastLoginAt;
 
+    @Column(name = "welcome_sent")
+    private Boolean welcomeSent = false;
+
     @JsonIgnore
     private String passwordResetToken;
 

@@ -104,6 +104,11 @@ public class NotificationService {
             );
             emailService.sendEmail(user.getEmail(), user.getName(), "Welcome to ROOMIFY!", html);
 
+            // 3. Mark welcomeSent as true in database
+            user.setWelcomeSent(true);
+            userRepository.save(user);
+            System.out.println("✅ Welcome notification & email dispatched to: " + user.getEmail());
+
         } catch (Exception e) {
             System.err.println("❌ NotificationService: Error in notifyUserRegistered: " + e.getMessage());
         }
@@ -114,6 +119,11 @@ public class NotificationService {
         if (user == null || user.getEmail() == null) return;
 
         try {
+            // First time login check: If user hasn't received a welcome email yet (including first-time Google sign-ins), send it first!
+            if (!Boolean.TRUE.equals(user.getWelcomeSent())) {
+                notifyUserRegistered(user);
+            }
+
             // 1. In-App Notification (so user sees their active session alert)
             sendInAppAndPush(
                     user.getId(),

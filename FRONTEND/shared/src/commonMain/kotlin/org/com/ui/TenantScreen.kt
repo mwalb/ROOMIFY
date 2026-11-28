@@ -358,315 +358,417 @@ fun TenantScreen(
                                 ),
                             verticalArrangement = Arrangement.spacedBy(if (isMobile) 16.dp else 20.dp)
                         ) {
-                            // Instant Place Search Bar with Suggestions on 1st letter
-                            OutlinedTextField(
-                                value = searchQuery,
-                                onValueChange = { searchQuery = it },
-                                placeholder = { Text("Search places (e.g. Sinza, Mikocheni, Masaki, Mwenge...)", fontSize = 13.sp) },
-                                leadingIcon = { Icon(Icons.Default.Search, null, tint = Color.Gray, modifier = Modifier.size(18.dp)) },
-                                trailingIcon = {
-                                    if (searchQuery.isNotEmpty()) {
-                                        IconButton(onClick = { searchQuery = "" }) {
-                                            Icon(Icons.Default.Close, null, tint = Color.Gray, modifier = Modifier.size(18.dp))
-                                        }
-                                    }
-                                },
+                            // Unified & Organised Smart Discovery Hub (Search + Categorized Filters)
+                            Surface(
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(14.dp),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = Color.White,
-                                    unfocusedContainerColor = Color.White,
-                                    focusedBorderColor = PrimaryColor,
-                                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
-                                ),
-                                singleLine = true
-                            )
-
-                            // Quick Reload of Places: Instant display on very first letter (Local + Backend)
-                            if (searchQuery.isNotBlank()) {
-                                val combinedPlaceSuggestions = remember(searchQuery, backendLocationSuggestions) {
-                                    val q = searchQuery.trim().lowercase()
-                                    val localSuggestions = PlaceSuggestionEngine.suggest(q).primary.map { it.name }
-                                    val list = LinkedHashSet<String>()
-                                    (backendLocationSuggestions + localSuggestions).filter { it.lowercase().startsWith(q) }.forEach { list.add(it) }
-                                    (backendLocationSuggestions + localSuggestions).filter { item ->
-                                        item.lowercase().split(Regex("[\\s,()\\-]+")).any { it.startsWith(q) }
-                                    }.forEach { list.add(it) }
-                                    (backendLocationSuggestions + localSuggestions).filter { it.lowercase().contains(q) }.forEach { list.add(it) }
-                                    list.toList()
-                                }
-
-                                if (combinedPlaceSuggestions.isNotEmpty()) {
-                                    Surface(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        shape = RoundedCornerShape(16.dp),
-                                        color = Color.White,
-                                        border = BorderStroke(1.dp, PrimaryColor.copy(alpha = 0.2f)),
-                                        shadowElevation = 3.dp
-                                    ) {
-                                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                                    Icon(Icons.Default.LocationOn, null, tint = PrimaryColor, modifier = Modifier.size(16.dp))
-                                                    Text(
-                                                        "Maeneo yenye herufi '${searchQuery}' (${combinedPlaceSuggestions.size}):",
-                                                        fontSize = 12.sp,
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = PrimaryColor
-                                                    )
+                                shape = RoundedCornerShape(20.dp),
+                                color = Color.White,
+                                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                                shadowElevation = 2.dp
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(if (isMobile) 16.dp else 20.dp),
+                                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    // 1. Instant Place Search Input
+                                    OutlinedTextField(
+                                        value = searchQuery,
+                                        onValueChange = { searchQuery = it },
+                                        placeholder = { Text("Search places (e.g. Sinza, Mikocheni, Masaki, Mwenge...)", fontSize = 13.sp) },
+                                        leadingIcon = { Icon(Icons.Default.Search, null, tint = PrimaryColor, modifier = Modifier.size(20.dp)) },
+                                        trailingIcon = {
+                                            if (searchQuery.isNotEmpty()) {
+                                                IconButton(onClick = { searchQuery = "" }) {
+                                                    Icon(Icons.Default.Close, null, tint = Color.Gray, modifier = Modifier.size(18.dp))
                                                 }
-                                                Text(
-                                                    "Futa",
-                                                    fontSize = 11.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = Color.Red,
-                                                    modifier = Modifier.clickable { searchQuery = "" }
-                                                )
                                             }
+                                        },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedContainerColor = Color(0xFFF8FAFC),
+                                            unfocusedContainerColor = Color(0xFFF8FAFC),
+                                            focusedBorderColor = PrimaryColor,
+                                            unfocusedBorderColor = Color(0xFFE2E8F0)
+                                        ),
+                                        singleLine = true
+                                    )
 
-                                            LazyRow(
+                                    // Quick Location Suggestions (Appears dynamically below search input)
+                                    if (searchQuery.isNotBlank()) {
+                                        val combinedPlaceSuggestions = remember(searchQuery, backendLocationSuggestions) {
+                                            val q = searchQuery.trim().lowercase()
+                                            val localSuggestions = PlaceSuggestionEngine.suggest(q).primary.map { it.name }
+                                            val list = LinkedHashSet<String>()
+                                            (backendLocationSuggestions + localSuggestions).filter { it.lowercase().startsWith(q) }.forEach { list.add(it) }
+                                            (backendLocationSuggestions + localSuggestions).filter { item ->
+                                                item.lowercase().split(Regex("[\\s,()\\-]+")).any { it.startsWith(q) }
+                                            }.forEach { list.add(it) }
+                                            (backendLocationSuggestions + localSuggestions).filter { it.lowercase().contains(q) }.forEach { list.add(it) }
+                                            list.toList()
+                                        }
+
+                                        if (combinedPlaceSuggestions.isNotEmpty()) {
+                                            Surface(
                                                 modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                                verticalAlignment = Alignment.CenterVertically
+                                                shape = RoundedCornerShape(12.dp),
+                                                color = Color(0xFFF1F5F9),
+                                                border = BorderStroke(1.dp, PrimaryColor.copy(alpha = 0.15f))
                                             ) {
-                                                items(combinedPlaceSuggestions.take(20)) { placeName ->
-                                                    val isSelected = searchQuery.equals(placeName, ignoreCase = true)
-                                                    Surface(
-                                                        modifier = Modifier
-                                                            .clip(RoundedCornerShape(8.dp))
-                                                            .clickable {
-                                                                searchQuery = placeName
-                                                                onSearch(null, placeName, null, null)
-                                                            },
-                                                        color = if (isSelected) PrimaryColor else Color(0xFFEEF2FF),
-                                                        border = BorderStroke(1.dp, if (isSelected) PrimaryColor else Color(0xFFC7D2FE))
+                                                Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        verticalAlignment = Alignment.CenterVertically
                                                     ) {
-                                                        Row(
-                                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                                            verticalAlignment = Alignment.CenterVertically,
-                                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                                        ) {
-                                                            Icon(
-                                                                Icons.Default.LocationOn,
-                                                                null,
-                                                                tint = if (isSelected) Color.White else PrimaryColor,
-                                                                modifier = Modifier.size(13.dp)
-                                                            )
+                                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                            Icon(Icons.Default.LocationOn, null, tint = PrimaryColor, modifier = Modifier.size(14.dp))
                                                             Text(
-                                                                text = placeName,
-                                                                fontSize = 12.sp,
+                                                                "Maeneo yenye '${searchQuery}' (${combinedPlaceSuggestions.size}):",
+                                                                fontSize = 11.5.sp,
                                                                 fontWeight = FontWeight.Bold,
-                                                                color = if (isSelected) Color.White else PrimaryColor
+                                                                color = PrimaryColor
                                                             )
+                                                        }
+                                                        Text(
+                                                            "Futa",
+                                                            fontSize = 11.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = Color.Red,
+                                                            modifier = Modifier.clickable { searchQuery = "" }
+                                                        )
+                                                    }
+
+                                                    LazyRow(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        items(combinedPlaceSuggestions.take(20)) { placeName ->
+                                                            val isSelected = searchQuery.equals(placeName, ignoreCase = true)
+                                                            Surface(
+                                                                modifier = Modifier
+                                                                    .clip(RoundedCornerShape(8.dp))
+                                                                    .clickable {
+                                                                        searchQuery = placeName
+                                                                        onSearch(null, placeName, null, null)
+                                                                    },
+                                                                color = if (isSelected) PrimaryColor else Color.White,
+                                                                border = BorderStroke(1.dp, if (isSelected) PrimaryColor else Color(0xFFCBD5E1))
+                                                            ) {
+                                                                Row(
+                                                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                                                    verticalAlignment = Alignment.CenterVertically,
+                                                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                                ) {
+                                                                    Icon(
+                                                                        Icons.Default.LocationOn,
+                                                                        null,
+                                                                        tint = if (isSelected) Color.White else PrimaryColor,
+                                                                        modifier = Modifier.size(12.dp)
+                                                                    )
+                                                                    Text(
+                                                                        text = placeName,
+                                                                        fontSize = 11.5.sp,
+                                                                        fontWeight = FontWeight.Bold,
+                                                                        color = if (isSelected) Color.White else PrimaryColor
+                                                                    )
+                                                                }
+                                                            }
                                                         }
                                                     }
                                                 }
                                             }
                                         }
                                     }
-                                }
-                            }
 
-                            // Tanzania Quick TZS Budget Slang Filter Chips
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text("BAJETI YA HARAKA (TZS)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B), letterSpacing = 0.5.sp)
-                                    if (selectedBudgetSlang != null || selectedFeatureFilter != null || customMinPrice.isNotBlank() || customMaxPrice.isNotBlank() || customRequirement.isNotBlank() || selectedPropertyType != null) {
-                                        Text(
-                                            "Weka Upya (Reset All)",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = PrimaryColor,
-                                            modifier = Modifier.clickable {
-                                                selectedBudgetSlang = null
-                                                selectedFeatureFilter = null
-                                                customMinPrice = ""
-                                                customMaxPrice = ""
-                                                customRequirement = ""
-                                                selectedPropertyType = null
-                                            }
-                                        )
-                                    }
-                                }
+                                    HorizontalDivider(color = Color(0xFFF1F5F9))
 
-                                LazyRow(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    val budgetOptions = listOf(
-                                        null to "Zote",
-                                        "LAKI_1" to "Chini ya Laki 1",
-                                        "LAKI_1_2" to "Laki 1 - 2.5",
-                                        "LAKI_3_6" to "Laki 3 - 6",
-                                        "LAKI_7" to "Laki 7+"
-                                    )
-                                    items(budgetOptions) { (key, label) ->
-                                        val isSelected = selectedBudgetSlang == key
-                                        Surface(
-                                            shape = RoundedCornerShape(20.dp),
-                                            color = if (isSelected) PrimaryColor else Color.White,
-                                            border = BorderStroke(1.dp, if (isSelected) PrimaryColor else Color(0xFFCBD5E1)),
-                                            modifier = Modifier.clickable {
-                                                selectedBudgetSlang = if (isSelected) null else key
-                                            }
-                                        ) {
-                                            Text(
-                                                text = label,
-                                                fontSize = 12.sp,
-                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                                color = if (isSelected) Color.White else Color(0xFF334155),
-                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                                            )
-                                        }
-                                    }
-                                }
-
-                                // Tanzania Feature Quick Filters (Road, Flood Safe, Campus, Flexible Advance)
-                                LazyRow(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    val featureOptions = listOf(
-                                        Triple("LAMI", "Lami Tu", Icons.Default.DirectionsCar),
-                                        Triple("FLOOD_SAFE", "Salama Mafuriko", Icons.Default.Security),
-                                        Triple("CAMPUS", "Karibu na Chuo", Icons.Default.School),
-                                        Triple("MWEZI_1", "Mwezi kwa Mwezi", Icons.Default.CalendarToday)
-                                    )
-                                    items(featureOptions) { (key, label, icon) ->
-                                        val isSelected = selectedFeatureFilter == key
-                                        Surface(
-                                            shape = RoundedCornerShape(20.dp),
-                                            color = if (isSelected) Color(0xFF0F172A) else Color.White,
-                                            border = BorderStroke(1.dp, if (isSelected) Color(0xFF0F172A) else Color(0xFFCBD5E1)),
-                                            modifier = Modifier.clickable {
-                                                selectedFeatureFilter = if (isSelected) null else key
-                                            }
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(5.dp)
-                                            ) {
-                                                Icon(
-                                                    icon,
-                                                    contentDescription = label,
-                                                    tint = if (isSelected) Color.White else Color(0xFF475569),
-                                                    modifier = Modifier.size(14.dp)
-                                                )
-                                                Text(
-                                                    text = label,
-                                                    fontSize = 11.5.sp,
-                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                                    color = if (isSelected) Color.White else Color(0xFF475569)
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Freeform Custom Input Room: Type & Fill Whatever You Want (Custom Price & Requirements)
-                            Surface(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(14.dp),
-                                color = Color.White,
-                                border = BorderStroke(1.dp, Color(0xFFE2E8F0))
-                            ) {
-                                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable { showCustomFilterInputs = !showCustomFilterInputs },
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                            Icon(Icons.Default.Tune, null, tint = PrimaryColor, modifier = Modifier.size(18.dp))
-                                            Column {
-                                                Text("Weka Vigezo Vyako Mwenyewe (Type Custom Requirements)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
-                                                Text("Weka kiwango chako cha kodi au sifa unazotaka (Tiles, Jiko, Fensi, AC...)", fontSize = 11.sp, color = Color(0xFF64748B))
-                                            }
-                                        }
-                                        Icon(
-                                            if (showCustomFilterInputs) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                            null,
-                                            tint = PrimaryColor
-                                        )
-                                    }
-
-                                    if (showCustomFilterInputs) {
-                                        HorizontalDivider(color = Color(0xFFF1F5F9))
-
-                                        // Custom Min & Max Price Fields
-                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                            OutlinedTextField(
-                                                value = customMinPrice,
-                                                onValueChange = { customMinPrice = it.filter { ch -> ch.isDigit() } },
-                                                label = { Text("Kodi ya Chini (TZS)", fontSize = 11.sp) },
-                                                placeholder = { Text("mfano 80000", fontSize = 11.sp) },
-                                                modifier = Modifier.weight(1f),
-                                                singleLine = true,
-                                                shape = RoundedCornerShape(10.dp)
-                                            )
-
-                                            OutlinedTextField(
-                                                value = customMaxPrice,
-                                                onValueChange = { customMaxPrice = it.filter { ch -> ch.isDigit() } },
-                                                label = { Text("Kodi ya Juu (TZS)", fontSize = 11.sp) },
-                                                placeholder = { Text("mfano 350000", fontSize = 11.sp) },
-                                                modifier = Modifier.weight(1f),
-                                                singleLine = true,
-                                                shape = RoundedCornerShape(10.dp)
-                                            )
-                                        }
-
-                                        // Custom Freeform Requirement / Amenity text field
-                                        OutlinedTextField(
-                                            value = customRequirement,
-                                            onValueChange = { customRequirement = it },
-                                            label = { Text("Sifa au Vitu Unavyotaka (Custom Feature)", fontSize = 11.sp) },
-                                            placeholder = { Text("mfano: Tiles, Choo ndani, DAWASA, Gypsum, Ghorofani...", fontSize = 11.sp) },
+                                    // 2. Dedicated Section: BAJETI YA KODI (BUDGET)
+                                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Row(
                                             modifier = Modifier.fillMaxWidth(),
-                                            singleLine = true,
-                                            shape = RoundedCornerShape(10.dp)
-                                        )
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                Icon(Icons.Default.Payments, null, tint = Color(0xFF10B981), modifier = Modifier.size(15.dp))
+                                                Text(
+                                                    "BAJETI YA KODI (BUDGET TZS)",
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color(0xFF475569),
+                                                    letterSpacing = 0.5.sp
+                                                )
+                                            }
+                                            if (selectedBudgetSlang != null) {
+                                                Text(
+                                                    "Ondoa Bajeti",
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = PrimaryColor,
+                                                    modifier = Modifier.clickable { selectedBudgetSlang = null }
+                                                )
+                                            }
+                                        }
 
-                                        // Dynamic Property Types from Backend API
-                                        if (backendPropertyTypes.isNotEmpty()) {
-                                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                                Text("Aina ya Nyumba (Fetched from Backend):", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF475569))
-                                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                                    items(backendPropertyTypes) { type ->
-                                                        val isSel = selectedPropertyType == type
-                                                        FilterChip(
-                                                            selected = isSel,
-                                                            onClick = { selectedPropertyType = if (isSel) null else type },
-                                                            label = { Text(type, fontSize = 11.sp) }
+                                        LazyRow(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            val budgetOptions = listOf(
+                                                null to "Zote",
+                                                "LAKI_1" to "Chini ya Laki 1",
+                                                "LAKI_1_2" to "Laki 1 - 2.5",
+                                                "LAKI_3_6" to "Laki 3 - 6",
+                                                "LAKI_7" to "Laki 7+"
+                                            )
+                                            items(budgetOptions) { (key, label) ->
+                                                val isSelected = selectedBudgetSlang == key
+                                                Surface(
+                                                    shape = RoundedCornerShape(20.dp),
+                                                    color = if (isSelected) PrimaryColor else Color(0xFFF8FAFC),
+                                                    border = BorderStroke(1.dp, if (isSelected) PrimaryColor else Color(0xFFE2E8F0)),
+                                                    modifier = Modifier
+                                                        .pointerHoverIcon(PointerIcon.Hand)
+                                                        .clickable {
+                                                            selectedBudgetSlang = if (isSelected) null else key
+                                                        }
+                                                ) {
+                                                    Text(
+                                                        text = label,
+                                                        fontSize = 12.sp,
+                                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                        color = if (isSelected) Color.White else Color(0xFF334155),
+                                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // 3. Dedicated Section: SIFA NA MAZINGIRA (KEY HIGHLIGHTS)
+                                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                Icon(Icons.Default.Verified, null, tint = PrimaryColor, modifier = Modifier.size(15.dp))
+                                                Text(
+                                                    "SIFA NA MAZINGIRA (HIGHLIGHTS)",
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color(0xFF475569),
+                                                    letterSpacing = 0.5.sp
+                                                )
+                                            }
+                                            if (selectedFeatureFilter != null) {
+                                                Text(
+                                                    "Ondoa Sifa",
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = PrimaryColor,
+                                                    modifier = Modifier.clickable { selectedFeatureFilter = null }
+                                                )
+                                            }
+                                        }
+
+                                        LazyRow(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            val featureOptions = listOf(
+                                                Triple("LAMI", "Lami Tu", Icons.Default.DirectionsCar),
+                                                Triple("FLOOD_SAFE", "Salama Mafuriko", Icons.Default.Security),
+                                                Triple("CAMPUS", "Karibu na Chuo", Icons.Default.School),
+                                                Triple("MWEZI_1", "Mwezi kwa Mwezi", Icons.Default.CalendarToday)
+                                            )
+                                            items(featureOptions) { (key, label, icon) ->
+                                                val isSelected = selectedFeatureFilter == key
+                                                Surface(
+                                                    shape = RoundedCornerShape(20.dp),
+                                                    color = if (isSelected) Color(0xFF0F172A) else Color(0xFFF8FAFC),
+                                                    border = BorderStroke(1.dp, if (isSelected) Color(0xFF0F172A) else Color(0xFFE2E8F0)),
+                                                    modifier = Modifier
+                                                        .pointerHoverIcon(PointerIcon.Hand)
+                                                        .clickable {
+                                                            selectedFeatureFilter = if (isSelected) null else key
+                                                        }
+                                                ) {
+                                                    Row(
+                                                        modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp),
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                                    ) {
+                                                        Icon(
+                                                            icon,
+                                                            contentDescription = label,
+                                                            tint = if (isSelected) Color.White else Color(0xFF475569),
+                                                            modifier = Modifier.size(14.dp)
+                                                        )
+                                                        Text(
+                                                            text = label,
+                                                            fontSize = 11.5.sp,
+                                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                            color = if (isSelected) Color.White else Color(0xFF334155)
                                                         )
                                                     }
                                                 }
                                             }
                                         }
+                                    }
 
-                                        if (customMinPrice.isNotBlank() || customMaxPrice.isNotBlank() || customRequirement.isNotBlank() || selectedPropertyType != null) {
-                                            TextButton(
-                                                onClick = {
-                                                    customMinPrice = ""
-                                                    customMaxPrice = ""
-                                                    customRequirement = ""
-                                                    selectedPropertyType = null
-                                                },
-                                                modifier = Modifier.align(Alignment.End)
+                                    HorizontalDivider(color = Color(0xFFF1F5F9))
+
+                                    // 4. Dedicated Collapsible Section: VIGEZO VYA ZIADA (CUSTOM ADVANCED FILTERS)
+                                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        val activeCustomCount = (if (customMinPrice.isNotBlank()) 1 else 0) +
+                                                (if (customMaxPrice.isNotBlank()) 1 else 0) +
+                                                (if (customRequirement.isNotBlank()) 1 else 0) +
+                                                (if (selectedPropertyType != null) 1 else 0)
+
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .pointerHoverIcon(PointerIcon.Hand)
+                                                .clickable { showCustomFilterInputs = !showCustomFilterInputs },
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                Surface(
+                                                    color = PrimaryColor.copy(alpha = 0.08f),
+                                                    shape = CircleShape,
+                                                    modifier = Modifier.size(28.dp)
+                                                ) {
+                                                    Box(contentAlignment = Alignment.Center) {
+                                                        Icon(Icons.Default.Tune, null, tint = PrimaryColor, modifier = Modifier.size(15.dp))
+                                                    }
+                                                }
+                                                Column {
+                                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                        Text("Vigezo vya Ziada (Custom Filters)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                                                        if (activeCustomCount > 0) {
+                                                            Surface(
+                                                                color = Color(0xFFEEF2FF),
+                                                                shape = RoundedCornerShape(10.dp),
+                                                                border = BorderStroke(1.dp, PrimaryColor.copy(alpha = 0.3f))
+                                                            ) {
+                                                                Text(
+                                                                    "$activeCustomCount active",
+                                                                    fontSize = 10.sp,
+                                                                    fontWeight = FontWeight.Bold,
+                                                                    color = PrimaryColor,
+                                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                                )
+                                                            }
+                                                        }
+                                                    }
+                                                    Text("Weka kodi maalum au sifa (Tiles, Jiko, Fensi, AC, Choo Ndani...)", fontSize = 11.sp, color = Color(0xFF64748B))
+                                                }
+                                            }
+
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                if (selectedBudgetSlang != null || selectedFeatureFilter != null || activeCustomCount > 0 || searchQuery.isNotBlank()) {
+                                                    Text(
+                                                        "Futa Zote (Reset All)",
+                                                        fontSize = 11.5.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color(0xFFDC2626),
+                                                        modifier = Modifier
+                                                            .pointerHoverIcon(PointerIcon.Hand)
+                                                            .clickable {
+                                                                searchQuery = ""
+                                                                selectedBudgetSlang = null
+                                                                selectedFeatureFilter = null
+                                                                customMinPrice = ""
+                                                                customMaxPrice = ""
+                                                                customRequirement = ""
+                                                                selectedPropertyType = null
+                                                            }
+                                                    )
+                                                }
+                                                Icon(
+                                                    if (showCustomFilterInputs) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                                    null,
+                                                    tint = PrimaryColor
+                                                )
+                                            }
+                                        }
+
+                                        if (showCustomFilterInputs) {
+                                            Surface(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                shape = RoundedCornerShape(12.dp),
+                                                color = Color(0xFFF8FAFC),
+                                                border = BorderStroke(1.dp, Color(0xFFE2E8F0))
                                             ) {
-                                                Text("Futa Vigezo vya Ziada (Clear)", color = Color.Red, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                                    // Min & Max Price Fields
+                                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                                        OutlinedTextField(
+                                                            value = customMinPrice,
+                                                            onValueChange = { customMinPrice = it.filter { ch -> ch.isDigit() } },
+                                                            label = { Text("Kodi ya Chini (TZS)", fontSize = 11.sp) },
+                                                            placeholder = { Text("mfano 80,000", fontSize = 11.sp) },
+                                                            modifier = Modifier.weight(1f),
+                                                            singleLine = true,
+                                                            shape = RoundedCornerShape(10.dp),
+                                                            colors = OutlinedTextFieldDefaults.colors(
+                                                                focusedContainerColor = Color.White,
+                                                                unfocusedContainerColor = Color.White
+                                                            )
+                                                        )
+
+                                                        OutlinedTextField(
+                                                            value = customMaxPrice,
+                                                            onValueChange = { customMaxPrice = it.filter { ch -> ch.isDigit() } },
+                                                            label = { Text("Kodi ya Juu (TZS)", fontSize = 11.sp) },
+                                                            placeholder = { Text("mfano 350,000", fontSize = 11.sp) },
+                                                            modifier = Modifier.weight(1f),
+                                                            singleLine = true,
+                                                            shape = RoundedCornerShape(10.dp),
+                                                            colors = OutlinedTextFieldDefaults.colors(
+                                                                focusedContainerColor = Color.White,
+                                                                unfocusedContainerColor = Color.White
+                                                            )
+                                                        )
+                                                    }
+
+                                                    // Custom Freeform Requirement
+                                                    OutlinedTextField(
+                                                        value = customRequirement,
+                                                        onValueChange = { customRequirement = it },
+                                                        label = { Text("Sifa au Vitu Unavyotaka (Custom Feature)", fontSize = 11.sp) },
+                                                        placeholder = { Text("mfano: Tiles, Choo ndani, DAWASA, Gypsum, Ghorofani...", fontSize = 11.sp) },
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        singleLine = true,
+                                                        shape = RoundedCornerShape(10.dp),
+                                                        colors = OutlinedTextFieldDefaults.colors(
+                                                            focusedContainerColor = Color.White,
+                                                            unfocusedContainerColor = Color.White
+                                                        )
+                                                    )
+
+                                                    // Dynamic Property Types from Backend API
+                                                    if (backendPropertyTypes.isNotEmpty()) {
+                                                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                            Text("Aina ya Nyumba:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF475569))
+                                                            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                                items(backendPropertyTypes) { type ->
+                                                                    val isSel = selectedPropertyType == type
+                                                                    FilterChip(
+                                                                        selected = isSel,
+                                                                        onClick = { selectedPropertyType = if (isSel) null else type },
+                                                                        label = { Text(type, fontSize = 11.sp) }
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
                                             }
                                         }
                                     }
