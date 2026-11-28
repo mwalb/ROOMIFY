@@ -23,6 +23,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.io.IOException;
 import java.net.URI;
@@ -70,7 +71,7 @@ public class AuthController {
     }
 
     @PostMapping("/google")
-    public ResponseEntity<?> googleLogin(@RequestBody Map<String, String> request) {
+    public ResponseEntity<?> googleLogin(@RequestBody Map<String, String> request, HttpServletRequest httpRequest) {
         String idTokenString = request != null ? request.get("idToken") : null;
         if (idTokenString == null || idTokenString.isBlank()) {
             return ResponseEntity.badRequest().body(
@@ -92,7 +93,7 @@ public class AuthController {
                 );
             }
 
-            return processGoogleUser(profile.email, profile.name);
+            return processGoogleUser(profile.email, profile.name, httpRequest);
         } catch (Throwable e) {
             System.err.println("Google login failed: " + e.getClass().getName() + ": " + e.getMessage());
             e.printStackTrace();
@@ -272,9 +273,11 @@ public class AuthController {
         return null;
     }
 
-    private ResponseEntity<?> processGoogleUser(String email, String name) {
+    private ResponseEntity<?> processGoogleUser(String email, String name, HttpServletRequest httpRequest) {
+        boolean isNewUser = false;
         User user = findUserByEmail(email).orElse(null);
         if (user == null) {
+            isNewUser = true;
             // Auto-provision a tenant account on first Google sign-in so users don't hit "Authentication failed".
             user = new User();
             user.setEmail(email.trim());
@@ -313,6 +316,17 @@ public class AuthController {
         user.setRole(effectiveRole);
         user.setLastLoginAt(LocalDateTime.now());
         user = userRepository.saveAndFlush(user);
+
+        // If existing user signed in, send login notification
+        if (!isNewUser) {
+            try {
+                String clientIp = extractClientIp(httpRequest);
+                String userAgent = httpRequest != null ? httpRequest.getHeader("User-Agent") : "Google Sign-In";
+                notificationService.notifyUserLogin(user, clientIp, userAgent);
+            } catch (Throwable notifEx) {
+                System.err.println("Warning: Failed to dispatch Google login notification: " + notifEx.getMessage());
+            }
+        }
 
         String jwt = jwtUtil.generateToken(user.getEmail(), effectiveRole.name());
 
@@ -438,7 +452,9 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String, String> request) {
+    public ResponseEntity<Map<String, Object>> login(
+            @RequestBody Map<String, String> request,
+            HttpServletRequest httpRequest) {
         Map<String, Object> response = new HashMap<>();
 
         try {
@@ -473,6 +489,15 @@ public class AuthController {
             // Update last login
             user.setLastLoginAt(LocalDateTime.now());
             User updatedUser = userRepository.save(user);
+
+            // Dispatch login notification & alert email
+            try {
+                String clientIp = extractClientIp(httpRequest);
+                String userAgent = httpRequest != null ? httpRequest.getHeader("User-Agent") : "Web/Mobile App";
+                notificationService.notifyUserLogin(updatedUser, clientIp, userAgent);
+            } catch (Exception ex) {
+                System.err.println("Warning: Failed to dispatch login notification: " + ex.getMessage());
+            }
 
             // Generate token with role
             String token = jwtUtil.generateToken(updatedUser.getEmail(), updatedUser.getRole().name());
@@ -720,5 +745,14 @@ public class AuthController {
         user.setResetAttempts(0);
         userRepository.save(user);
         return ResponseEntity.ok(new ApiResponse<>(true, "Success", "Password reset successfully. You can now login."));
+    }
+
+    private String extractClientIp(HttpServletRequest request) {
+        if (request == null) return "Unknown";
+        String xf = request.getHeader("X-Forwarded-For");
+        if (xf != null && !xf.isBlank()) {
+            return xf.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 }

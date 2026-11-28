@@ -416,6 +416,26 @@ public class EmailService {
         );
     }
 
+    public String buildLoginAlertEmail(String userName, String ipAddress, String userAgent, String timestamp) {
+        return wrapInBrandedTemplate(
+                "Security Alert: New Sign-in to Your Account",
+                "Hello " + sanitize(userName) + ",",
+                """
+                <p>We detected a new sign-in to your <strong>ROOMIFY</strong> account.</p>
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px; margin: 20px 0;">
+                    <table style="width: 100%%; border-collapse: collapse; font-size: 14px;">
+                        <tr><td style="color: #64748b; padding: 6px 0;">Time:</td><td style="font-weight: 600; color: #0f172a;">%s</td></tr>
+                        <tr><td style="color: #64748b; padding: 6px 0;">IP Address:</td><td style="font-weight: 600; color: #0f172a;">%s</td></tr>
+                        <tr><td style="color: #64748b; padding: 6px 0;">Device / Browser:</td><td style="font-weight: 600; color: #0f172a;">%s</td></tr>
+                    </table>
+                </div>
+                <p style="color: #475569; font-size: 13px;">If this was you, you don't need to take any action. If you did not log in, please reset your password immediately to secure your account.</p>
+                """.formatted(sanitize(timestamp), sanitize(ipAddress != null ? ipAddress : "Unknown IP"), sanitize(userAgent != null ? userAgent : "Web / Mobile App")),
+                "Secure My Account",
+                "https://roomify.co.tz/forgot-password"
+        );
+    }
+
     // =========================================================================
     // HELPER: Master Email Container
     // =========================================================================

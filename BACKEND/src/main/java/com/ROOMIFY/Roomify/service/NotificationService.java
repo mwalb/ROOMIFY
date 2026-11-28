@@ -110,6 +110,40 @@ public class NotificationService {
     }
 
     @Async
+    public void notifyUserLogin(User user, String ipAddress, String userAgent) {
+        if (user == null || user.getEmail() == null) return;
+
+        try {
+            // 1. In-App Notification (so user sees their active session alert)
+            sendInAppAndPush(
+                    user.getId(),
+                    "New Sign-In Detected",
+                    "You recently signed in to your ROOMIFY account.",
+                    "SECURITY",
+                    user.getId()
+            );
+
+            // 2. Security Login Alert Email
+            String timestamp = java.time.LocalDateTime.now()
+                    .format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm:ss"));
+            String html = emailService.buildLoginAlertEmail(
+                    user.getName() != null ? user.getName() : "Roomify Member",
+                    ipAddress,
+                    userAgent,
+                    timestamp
+            );
+            emailService.sendEmail(
+                    user.getEmail(),
+                    user.getName(),
+                    "ROOMIFY - Security Alert: New Sign-in Detected",
+                    html
+            );
+        } catch (Exception e) {
+            System.err.println("❌ NotificationService: Error in notifyUserLogin: " + e.getMessage());
+        }
+    }
+
+    @Async
     public void sendPasswordResetCode(User user, String resetCode) {
         if (user == null || user.getEmail() == null) return;
 
