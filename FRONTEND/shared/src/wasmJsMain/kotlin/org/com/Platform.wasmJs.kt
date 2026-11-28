@@ -1,6 +1,7 @@
 package org.com
 
 import kotlin.js.ExperimentalWasmJsInterop
+import org.com.config.AppConfig
 
 class WasmPlatform: Platform {
     override val name: String = "Web with Kotlin/Wasm"
@@ -14,7 +15,18 @@ private external fun dateNow(): Double
 
 actual fun currentTimeMillis(): Long = dateNow().toLong()
 
+@OptIn(ExperimentalWasmJsInterop::class)
+@JsFun("""
+(url) => {
+    try {
+        window.roomifyRemoteApiBaseUrl = url;
+    } catch (e) {}
+}
+""")
+private external fun jsPublishRemoteApiBaseUrl(url: String)
+
 actual fun getPlatformBaseUrl(): String {
+    jsPublishRemoteApiBaseUrl(AppConfig.REMOTE_API_BASE_URL)
     val hostname = kotlinx.browser.window.location.hostname
     val isLocal = hostname == "localhost" ||
                   hostname == "127.0.0.1" ||
@@ -24,7 +36,7 @@ actual fun getPlatformBaseUrl(): String {
     return if (isLocal) {
         "http://$hostname:8080"
     } else {
-        "https://roomify-api3.fly.dev"
+        AppConfig.REMOTE_API_BASE_URL
     }
 }
 
