@@ -842,9 +842,6 @@ public class RoomController {
                 "Gym"
         ));
     }
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
-        }
-    }
 
     // ==================== DALALI (AGENT) ENDPOINTS ====================
 
