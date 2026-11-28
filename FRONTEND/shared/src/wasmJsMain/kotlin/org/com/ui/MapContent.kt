@@ -421,7 +421,7 @@ actual fun MapContent(
      * ========================================================
      */
 
-    LaunchedEffect(strings) {
+    LaunchedEffect(strings, localizationManager.currentLanguage) {
         val json = """
             {
                 "explore": "${strings.explore}",
@@ -441,7 +441,32 @@ actual fun MapContent(
                 "searchPlaceholder": "${strings.searchPlaceholder}",
                 "mySearches": "${strings.mySearches}",
                 "language": "${strings.language}",
-                "languageCode": "${localizationManager.currentLanguage.code}"
+                "languageCode": "${localizationManager.currentLanguage.code}",
+                "nearbyMe": "${strings.nearbyMe}",
+                "preferences": "${strings.preferences}",
+                "location": "${strings.location}",
+                "whatAreYouLookingFor": "${strings.whatAreYouLookingFor}",
+                "all": "${strings.all}",
+                "rooms": "${strings.rooms}",
+                "maxBudget": "${strings.maxBudget}",
+                "status": "${strings.status}",
+                "available": "${strings.available}",
+                "pending": "${strings.pending}",
+                "rented": "${strings.rented}",
+                "applyFilter": "${strings.applyFilter}",
+                "clearFilter": "${strings.clearFilter}",
+                "clearFilters": "${strings.clearFilters}",
+                "noPropertiesFound": "${strings.noPropertiesFound}",
+                "tryChangingFilters": "${strings.tryChangingFilters}",
+                "furnitureHub": "${strings.furnitureHub}",
+                "furnishYourSpace": "${strings.furnishYourSpace}",
+                "myDashboard": "${strings.myDashboard}",
+                "overview": "${strings.overview}",
+                "management": "${strings.management}",
+                "dalaliTools": "${strings.dalaliTools}",
+                "administration": "${strings.administration}",
+                "accountSettings": "${strings.accountSettings}",
+                "yourLivingSpacePartner": "${strings.yourLivingSpacePartner}"
             }
         """.trimIndent()
         updateSidebarLocalization(json)

@@ -758,6 +758,18 @@
                 font-weight: 400;
             }
 
+            .roomify-lang-toggle-wrapper {
+                margin-top: 14px;
+                display: inline-flex;
+                align-items: center;
+                background: rgba(255, 255, 255, 0.2);
+                border: 1px solid rgba(255, 255, 255, 0.35);
+                border-radius: 20px;
+                padding: 3px;
+                gap: 4px;
+                user-select: none;
+            }
+
             .roomify-sidebar-close {
                 position: absolute;
                 top: 20px;
@@ -2677,24 +2689,127 @@
         rented: "Rented",
         propertyDetails: "Property Details",
         contactOwner: "Contact Owner",
-        language: "Language"
+        language: "Language",
+        languageCode: "en",
+        nearbyMe: "Nearby me",
+        preferences: "Preferences",
+        location: "Location",
+        whatAreYouLookingFor: "What are you looking for?",
+        all: "All",
+        rooms: "Rooms",
+        maxBudget: "Max budget",
+        status: "Status",
+        applyFilter: "Apply Filter",
+        clearFilter: "Clear Filter",
+        clearFilters: "Clear Filters",
+        noPropertiesFound: "No properties found",
+        tryChangingFilters: "Try changing your location, property type, or budget filters.",
+        furnitureHub: "Furniture Hub",
+        furnishYourSpace: "Furnish Your Space",
+        myDashboard: "My Dashboard",
+        overview: "Overview",
+        management: "Management",
+        dalaliTools: "Dalali Tools",
+        administration: "Administration",
+        accountSettings: "Account Settings",
+        yourLivingSpacePartner: "Your living space partner"
     };
 
     window.roomifyUpdateLocalization = function(newLocalizationJson) {
         try {
             var newLoc = JSON.parse(newLocalizationJson);
             window.roomifyLocalization = Object.assign({}, window.roomifyLocalization, newLoc);
-            console.log("Roomify: Localization updated");
+            console.log("Roomify: Localization updated", window.roomifyLocalization.languageCode);
 
-            // Refresh sidebar if it's open
-            if (document.getElementById("roomify-sidebar")) {
-                window.roomifyUpdateUser(
-                    window.roomifyCurrentUser.role,
-                    window.roomifyCurrentUser.name,
-                    window.roomifyCurrentUser.email,
-                    window.roomifyCurrentUser.initials,
-                    window.roomifyCurrentUser.profileImage
-                );
+            // Re-render sidebar static texts if sidebar exists
+            var sidebar = document.getElementById("roomify-sidebar");
+            if (sidebar) {
+                var loc = window.roomifyLocalization;
+                var isSw = (loc.languageCode === "sw");
+
+                var taglineEl = sidebar.querySelector(".roomify-sidebar-tagline");
+                if (taglineEl) taglineEl.textContent = loc.yourLivingSpacePartner || "Your living space partner";
+
+                var nearMeEl = sidebar.querySelector("#use-my-location span");
+                if (nearMeEl) nearMeEl.textContent = loc.nearbyMe || "Nearby me";
+
+                var prefHeaderEl = sidebar.querySelector("#sidebar-pref-heading");
+                if (prefHeaderEl) prefHeaderEl.textContent = loc.preferences || "Preferences";
+
+                var locInput = sidebar.querySelector("#sidebar-search-input");
+                if (locInput) locInput.placeholder = (loc.location || "Location") + " (e.g. Mikocheni, Sinza, UDSM...)";
+
+                var lookingForEl = sidebar.querySelector("#sidebar-looking-for-heading");
+                if (lookingForEl) lookingForEl.textContent = loc.whatAreYouLookingFor || "What are you looking for?";
+
+                var budgetInput = sidebar.querySelector("#sidebar-budget-input");
+                if (budgetInput) budgetInput.placeholder = loc.maxBudget || "Max budget";
+
+                var statusHeadingEl = sidebar.querySelector("#sidebar-status-heading");
+                if (statusHeadingEl) statusHeadingEl.textContent = loc.status || "Status";
+
+                var applyBtnText = sidebar.querySelector("#sidebar-filter-btn span");
+                if (applyBtnText) applyBtnText.textContent = loc.applyFilter || "Apply Filter";
+
+                var clearBtnText = sidebar.querySelector("#sidebar-clear-btn span");
+                if (clearBtnText) clearBtnText.textContent = loc.clearFilter || "Clear";
+
+                var furnTitle = sidebar.querySelector("#sidebar-furniture-title");
+                if (furnTitle) furnTitle.textContent = loc.furnitureHub || "Furniture Hub";
+
+                var furnSubtitle = sidebar.querySelector("#sidebar-furniture-subtitle");
+                if (furnSubtitle) furnSubtitle.textContent = loc.furnishYourSpace || "Furnish Your Space";
+
+                var furnLabel = sidebar.querySelector("#sidebar-furniture-label");
+                if (furnLabel) furnLabel.textContent = (loc.furnitureHub || "FURNITURE HUB").toUpperCase();
+
+                // Update language toggle buttons visual state
+                var btnSw = sidebar.querySelector("#roomify-lang-btn-sw");
+                var btnEn = sidebar.querySelector("#roomify-lang-btn-en");
+                if (btnSw && btnEn) {
+                    if (isSw) {
+                        btnSw.style.background = "#ffffff";
+                        btnSw.style.color = "#1A237E";
+                        btnSw.style.fontWeight = "700";
+                        btnEn.style.background = "transparent";
+                        btnEn.style.color = "#ffffff";
+                        btnEn.style.fontWeight = "500";
+                    } else {
+                        btnEn.style.background = "#ffffff";
+                        btnEn.style.color = "#1A237E";
+                        btnEn.style.fontWeight = "700";
+                        btnSw.style.background = "transparent";
+                        btnSw.style.color = "#ffffff";
+                        btnSw.style.fontWeight = "500";
+                    }
+                }
+
+                // Update chip texts that have translations
+                var allTypeChip = sidebar.querySelector('#type-chips .roomify-chip[data-type="ALL"] span:last-child');
+                if (allTypeChip) allTypeChip.textContent = loc.all || "All";
+
+                var allStatusChip = sidebar.querySelector('#status-chips .roomify-chip[data-status="ALL"] span:last-child');
+                if (allStatusChip) allStatusChip.textContent = loc.all || "All";
+
+                var availStatusChip = sidebar.querySelector('#status-chips .roomify-chip[data-status="AVAILABLE"] span:last-child');
+                if (availStatusChip) availStatusChip.textContent = loc.available || "Available";
+
+                var pendingStatusChip = sidebar.querySelector('#status-chips .roomify-chip[data-status="PENDING"] span:last-child');
+                if (pendingStatusChip) pendingStatusChip.textContent = loc.pending || "Pending";
+
+                var rentedStatusChip = sidebar.querySelector('#status-chips .roomify-chip[data-status="RENTED"] span:last-child');
+                if (rentedStatusChip) rentedStatusChip.textContent = loc.rented || "Rented";
+
+                // Refresh user role dynamic section & footer
+                if (window.roomifyCurrentUser) {
+                    window.roomifyUpdateUser(
+                        window.roomifyCurrentUser.role,
+                        window.roomifyCurrentUser.name,
+                        window.roomifyCurrentUser.email,
+                        window.roomifyCurrentUser.initials,
+                        window.roomifyCurrentUser.profileImage
+                    );
+                }
             }
 
             // Refresh search placeholder
@@ -2724,10 +2839,26 @@
         sidebar.id = "roomify-sidebar";
         sidebar.className = "roomify-sidebar";
 
+        var loc = window.roomifyLocalization || {};
+        var isSw = (loc.languageCode === "sw");
+
         sidebar.innerHTML = `
             <div class="roomify-sidebar-header">
                 <div class="roomify-sidebar-brand">Roomify</div>
-                <div class="roomify-sidebar-tagline">Your living space partner</div>
+                <div class="roomify-sidebar-tagline">\${loc.yourLivingSpacePartner || "Your living space partner"}</div>
+
+                <!-- Language Selector Toggle in Map Sidebar Header -->
+                <div class="roomify-lang-toggle-wrapper" style="margin-top: 12px; display: inline-flex; align-items: center; background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 20px; padding: 3px; gap: 4px;">
+                    <div id="roomify-lang-btn-sw" onclick="window.handleLanguageChange('sw')" style="display: flex; align-items: center; gap: 4px; padding: 4px 12px; border-radius: 16px; cursor: pointer; transition: all 0.2s ease; \${isSw ? 'background:#ffffff; color:#1A237E; font-weight:700;' : 'background:transparent; color:#ffffff; font-weight:500;'} font-size: 12px;">
+                        <span>🇹🇿</span>
+                        <span>Kiswahili</span>
+                    </div>
+                    <div id="roomify-lang-btn-en" onclick="window.handleLanguageChange('en')" style="display: flex; align-items: center; gap: 4px; padding: 4px 12px; border-radius: 16px; cursor: pointer; transition: all 0.2s ease; \${!isSw ? 'background:#ffffff; color:#1A237E; font-weight:700;' : 'background:transparent; color:#ffffff; font-weight:500;'} font-size: 12px;">
+                        <span>🇬🇧</span>
+                        <span>English</span>
+                    </div>
+                </div>
+
                 <div class="roomify-sidebar-close" onclick="window.roomifyCloseSidebar()">✕</div>
             </div>
 
@@ -2735,25 +2866,25 @@
                 <!-- 1. Nearby Me Button at the Top with Visible Border -->
                 <div class="roomify-sidebar-section" style="margin-bottom: 20px;">
                     <div class="roomify-location-btn" id="use-my-location" style="border: 1.5px solid #1A237E; border-radius: 12px; background: #ffffff; padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; color: #1A237E; font-weight: 700;">
-                        <span>Nearby me</span>
+                        <span>\${loc.nearbyMe || "Nearby me"}</span>
                     </div>
                 </div>
 
                 <!-- 2. Preferences Card with Visible Outer Border -->
                 <div class="roomify-sidebar-section" style="margin-bottom: 20px;">
                     <div style="border: 1px solid #CBD5E1; border-radius: 20px; padding: 20px; background: #ffffff;">
-                        <div style="font-size: 16px; font-weight: bold; color: #111827; margin-bottom: 16px;">Preferences</div>
+                        <div id="sidebar-pref-heading" style="font-size: 16px; font-weight: bold; color: #111827; margin-bottom: 16px;">\${loc.preferences || "Preferences"}</div>
 
-                        <!-- Location Field (Placeholder "Location", no separate heading above) -->
+                        <!-- Location Field -->
                         <div id="sidebar-search-wrapper" style="margin-bottom: 16px; position: relative;">
-                            <input type="text" id="sidebar-search-input" autocomplete="off" placeholder="Location (e.g. Mikocheni, Sinza, UDSM...)" style="width: 100%; height: 48px; border: 1px solid #CBD5E1; border-radius: 14px; padding: 0 14px; outline: none; font-size: 14px; background: #ffffff;">
+                            <input type="text" id="sidebar-search-input" autocomplete="off" placeholder="\${(loc.location || 'Location')} (e.g. Mikocheni, Sinza, UDSM...)" style="width: 100%; height: 48px; border: 1px solid #CBD5E1; border-radius: 14px; padding: 0 14px; outline: none; font-size: 14px; background: #ffffff;">
                             <div id="sidebar-autocomplete-dropdown" class="roomify-autocomplete-dropdown" style="max-height: 300px;"></div>
                         </div>
 
                         <!-- What are you looking for? -->
-                        <div style="font-size: 13px; font-weight: 700; color: #1E293B; margin-bottom: 8px;">What are you looking for?</div>
+                        <div id="sidebar-looking-for-heading" style="font-size: 13px; font-weight: 700; color: #1E293B; margin-bottom: 8px;">\${loc.whatAreYouLookingFor || "What are you looking for?"}</div>
                         <div class="roomify-chip-group" id="type-chips" style="display: flex; gap: 8px; overflow-x: auto; margin-bottom: 16px; padding-bottom: 4px;">
-                            <div class="roomify-chip active" data-type="ALL"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>All</span></div>
+                            <div class="roomify-chip active" data-type="ALL"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>\${loc.all || "All"}</span></div>
                             <div class="roomify-chip" data-type="Room"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>Room</span></div>
                             <div class="roomify-chip" data-type="Apartment"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>Apartment</span></div>
                             <div class="roomify-chip" data-type="Studio"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>Studio</span></div>
@@ -2761,43 +2892,61 @@
                             <div class="roomify-chip" data-type="Office"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>Office</span></div>
                         </div>
 
-                        <!-- Max Budget Field (Placeholder "Max budget", no separate heading above) -->
+                        <!-- Max Budget Field -->
                         <div style="margin-bottom: 16px;">
-                            <input type="text" id="sidebar-budget-input" placeholder="Max budget" style="width: 100%; height: 48px; border: 1.5px solid #CBD5E1; border-radius: 14px; padding: 0 14px; outline: none; font-size: 14px; background: #ffffff; color: #0F172A; font-weight: 600;">
+                            <input type="text" id="sidebar-budget-input" placeholder="\${loc.maxBudget || 'Max budget'}" style="width: 100%; height: 48px; border: 1.5px solid #CBD5E1; border-radius: 14px; padding: 0 14px; outline: none; font-size: 14px; background: #ffffff; color: #0F172A; font-weight: 600;">
                         </div>
 
                         <!-- Status Section inside Preferences card -->
-                        <div style="font-size: 13px; font-weight: 700; color: #1E293B; margin-bottom: 8px;">Status</div>
+                        <div id="sidebar-status-heading" style="font-size: 13px; font-weight: 700; color: #1E293B; margin-bottom: 8px;">\${loc.status || "Status"}</div>
                         <div class="roomify-chip-group" id="status-chips" style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px;">
-                            <div class="roomify-chip" data-status="ALL"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>All</span></div>
-                            <div class="roomify-chip active" data-status="AVAILABLE"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>Available</span></div>
-                            <div class="roomify-chip" data-status="PENDING"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>Pending</span></div>
-                            <div class="roomify-chip" data-status="RENTED"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>Rented</span></div>
+                            <div class="roomify-chip" data-status="ALL"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>\${loc.all || "All"}</span></div>
+                            <div class="roomify-chip active" data-status="AVAILABLE"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>\${loc.available || "Available"}</span></div>
+                            <div class="roomify-chip" data-status="PENDING"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>\${loc.pending || "Pending"}</span></div>
+                            <div class="roomify-chip" data-status="RENTED"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>\${loc.rented || "Rented"}</span></div>
                         </div>
 
                         <!-- APPLY FILTER & CLEAR FILTER Buttons -->
                         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                             <div id="sidebar-filter-btn" style="flex: 1; min-width: 120px; display: flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(135deg, #1A237E, #283593); color: white; border-radius: 14px; height: 48px; font-weight: 700; cursor: pointer; font-size: 13.5px; letter-spacing: 0.5px; box-shadow: 0 4px 14px rgba(26, 35, 126, 0.35); transition: all 0.2s ease;">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
-                                <span>Apply Filter</span>
+                                <span>\${loc.applyFilter || "Apply Filter"}</span>
                             </div>
                             <div id="sidebar-clear-btn" onclick="window.roomifyClearSidebarFilters()" style="flex: 1; min-width: 110px; display: flex; align-items: center; justify-content: center; gap: 6px; background: #ffffff; color: #475569; border: 1.5px solid #CBD5E1; border-radius: 14px; height: 48px; font-weight: 700; cursor: pointer; font-size: 13.5px; letter-spacing: 0.5px; transition: all 0.2s ease;">
-                                <span>Clear</span>
+                                <span>\${loc.clearFilter || "Clear"}</span>
                             </div>
                         </div>
 
                         <!-- NO RESULTS CONTAINER -->
                         <div id="sidebar-no-results" style="display: none; padding: 16px; background: #FEF2F2; border: 1px solid #FCA5A5; border-radius: 14px; text-align: center; margin-top: 12px;">
-                            <div style="font-size: 14px; font-weight: 700; color: #991B1B; margin-bottom: 4px;">No properties found</div>
-                            <div style="font-size: 12px; color: #7F1D1D; margin-bottom: 12px; line-height: 1.4;">Try changing your location, property type, or budget filters.</div>
-                            <div id="sidebar-clear-filters-btn" onclick="window.roomifyClearSidebarFilters()" style="display: inline-block; padding: 8px 16px; background: #DC2626; color: white; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer;">Clear Filters</div>
+                            <div style="font-size: 14px; font-weight: 700; color: #991B1B; margin-bottom: 4px;">\${loc.noPropertiesFound || "No properties found"}</div>
+                            <div style="font-size: 12px; color: #7F1D1D; margin-bottom: 12px; line-height: 1.4;">\${loc.tryChangingFilters || "Try changing your location, property type, or budget filters."}</div>
+                            <div id="sidebar-clear-filters-btn" onclick="window.roomifyClearSidebarFilters()" style="display: inline-block; padding: 8px 16px; background: #DC2626; color: white; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer;">\${loc.clearFilters || "Clear Filters"}</div>
                         </div>
                     </div>
                 </div>
 
                 <!-- 3. Explore Furniture -->
                 <div class="roomify-sidebar-section" style="margin-bottom: 20px;">
-                    <div class="roomify-sidebar-label" style="font-size: 11px; font-weight: bold; color: #374151; letter-spacing: 1px; margin-bottom: 8px;">EXPLORE FURNITURE</div>
+                    <div id="sidebar-furniture-label" class="roomify-sidebar-label" style="font-size: 11px; font-weight: bold; color: #374151; letter-spacing: 1px; margin-bottom: 8px;">\${(loc.furnitureHub || "EXPLORE FURNITURE").toUpperCase()}</div>
+                    <div class="roomify-furniture-card" data-roomify-menu="furniture_choice" style="display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: #E8EAF6; border-radius: 16px; border: 1px solid #C7D2FE; cursor: pointer;">
+                        <span style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 12px; background: #1A237E; color: white;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 9V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v3"/><path d="M3 16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v5z"/><line x1="6" y1="18" x2="6" y2="21"/><line x1="18" y1="18" x2="18" y2="21"/></svg>
+                        </span>
+                        <div>
+                            <div id="sidebar-furniture-title" style="font-weight: 700; color: #1A237E; font-size: 15px;">\${loc.furnitureHub || "Furniture Hub"}</div>
+                            <div id="sidebar-furniture-subtitle" style="font-size: 12px; color: #283593; font-weight: 600;">\${loc.furnishYourSpace || "Furnish Your Space"}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="dynamic-menu-items"></div>
+            </div>
+
+            <div class="roomify-sidebar-footer" id="sidebar-footer-content">
+                <!-- Login / Register -->
+            </div>
+        `;
                     <div class="roomify-furniture-card" data-roomify-menu="furniture_choice" style="display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: #E8EAF6; border-radius: 16px; border: 1px solid #C7D2FE; cursor: pointer;">
                         <span style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 12px; background: #1A237E; color: white;">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 9V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v3"/><path d="M3 16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v5z"/><line x1="6" y1="18" x2="6" y2="21"/><line x1="18" y1="18" x2="18" y2="21"/></svg>
@@ -3338,7 +3487,7 @@
 
         if (!dynamicBody || !footerContent) return;
 
-        var loc = window.roomifyLocalization;
+        var loc = window.roomifyLocalization || {};
         var bodyHtml = "";
 
         const upperRole = (role || "").toUpperCase();
@@ -3346,40 +3495,40 @@
         if (upperRole === "TENANT") {
             bodyHtml += `
                 <div class="roomify-sidebar-section">
-                    <div class="roomify-sidebar-label">My Dashboard</div>
+                    <div class="roomify-sidebar-label">\${loc.myDashboard || "My Dashboard"}</div>
                     <div class="roomify-chip-group">
-                        <div class="roomify-chip" data-roomify-menu="tenant">Overview</div>
-                        <div class="roomify-chip" data-roomify-menu="saved">Favourites</div>
-                        <div class="roomify-chip" data-roomify-menu="bookings">My Bookings</div>
-                        <div class="roomify-chip" data-roomify-menu="messages">Messages</div>
+                        <div class="roomify-chip" data-roomify-menu="tenant">\${loc.overview || "Overview"}</div>
+                        <div class="roomify-chip" data-roomify-menu="saved">\${loc.savedRooms || "Favourites"}</div>
+                        <div class="roomify-chip" data-roomify-menu="bookings">\${loc.myBookings || "My Bookings"}</div>
+                        <div class="roomify-chip" data-roomify-menu="messages">\${loc.messages || "Messages"}</div>
                     </div>
                 </div>
             `;
         } else if (upperRole === "OWNER") {
             bodyHtml += `
                 <div class="roomify-sidebar-section">
-                    <div class="roomify-sidebar-label">Management</div>
+                    <div class="roomify-sidebar-label">\${loc.management || "Management"}</div>
                     <div class="roomify-chip-group">
-                        <div class="roomify-chip" data-roomify-menu="ownerdashboard">Dashboard</div>
-                        <div class="roomify-chip" data-roomify-menu="postroom">Post a Room</div>
+                        <div class="roomify-chip" data-roomify-menu="ownerdashboard">\${loc.dashboard || "Dashboard"}</div>
+                        <div class="roomify-chip" data-roomify-menu="postroom">\${loc.postARoom || "Post a Room"}</div>
                     </div>
                 </div>
             `;
         } else if (upperRole === "DALALI") {
             bodyHtml += `
                 <div class="roomify-sidebar-section">
-                    <div class="roomify-sidebar-label">Dalali Tools</div>
+                    <div class="roomify-sidebar-label">\${loc.dalaliTools || "Dalali Tools"}</div>
                     <div class="roomify-chip-group">
-                        <div class="roomify-chip" data-roomify-menu="dalalidashboard">Dashboard</div>
+                        <div class="roomify-chip" data-roomify-menu="dalalidashboard">\${loc.dashboard || "Dashboard"}</div>
                     </div>
                 </div>
             `;
         } else if (upperRole === "ADMIN" || upperRole === "SUPER_ADMIN") {
              bodyHtml += `
                 <div class="roomify-sidebar-section">
-                    <div class="roomify-sidebar-label">Administration</div>
+                    <div class="roomify-sidebar-label">\${loc.administration || "Administration"}</div>
                     <div class="roomify-chip-group">
-                        <div class="roomify-chip" data-roomify-menu="admindashboard">Admin Panel</div>
+                        <div class="roomify-chip" data-roomify-menu="admindashboard">\${loc.adminPanel || "Admin Panel"}</div>
                     </div>
                 </div>
             `;
@@ -3394,30 +3543,30 @@
                     <span class="roomify-footer-icon">
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
                     </span>
-                    <span>Login / Register</span>
+                    <span>\${loc.loginRegister || "Login / Register"}</span>
                 </div>
             `;
         } else {
             var avatarImg = "";
             if (profileImage && profileImage.indexOf("profile/image") === -1) {
-                avatarImg = `<img src="${profileImage}" style="width:32px; height:32px; border-radius:8px; object-fit:cover; margin-right:12px;" />`;
+                avatarImg = `<img src="\${profileImage}" style="width:32px; height:32px; border-radius:8px; object-fit:cover; margin-right:12px;" />`;
             } else {
-                avatarImg = `<div style="width:32px; height:32px; border-radius:8px; background:#E8EAF6; color:#1A237E; display:flex; align-items:center; justify-content:center; font-weight:800; margin-right:12px;">${initials || 'U'}</div>`;
+                avatarImg = `<div style="width:32px; height:32px; border-radius:8px; background:#E8EAF6; color:#1A237E; display:flex; align-items:center; justify-content:center; font-weight:800; margin-right:12px;">\${initials || 'U'}</div>`;
             }
 
             footerContent.innerHTML = `
                 <div class="roomify-footer-item" data-roomify-menu="profile">
-                    ${avatarImg}
+                    \${avatarImg}
                     <div style="flex:1; min-width:0;">
-                        <div style="font-size:14px; color:#1A1A1A; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${name}</div>
-                        <div style="font-size:11px; color:#666;">Account Settings</div>
+                        <div style="font-size:14px; color:#1A1A1A; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">\${name}</div>
+                        <div style="font-size:11px; color:#666;">\${loc.accountSettings || "Account Settings"}</div>
                     </div>
                 </div>
                 <div class="roomify-footer-item" data-roomify-menu="logout" style="margin-top:12px; color:#D32F2F;">
                     <span class="roomify-footer-icon">
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
                     </span>
-                    <span>Logout</span>
+                    <span>\${loc.logout || "Logout"}</span>
                 </div>
             `;
         }
