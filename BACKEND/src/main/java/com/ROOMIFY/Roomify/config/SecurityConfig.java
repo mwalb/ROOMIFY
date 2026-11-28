@@ -90,6 +90,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH, "/api/rooms/**").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/rooms/**").authenticated()
 
+                        // Email action: 1-click accept/reject from landlord email without login
+                        .requestMatchers("/api/bookings/email-action").permitAll()
+
                         // Bookings require authentication
                         .requestMatchers("/api/bookings/**").authenticated()
 

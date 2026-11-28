@@ -438,10 +438,6 @@ class PostRoomViewModel(
                         throw Exception(result.message)
                     }
                 }
-                    } else {
-                        throw Exception(result.message)
-                    }
-                }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isSubmitting = false,

@@ -43,6 +43,12 @@ public class BookingController {
     @Autowired
     private com.ROOMIFY.Roomify.service.NotificationService notificationService;
 
+    @Autowired
+    private com.ROOMIFY.Roomify.service.EmailService emailService;
+
+    @Autowired(required = false)
+    private com.ROOMIFY.Roomify.service.RoomNotifier roomNotifier;
+
     @PostMapping
     public ResponseEntity<ApiResponse<BookingResponseDTO>> createBooking(@RequestBody BookingRequestDto bookingRequest) {
         try {
@@ -459,5 +465,188 @@ public class BookingController {
         }
 
         return dto;
+    }
+
+    // =========================================================================
+    // 1-Click Email Action for Landlord / Owner (Direct Accept/Decline via Email)
+    // =========================================================================
+
+    @GetMapping(value = "/email-action", produces = "text/html;charset=UTF-8")
+    public ResponseEntity<String> handleEmailAction(
+            @RequestParam Long bookingId,
+            @RequestParam String action,
+            @RequestParam(required = false) String token) {
+
+        if (bookingId == null || action == null) {
+            return ResponseEntity.badRequest().body(renderEmailActionResultPage(false, "Invalid Request", "Booking ID or action is missing.", null));
+        }
+
+        if (!emailService.isValidActionToken(bookingId, action, token)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(renderEmailActionResultPage(false, "Security Verification Failed", "Invalid or expired action link. Please log in to your dashboard to manage this booking.", null));
+        }
+
+        java.util.Optional<Booking> bookingOpt = bookingRepository.findById(bookingId);
+        if (bookingOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(renderEmailActionResultPage(false, "Booking Not Found", "The requested booking does not exist or may have been deleted.", null));
+        }
+
+        Booking booking = bookingOpt.get();
+        Room room = booking.getRoom();
+        String roomTitle = room != null ? room.getTitle() : "Property Listing";
+
+        if ("ACCEPT".equalsIgnoreCase(action)) {
+            if ("ACCEPTED".equalsIgnoreCase(booking.getStatus()) || "CONFIRMED".equalsIgnoreCase(booking.getStatus())) {
+                return ResponseEntity.ok(renderEmailActionResultPage(true, "Already Accepted", "This booking for '" + roomTitle + "' has already been accepted and confirmed.", roomTitle));
+            }
+
+            booking.setStatus("ACCEPTED");
+            booking.setUpdatedAt(LocalDateTime.now());
+            Booking savedBooking = bookingRepository.save(booking);
+
+            if (room != null) {
+                room.setStatus("RENTED");
+                room.setAvailable(false);
+                room.setRentedAt(LocalDateTime.now());
+                room.setUpdatedAt(LocalDateTime.now());
+                roomRepository.save(room);
+
+                // Reject other pending bookings for this room
+                List<Booking> otherBookings = bookingRepository.findByRoomId(room.getId());
+                for (Booking other : otherBookings) {
+                    if (!other.getId().equals(bookingId) && "PENDING".equals(other.getStatus())) {
+                        other.setStatus("REJECTED");
+                        other.setUpdatedAt(LocalDateTime.now());
+                        bookingRepository.save(other);
+                        try {
+                            notificationService.notifyBookingStatusUpdated(other, "REJECTED", "Property was booked by another tenant");
+                        } catch (Exception ignored) {}
+                    }
+                }
+
+                // Broadcast live update across all connected clients via WebSocket
+                if (roomNotifier != null) {
+                    try {
+                        roomNotifier.notifyRoomUpdate(room);
+                    } catch (Exception ignored) {}
+                }
+            }
+
+            try {
+                notificationService.notifyBookingStatusUpdated(savedBooking, "ACCEPTED", null);
+            } catch (Exception ex) {
+                System.err.println("Warning: Failed to dispatch acceptance notification: " + ex.getMessage());
+            }
+
+            return ResponseEntity.ok(renderEmailActionResultPage(true, "Booking Accepted! 🎉", "You have successfully accepted the booking for '" + roomTitle + "'. The tenant has been notified immediately via email and in-app notification, and the property is now marked as RENTED.", roomTitle));
+
+        } else if ("REJECT".equalsIgnoreCase(action)) {
+            booking.setStatus("REJECTED");
+            booking.setUpdatedAt(LocalDateTime.now());
+            Booking savedBooking = bookingRepository.save(booking);
+
+            try {
+                notificationService.notifyBookingStatusUpdated(savedBooking, "REJECTED", "Declined by property owner via email action");
+            } catch (Exception ex) {
+                System.err.println("Warning: Failed to dispatch rejection notification: " + ex.getMessage());
+            }
+
+            return ResponseEntity.ok(renderEmailActionResultPage(true, "Booking Request Declined", "You have declined this booking request. The listing remains available for other tenants.", roomTitle));
+        }
+
+        return ResponseEntity.badRequest().body(renderEmailActionResultPage(false, "Unknown Action", "Action '" + action + "' is not supported.", null));
+    }
+
+    private String renderEmailActionResultPage(boolean success, String title, String message, String propertyTitle) {
+        String statusColor = success ? "#10B981" : "#EF4444";
+        String statusBg = success ? "#ECFDF5" : "#FEF2F2";
+        String icon = success ? "&#10004;" : "&#10008;";
+
+        return """
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>%s - ROOMIFY</title>
+                <style>
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                        background: linear-gradient(135deg, #f0f4ff 0%%, #e2e8f0 100%%);
+                        margin: 0;
+                        padding: 24px;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        min-height: 100vh;
+                        box-sizing: border-box;
+                    }
+                    .card {
+                        background: #ffffff;
+                        max-width: 480px;
+                        width: 100%%;
+                        border-radius: 20px;
+                        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+                        padding: 36px 28px;
+                        text-align: center;
+                        border: 1px solid #e2e8f0;
+                    }
+                    .brand {
+                        font-size: 20px;
+                        font-weight: 900;
+                        color: #142170;
+                        letter-spacing: 1px;
+                        margin-bottom: 24px;
+                    }
+                    .icon-box {
+                        width: 64px;
+                        height: 64px;
+                        border-radius: 50%%;
+                        background: %s;
+                        color: %s;
+                        display: inline-flex;
+                        justify-content: center;
+                        align-items: center;
+                        font-size: 28px;
+                        margin-bottom: 20px;
+                    }
+                    h1 {
+                        font-size: 22px;
+                        font-weight: 800;
+                        color: #0f172a;
+                        margin: 0 0 12px 0;
+                    }
+                    p {
+                        font-size: 14px;
+                        color: #475569;
+                        line-height: 1.6;
+                        margin: 0 0 24px 0;
+                    }
+                    .btn {
+                        display: inline-block;
+                        background: #142170;
+                        color: #ffffff;
+                        text-decoration: none;
+                        padding: 12px 28px;
+                        border-radius: 10px;
+                        font-weight: 700;
+                        font-size: 14px;
+                        transition: background 0.2s;
+                    }
+                    .btn:hover {
+                        background: #1e3a8a;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="card">
+                    <div class="brand">ROOMIFY</div>
+                    <div class="icon-box">%s</div>
+                    <h1>%s</h1>
+                    <p>%s</p>
+                    <a href="https://roomify.co.tz" class="btn">Open Roomify App</a>
+                </div>
+            </body>
+            </html>
+        """.formatted(title, statusBg, statusColor, icon, title, message);
     }
 }

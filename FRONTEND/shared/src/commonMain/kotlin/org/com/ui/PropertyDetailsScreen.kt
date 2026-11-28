@@ -384,9 +384,13 @@ fun PropertyDetailsScreen(
                             )
                         }
 
-                        // Right Column: Action Card (weight = 0.44f)
+                        // Right Column: Action Card (weight = 0.44f, scrollable to prevent button clipping)
+                        val rightScrollState = rememberScrollState()
                         Column(
-                            modifier = Modifier.weight(0.44f),
+                            modifier = Modifier
+                                .weight(0.44f)
+                                .verticalScroll(rightScrollState)
+                                .padding(bottom = 24.dp),
                             verticalArrangement = Arrangement.spacedBy(20.dp)
                         ) {
                             Surface(
@@ -487,7 +491,35 @@ fun PropertyDetailsScreen(
                                         modifier = Modifier.padding(vertical = 14.dp)
                                     )
 
+                                    // Action Area: Primary Tenant vs Owner Actions (Immediately visible at top)
+                                    if (isOwnerView) {
+                                        Text("LISTING MANAGEMENT", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF94A3B8), letterSpacing = 0.8.sp)
+                                        Spacer(Modifier.height(10.dp))
+                                        OwnerManagementGrid(
+                                            room = room,
+                                            onEditProperty = onEditProperty,
+                                            onDeleteProperty = onDeleteProperty
+                                        )
+                                    } else {
+                                        Text("TENANT ACTIONS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF94A3B8), letterSpacing = 0.8.sp)
+                                        Spacer(Modifier.height(10.dp))
+                                        TenantActionButtons(
+                                            room = room,
+                                            currentUser = currentUser,
+                                            onBookNow = onBookNow,
+                                            onMessageOwner = onMessageOwner,
+                                            onCallOwner = onCallOwner,
+                                            onLoginRequired = onLoginRequired
+                                        )
+                                    }
+
+                                    Spacer(Modifier.height(18.dp))
+                                    HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+                                    Spacer(Modifier.height(14.dp))
+
                                     // Interactive Tools (AI Room Arranger & Show Route & Lease Agreement)
+                                    Text("PROPERTY TOOLS & CONTRACT", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF94A3B8), letterSpacing = 0.8.sp)
+                                    Spacer(Modifier.height(10.dp))
                                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                         Surface(
                                             modifier = Modifier
@@ -538,30 +570,6 @@ fun PropertyDetailsScreen(
                                             Spacer(Modifier.width(8.dp))
                                             Text("Tazama Mkataba wa Pango (Lease Agreement)", fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
                                         }
-                                    }
-
-                                    Spacer(Modifier.height(20.dp))
-
-                                    // Action Area: Tenant vs Owner
-                                    if (isOwnerView) {
-                                        Text("LISTING MANAGEMENT", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF94A3B8), letterSpacing = 0.8.sp)
-                                        Spacer(Modifier.height(10.dp))
-                                        OwnerManagementGrid(
-                                            room = room,
-                                            onEditProperty = onEditProperty,
-                                            onDeleteProperty = onDeleteProperty
-                                        )
-                                    } else {
-                                        Text("TENANT ACTIONS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF94A3B8), letterSpacing = 0.8.sp)
-                                        Spacer(Modifier.height(10.dp))
-                                        TenantActionButtons(
-                                            room = room,
-                                            currentUser = currentUser,
-                                            onBookNow = onBookNow,
-                                            onMessageOwner = onMessageOwner,
-                                            onCallOwner = onCallOwner,
-                                            onLoginRequired = onLoginRequired
-                                        )
                                     }
                                 }
                             }

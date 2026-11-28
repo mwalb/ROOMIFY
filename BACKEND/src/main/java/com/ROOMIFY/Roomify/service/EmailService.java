@@ -37,6 +37,12 @@ public class EmailService {
     @Value("${brevo.sender.name:ROOMIFY}")
     private String senderName;
 
+    @Value("${app.api.base-url:https://roomify-api3.fly.dev}")
+    private String apiBaseUrl;
+
+    @Value("${jwt.secret:defaultSecretKeyForRoomifyJwtSigningKeyMustBeLongEnough}")
+    private String jwtSecret;
+
     private final OkHttpClient httpClient = new OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
@@ -256,7 +262,57 @@ public class EmailService {
         );
     }
 
+    public String generateActionToken(Long bookingId, String action) {
+        if (bookingId == null || action == null) return "";
+        try {
+            String data = "roomify-booking-" + bookingId + "-" + action.trim().toUpperCase(Locale.ROOT);
+            javax.crypto.Mac mac = javax.crypto.Mac.getInstance("HmacSHA256");
+            javax.crypto.spec.SecretKeySpec secretKey = new javax.crypto.spec.SecretKeySpec(
+                    (jwtSecret != null ? jwtSecret : "roomifyDefaultKey").getBytes(java.nio.charset.StandardCharsets.UTF_8), "HmacSHA256");
+            mac.init(secretKey);
+            byte[] raw = mac.doFinal(data.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : raw) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.substring(0, 32);
+        } catch (Exception e) {
+            return Integer.toHexString((bookingId + "-" + action + "-" + jwtSecret).hashCode());
+        }
+    }
+
+    public boolean isValidActionToken(Long bookingId, String action, String token) {
+        if (bookingId == null || action == null || token == null) return false;
+        return token.trim().equalsIgnoreCase(generateActionToken(bookingId, action));
+    }
+
     public String buildBookingRequestEmail(String recipientName, String tenantName, String roomTitle, String startDate, String endDate, double totalAmount) {
+        return buildBookingRequestEmail(recipientName, tenantName, roomTitle, startDate, endDate, totalAmount, null);
+    }
+
+    public String buildBookingRequestEmail(String recipientName, String tenantName, String roomTitle, String startDate, String endDate, double totalAmount, Long bookingId) {
+        String actionButtonsHtml = "";
+        if (bookingId != null && bookingId > 0) {
+            String acceptToken = generateActionToken(bookingId, "ACCEPT");
+            String rejectToken = generateActionToken(bookingId, "REJECT");
+            String acceptUrl = apiBaseUrl + "/api/bookings/email-action?bookingId=" + bookingId + "&action=ACCEPT&token=" + acceptToken;
+            String rejectUrl = apiBaseUrl + "/api/bookings/email-action?bookingId=" + bookingId + "&action=REJECT&token=" + rejectToken;
+
+            actionButtonsHtml = """
+                <div style="text-align: center; margin: 28px 0 16px 0;">
+                    <a href="%s" style="display: inline-block; background-color: #10b981; color: #ffffff; text-decoration: none; padding: 13px 26px; border-radius: 8px; font-weight: 700; font-size: 14px; margin-right: 12px; margin-bottom: 8px;">
+                        &#10004; Accept Booking Directly
+                    </a>
+                    <a href="%s" style="display: inline-block; background-color: #ef4444; color: #ffffff; text-decoration: none; padding: 13px 22px; border-radius: 8px; font-weight: 600; font-size: 13px; margin-bottom: 8px;">
+                        &#10008; Decline
+                    </a>
+                </div>
+                <p style="color: #64748b; font-size: 12px; text-align: center; margin-bottom: 20px;">
+                    Clicking Accept will immediately confirm this booking, notify the tenant, and mark the room as rented across the platform.
+                </p>
+            """.formatted(acceptUrl, rejectUrl);
+        }
+
         return wrapInBrandedTemplate(
                 "New Booking Request Received",
                 "Hello " + sanitize(recipientName) + ",",
@@ -271,8 +327,9 @@ public class EmailService {
                         <tr><td style="color: #64748b; padding: 6px 0;">Total Value:</td><td style="font-weight: 700; color: #16a34a; font-size: 16px;">TSH %,.0f</td></tr>
                     </table>
                 </div>
-                <p>Please log in to your ROOMIFY Dashboard to review and accept or decline this booking request.</p>
-                """.formatted(sanitize(roomTitle), sanitize(tenantName), sanitize(startDate), sanitize(endDate), totalAmount),
+                %s
+                <p>You can also log in to your ROOMIFY Dashboard to review or chat with the tenant.</p>
+                """.formatted(sanitize(roomTitle), sanitize(tenantName), sanitize(startDate), sanitize(endDate), totalAmount, actionButtonsHtml),
                 "View Booking in Dashboard",
                 "https://roomify.co.tz/dashboard"
         );

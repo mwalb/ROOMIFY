@@ -251,7 +251,8 @@ public class NotificationService {
                             roomTitle,
                             startDateStr,
                             endDateStr,
-                            total
+                            total,
+                            booking.getId()
                     );
                     emailService.sendEmail(ownerEmail, ownerName, "New Booking Request: " + roomTitle, ownerHtml);
                 }
@@ -275,7 +276,8 @@ public class NotificationService {
                                 roomTitle,
                                 startDateStr,
                                 endDateStr,
-                                total
+                                total,
+                                booking.getId()
                         );
                         emailService.sendEmail(dalali.getEmail(), dalali.getName(), "New Managed Booking Request: " + roomTitle, dalaliHtml);
                     }
