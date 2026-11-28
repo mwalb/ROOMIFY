@@ -1,4 +1,4 @@
-app = 'roomifytz-api3'
+app = 'roomify-api3'
 primary_region = 'fra'
 
 [build]

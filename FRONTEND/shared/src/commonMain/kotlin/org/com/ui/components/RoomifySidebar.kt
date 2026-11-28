@@ -712,12 +712,32 @@ private fun SidebarHeader(onClose: () -> Unit) {
             .padding(top = 36.dp, bottom = 24.dp, start = 20.dp, end = 20.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = "Roomify",
-                color = Color.White,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Black
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .background(Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                        .border(1.dp, Color.White.copy(alpha = 0.4f), RoundedCornerShape(12.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.HomeWork,
+                        contentDescription = "Roomify Logo",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    text = "Roomify",
+                    color = Color.White,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Black
+                )
+            }
             Spacer(Modifier.height(4.dp))
             Text(
                 text = strings.yourLivingSpacePartner,

@@ -647,12 +647,23 @@ fun PropertyDetailsScreen(
                                         }
 
                                         // Escrow Explanation Text
-                                        Text(
-                                            "🛡️ 100% Tenant Money Back Guarantee: Pesa zako huhifadhiwa salama kwenye akaunti ya kati ya Roomify hadi utakapokagua nyumba na kuridhika siku ya kuingia.",
-                                            fontSize = 11.sp,
-                                            color = Color(0xFF475569),
-                                            lineHeight = 15.sp
-                                        )
+                                        Row(
+                                            verticalAlignment = Alignment.Top,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.VerifiedUser,
+                                                contentDescription = null,
+                                                tint = Color(0xFF0D9488),
+                                                modifier = Modifier.size(16.dp).padding(top = 1.dp)
+                                            )
+                                            Text(
+                                                "100% Tenant Money Back Guarantee: Pesa zako huhifadhiwa salama kwenye akaunti ya kati ya Roomify hadi utakapokagua nyumba na kuridhika siku ya kuingia.",
+                                                fontSize = 11.sp,
+                                                color = Color(0xFF475569),
+                                                lineHeight = 15.sp
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -892,7 +903,12 @@ fun PropertyDetailsScreen(
                                         shape = RoundedCornerShape(10.dp)
                                     ) {
                                         Box(contentAlignment = Alignment.Center) {
-                                            Text("💬", fontSize = 18.sp)
+                                            Icon(
+                                                Icons.Default.Chat,
+                                                contentDescription = "WhatsApp",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(20.dp)
+                                            )
                                         }
                                     }
 
@@ -1769,7 +1785,12 @@ private fun TenantActionButtons(
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366))
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("💬", fontSize = 16.sp)
+                Icon(
+                    Icons.Default.Chat,
+                    contentDescription = "WhatsApp",
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp)
+                )
                 Spacer(Modifier.width(8.dp))
                 Text("Chat on WhatsApp", fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, color = Color.White)
                 Spacer(Modifier.width(6.dp))

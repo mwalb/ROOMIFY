@@ -240,10 +240,21 @@ fun BookingScreen(
                                     shape = RoundedCornerShape(10.dp),
                                     color = if (bookingMode == "VIEWING") PrimaryColor else Color.Transparent
                                 ) {
-                                    Box(contentAlignment = Alignment.Center) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center,
+                                        modifier = Modifier.padding(horizontal = 6.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Visibility,
+                                            contentDescription = null,
+                                            tint = if (bookingMode == "VIEWING") Color.White else Color(0xFF475569),
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(Modifier.width(6.dp))
                                         Text(
-                                            "👀 Ombi la Ukaguzi (Free)",
-                                            fontSize = 12.sp,
+                                            "Ombi la Ukaguzi (Free)",
+                                            fontSize = 11.5.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = if (bookingMode == "VIEWING") Color.White else Color(0xFF475569)
                                         )
@@ -258,10 +269,21 @@ fun BookingScreen(
                                     shape = RoundedCornerShape(10.dp),
                                     color = if (bookingMode == "RESERVATION") PrimaryColor else Color.Transparent
                                 ) {
-                                    Box(contentAlignment = Alignment.Center) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center,
+                                        modifier = Modifier.padding(horizontal = 6.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Home,
+                                            contentDescription = null,
+                                            tint = if (bookingMode == "RESERVATION") Color.White else Color(0xFF475569),
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(Modifier.width(6.dp))
                                         Text(
-                                            "🏠 Weka Chumba (Reserve)",
-                                            fontSize = 12.sp,
+                                            "Weka Chumba (Reserve)",
+                                            fontSize = 11.5.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = if (bookingMode == "RESERVATION") Color.White else Color(0xFF475569)
                                         )
@@ -945,7 +967,12 @@ fun BookingScreen(
                                     shape = RoundedCornerShape(12.dp),
                                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366))
                                 ) {
-                                    Text("💬", fontSize = 16.sp)
+                                    Icon(
+                                        Icons.Default.Chat,
+                                        contentDescription = "WhatsApp",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(18.dp)
+                                    )
                                     Spacer(Modifier.width(8.dp))
                                     Text("Wasiliana na Mwenye Nyumba (WhatsApp)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
                                 }

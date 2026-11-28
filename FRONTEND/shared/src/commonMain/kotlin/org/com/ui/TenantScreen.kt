@@ -535,12 +535,12 @@ fun TenantScreen(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     val featureOptions = listOf(
-                                        "LAMI" to "🛣️ Lami Tu",
-                                        "FLOOD_SAFE" to "🛡️ Salama Mafuriko",
-                                        "CAMPUS" to "🎓 Karibu na Chuo",
-                                        "MWEZI_1" to "📅 Mwezi kwa Mwezi"
+                                        Triple("LAMI", "Lami Tu", Icons.Default.DirectionsCar),
+                                        Triple("FLOOD_SAFE", "Salama Mafuriko", Icons.Default.Security),
+                                        Triple("CAMPUS", "Karibu na Chuo", Icons.Default.School),
+                                        Triple("MWEZI_1", "Mwezi kwa Mwezi", Icons.Default.CalendarToday)
                                     )
-                                    items(featureOptions) { (key, label) ->
+                                    items(featureOptions) { (key, label, icon) ->
                                         val isSelected = selectedFeatureFilter == key
                                         Surface(
                                             shape = RoundedCornerShape(20.dp),
@@ -550,13 +550,24 @@ fun TenantScreen(
                                                 selectedFeatureFilter = if (isSelected) null else key
                                             }
                                         ) {
-                                            Text(
-                                                text = label,
-                                                fontSize = 11.5.sp,
-                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                                color = if (isSelected) Color.White else Color(0xFF475569),
-                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-                                            )
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                            ) {
+                                                Icon(
+                                                    icon,
+                                                    contentDescription = label,
+                                                    tint = if (isSelected) Color.White else Color(0xFF475569),
+                                                    modifier = Modifier.size(14.dp)
+                                                )
+                                                Text(
+                                                    text = label,
+                                                    fontSize = 11.5.sp,
+                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                    color = if (isSelected) Color.White else Color(0xFF475569)
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -1167,13 +1178,24 @@ private fun TenantPropertyCard(room: Room, onClick: () -> Unit) {
                             color = Color(0xFFECFDF5),
                             shape = RoundedCornerShape(4.dp)
                         ) {
-                            Text(
-                                "🛡️ Salama",
-                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.5.dp),
-                                fontSize = 8.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF065F46)
-                            )
+                            Row(
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Security,
+                                    contentDescription = null,
+                                    tint = Color(0xFF065F46),
+                                    modifier = Modifier.size(10.dp)
+                                )
+                                Text(
+                                    "Salama",
+                                    fontSize = 8.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF065F46)
+                                )
+                            }
                         }
                     }
                     if (!room.nearestCampus.isNullOrBlank()) {
@@ -1181,26 +1203,48 @@ private fun TenantPropertyCard(room: Room, onClick: () -> Unit) {
                             color = Color(0xFFEFF6FF),
                             shape = RoundedCornerShape(4.dp)
                         ) {
-                            Text(
-                                "🎓 ${room.nearestCampus}",
-                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.5.dp),
-                                fontSize = 8.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF1D4ED8)
-                            )
+                            Row(
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.School,
+                                    contentDescription = null,
+                                    tint = Color(0xFF1D4ED8),
+                                    modifier = Modifier.size(10.dp)
+                                )
+                                Text(
+                                    room.nearestCampus ?: "",
+                                    fontSize = 8.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF1D4ED8)
+                                )
+                            }
                         }
                     } else {
                         Surface(
                             color = Color(0xFFF8FAFC),
                             shape = RoundedCornerShape(4.dp)
                         ) {
-                            Text(
-                                room.roadConditionLabel,
-                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.5.dp),
-                                fontSize = 8.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF64748B)
-                            )
+                            Row(
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.DirectionsCar,
+                                    contentDescription = null,
+                                    tint = Color(0xFF64748B),
+                                    modifier = Modifier.size(10.dp)
+                                )
+                                Text(
+                                    room.roadConditionLabel,
+                                    fontSize = 8.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF64748B)
+                                )
+                            }
                         }
                     }
                 }
