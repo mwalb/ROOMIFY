@@ -1245,11 +1245,3 @@ private fun BookingTextField(
         textStyle = LocalTextStyle.current.copy(fontSize = 14.sp)
     )
 }
-
-private fun jsEncodeUri(str: String): String {
-    return str.replace(" ", "%20")
-        .replace("\n", "%0A")
-        .replace("'", "%27")
-        .replace("\"", "%22")
-        .replace("&", "%26")
-}
