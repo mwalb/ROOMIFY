@@ -758,6 +758,29 @@ public class RoomController {
             return ResponseEntity.ok(new ArrayList<>(areas));
         } catch (Exception e) {
             e.printStackTrace();
+            return ResponseEntity.ok(new ArrayList<>());
+        }
+    }
+
+    @GetMapping("/amenities")
+    @Transactional(readOnly = true)
+    public ResponseEntity<List<String>> getStandardAmenities() {
+        return ResponseEntity.ok(Arrays.asList(
+                "Maji ya DAWASA (24/7 Flow)",
+                "LUKU ya Kujitegemea (Private Meter)",
+                "Reserve Water Tank (Simtank)",
+                "WiFi",
+                "Parking ya Gari",
+                "Air Conditioning (AC)",
+                "Furnished",
+                "Security (Mlinzi / Fensi)",
+                "Balcony",
+                "Water Included",
+                "Electricity Included",
+                "Pool",
+                "Gym"
+        ));
+    }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }

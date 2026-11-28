@@ -75,11 +75,22 @@ public class PaymentController {
             }
         }
 
+        boolean isMobileMoney = provider != null && (
+                provider.equalsIgnoreCase("M-Pesa") ||
+                provider.equalsIgnoreCase("Tigo Pesa") ||
+                provider.equalsIgnoreCase("Airtel Money") ||
+                provider.equalsIgnoreCase("M-PESA") ||
+                provider.equalsIgnoreCase("TIGO_PESA") ||
+                provider.equalsIgnoreCase("AIRTEL_MONEY")
+        );
+
         String referenceNo = "ROOMIFY-TZ-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-        String status = isPayInHand ? "PENDING_CASH" : "SUCCESS";
+        String status = isPayInHand ? "PENDING_CASH" : (isMobileMoney ? "ESCROW_HELD" : "SUCCESS");
         String message = isPayInHand
                 ? "Ombi la malipo ya mkononi ya TZS " + amount.longValue() + " limerekodiwa. Utalipa fedha taslimu (Cash) kwa mwenye nyumba wakati wa kufika. Kumbukumbu: " + referenceNo
-                : "Malipo ya TZS " + amount.longValue() + " yamekamilika kikamilifu kupitia " + provider + ". Kumbukumbu: " + referenceNo;
+                : (isMobileMoney
+                    ? "STK Push imeanzishwa kwenda namba " + phone + ". Malipo ya TZS " + amount.longValue() + " yanahifadhiwa kwenye Roomify Escrow Account kwa usalama wa mpangaji. Kumbukumbu: " + referenceNo
+                    : "Malipo ya TZS " + amount.longValue() + " yamekamilika kikamilifu kupitia " + provider + ". Kumbukumbu: " + referenceNo);
 
         Payment payment = new Payment(
                 bookingId,
@@ -93,6 +104,9 @@ public class PaymentController {
                 status,
                 message
         );
+        if (ownerId != null) {
+            payment.setOwnerId(ownerId);
+        }
 
         Payment savedPayment = paymentRepository.save(payment);
 
@@ -121,6 +135,30 @@ public class PaymentController {
         }
 
         return ResponseEntity.ok(new ApiResponse<>(true, saved, "Cash payment confirmed successfully"));
+    }
+
+    @PutMapping("/{paymentId}/release-escrow")
+    public ResponseEntity<ApiResponse<Payment>> releaseEscrowToOwner(@PathVariable Long paymentId) {
+        Optional<Payment> paymentOpt = paymentRepository.findById(paymentId);
+        if (paymentOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Payment payment = paymentOpt.get();
+        payment.setStatus("SUCCESS");
+        payment.setMessage("Fedha za Escrow zimeachiliwa kwa mwenye nyumba baada ya mpangaji kukamilisha ukaguzi.");
+        payment.setUpdatedAt(LocalDateTime.now());
+        Payment saved = paymentRepository.save(payment);
+
+        if (payment.getBookingId() != null) {
+            bookingRepository.findById(payment.getBookingId()).ifPresent(b -> {
+                b.setStatus("CHECKED_IN");
+                b.setUpdatedAt(LocalDateTime.now());
+                bookingRepository.save(b);
+            });
+        }
+
+        return ResponseEntity.ok(new ApiResponse<>(true, saved, "Escrow funds released to host successfully"));
     }
 
     @GetMapping("/user/{userId}")

@@ -117,6 +117,24 @@ object RoomifyApi {
         }
     }
 
+    suspend fun getStandardAmenities(): List<String> {
+        return try {
+            ApiClient.get("rooms/amenities")
+        } catch (e: Exception) {
+            listOf(
+                "Maji ya DAWASA (24/7 Flow)",
+                "LUKU ya Kujitegemea (Private Meter)",
+                "Reserve Water Tank (Simtank)",
+                "WiFi",
+                "Parking ya Gari",
+                "Air Conditioning (AC)",
+                "Furnished",
+                "Security (Mlinzi / Fensi)",
+                "Balcony"
+            )
+        }
+    }
+
     // ============================================================
     // BOOKINGS
     // ============================================================
@@ -710,6 +728,14 @@ object RoomifyApi {
             ApiClient.put("payments/$paymentId/confirm-cash", Unit)
         } catch (e: Exception) {
             ApiResponse.failure(e.message ?: "Failed to confirm cash payment")
+        }
+    }
+
+    suspend fun releaseEscrow(paymentId: Long): ApiResponse<Payment> {
+        return try {
+            ApiClient.put("payments/$paymentId/release-escrow", Unit)
+        } catch (e: Exception) {
+            ApiResponse.failure(e.message ?: "Failed to release escrow payment")
         }
     }
 
