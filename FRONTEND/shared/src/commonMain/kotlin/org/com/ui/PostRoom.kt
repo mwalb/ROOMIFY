@@ -128,7 +128,21 @@ data class PropertyFormState(
 }
 
 private val propertyTypes = listOf("Apartment", "Hostel / Rooms", "Studio / Bedsitter", "Commercial / Mixed")
-private val amenitiesList = listOf("WiFi", "Parking", "Air Conditioning", "Furnished", "Water Included", "Electricity Included", "Security", "Balcony", "Pool", "Gym")
+private val amenitiesList = listOf(
+    "Maji ya DAWASA (24/7 Flow)",
+    "LUKU ya Kujitegemea (Private Meter)",
+    "Reserve Water Tank (Simtank)",
+    "WiFi",
+    "Parking ya Gari",
+    "Air Conditioning (AC)",
+    "Furnished",
+    "Security (Mlinzi / Fensi)",
+    "Balcony",
+    "Water Included",
+    "Electricity Included",
+    "Pool",
+    "Gym"
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

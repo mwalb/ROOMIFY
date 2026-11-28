@@ -363,6 +363,44 @@ fun DalaliDashboardScreen(
                     ) {
                         when (selectedTab) {
                             0 -> {
+                                // Broker Protection & Guarantee Banner
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    color = Color(0xFFEFF6FF),
+                                    shape = RoundedCornerShape(16.dp),
+                                    border = BorderStroke(1.2.dp, Color(0xFFBFDBFE))
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(16.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(44.dp)
+                                                .background(PrimaryColor, RoundedCornerShape(12.dp)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(Icons.Filled.VerifiedUser, null, tint = Color.White, modifier = Modifier.size(24.dp))
+                                        }
+                                        Spacer(Modifier.width(14.dp))
+                                        Column(Modifier.weight(1f)) {
+                                            Text(
+                                                "100% Guaranteed Broker Facilitation Fee (Malipo Salama)",
+                                                fontSize = 13.5.sp,
+                                                fontWeight = FontWeight.Black,
+                                                color = Color(0xFF1E3A8A)
+                                            )
+                                            Spacer(Modifier.height(3.dp))
+                                            Text(
+                                                "Kila mpangaji anayeweka booking hulipa ada yako ya udalali moja kwa moja kupitia mfumo. Hakuna kurukwa au kupoteza muda mtaani.",
+                                                fontSize = 11.5.sp,
+                                                color = Color(0xFF334155),
+                                                lineHeight = 16.sp
+                                            )
+                                        }
+                                    }
+                                }
+
                                 if (isMobile) {
                                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                         StatBox("Listings", "${properties.size}", Icons.Default.Business, Modifier.fillMaxWidth())

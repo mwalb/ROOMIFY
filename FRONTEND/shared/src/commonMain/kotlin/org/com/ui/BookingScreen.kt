@@ -528,12 +528,36 @@ fun BookingScreen(
                                 }
                             }
                         } else if (selectedPaymentMethod in listOf("M-Pesa", "Tigo Pesa", "Airtel Money")) {
-                            Spacer(Modifier.height(16.dp))
+                            Spacer(Modifier.height(14.dp))
+
+                            // STK Push / USSD Prompt Indicator & Escrow Protection Shield
+                            Surface(
+                                color = Color(0xFFEFF6FF),
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(1.dp, Color(0xFFBFDBFE)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Filled.Security, null, tint = Color(0xFF2563EB), modifier = Modifier.size(18.dp))
+                                        Spacer(Modifier.width(8.dp))
+                                        Text("Roomify Automated STK Push & Escrow Guard", fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, color = Color(0xFF1D4ED8))
+                                    }
+                                    Text(
+                                        "Mara baada ya kubonyeza kitufe hapa chini, simu yako itapokea ujumbe wa haraka (USSD Prompt) kuweka namba yako ya siri (PIN). Fedha zako zinalindwa na Escrow hadi utakapoingia chumbani.",
+                                        fontSize = 11.5.sp,
+                                        color = Color(0xFF334155),
+                                        lineHeight = 16.sp
+                                    )
+                                }
+                            }
+
+                            Spacer(Modifier.height(14.dp))
                             BookingTextField(
                                 value = paymentPhoneNumber,
                                 onValueChange = { paymentPhoneNumber = it },
-                                label = "$selectedPaymentMethod Mobile Phone Number",
-                                placeholder = "e.g. 0712345678",
+                                label = "$selectedPaymentMethod Mobile Phone Number (Namba ya Kupokea STK Push)",
+                                placeholder = "e.g. 0712345678 au 0754123456",
                                 singleLine = true
                             )
                         }

@@ -116,7 +116,7 @@ fun RoomifySidebar(
             modifier = Modifier.fillMaxSize().roomifyAmbientBackground(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 1. Header Section
+            // 1. Header Section with Language Switcher
             SidebarHeader(onClose = onClose)
             
             Column(
@@ -699,6 +699,8 @@ fun RoomifySidebar(
 @Composable
 private fun SidebarHeader(onClose: () -> Unit) {
     val strings = LocalRoomifyStrings.current
+    val localizationManager = org.com.i18n.LocalLocalizationManager.current
+    val currentLang = localizationManager.currentLanguage
 
     Box(
         modifier = Modifier
@@ -707,7 +709,7 @@ private fun SidebarHeader(onClose: () -> Unit) {
                 brush = Brush.verticalGradient(listOf(PrimaryColor, PrimaryColor.copy(alpha = 0.85f))),
                 shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
             )
-            .padding(top = 40.dp, bottom = 30.dp, start = 24.dp, end = 24.dp)
+            .padding(top = 36.dp, bottom = 24.dp, start = 20.dp, end = 20.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
@@ -720,18 +722,78 @@ private fun SidebarHeader(onClose: () -> Unit) {
             Text(
                 text = strings.yourLivingSpacePartner,
                 color = Color.White.copy(alpha = 0.95f),
-                fontSize = 14.sp,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.Medium
             )
+
+            Spacer(Modifier.height(14.dp))
+
+            // Interactive Language Selector Toggle (Swahili / English)
+            Surface(
+                color = Color.White.copy(alpha = 0.18f),
+                shape = RoundedCornerShape(20.dp),
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.35f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    val isSwahili = currentLang == org.com.i18n.Language.SWAHILI
+                    Surface(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(16.dp))
+                            .clickable { localizationManager.changeLanguage(org.com.i18n.Language.SWAHILI) },
+                        color = if (isSwahili) Color.White else Color.Transparent,
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text("🇹🇿", fontSize = 12.sp)
+                            Text(
+                                "Kiswahili",
+                                fontSize = 11.sp,
+                                fontWeight = if (isSwahili) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isSwahili) PrimaryColor else Color.White
+                            )
+                        }
+                    }
+
+                    Surface(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(16.dp))
+                            .clickable { localizationManager.changeLanguage(org.com.i18n.Language.ENGLISH) },
+                        color = if (!isSwahili) Color.White else Color.Transparent,
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text("🇬🇧", fontSize = 12.sp)
+                            Text(
+                                "English",
+                                fontSize = 11.sp,
+                                fontWeight = if (!isSwahili) FontWeight.Bold else FontWeight.Medium,
+                                color = if (!isSwahili) PrimaryColor else Color.White
+                            )
+                        }
+                    }
+                }
+            }
         }
         IconButton(
             onClick = onClose,
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .size(36.dp)
+                .size(34.dp)
                 .background(Color.White.copy(alpha = 0.2f), CircleShape)
         ) {
-            Text("✕", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text("✕", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
         }
     }
 }

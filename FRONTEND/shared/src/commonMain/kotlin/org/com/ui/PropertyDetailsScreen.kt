@@ -487,44 +487,93 @@ fun PropertyDetailsScreen(
                                 }
                             }
 
-                            // Owner Information Card
+                            // Owner / Landlord Verified Profile & Escrow Shield Card
                             if (!isOwnerView) {
                                 Surface(
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(18.dp),
                                     color = Color.White,
-                                    border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                                    shadowElevation = 3.dp
                                 ) {
-                                    Row(
-                                        modifier = Modifier.padding(16.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(44.dp)
-                                                .background(Color(0xFFEEF2FF), CircleShape),
-                                            contentAlignment = Alignment.Center
+                                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(46.dp)
+                                                    .background(Color(0xFFEEF2FF), CircleShape),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(Icons.Default.Person, null, tint = PrimaryColor, modifier = Modifier.size(26.dp))
+                                            }
+                                            Spacer(Modifier.width(12.dp))
+                                            Column(Modifier.weight(1f)) {
+                                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                    Text(room.ownerName ?: "Landlord / Host", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                                                    Icon(Icons.Filled.Verified, null, tint = Color(0xFF0284C7), modifier = Modifier.size(16.dp))
+                                                }
+                                                Text(if (room.isDirectByOwner) "Direct Property Owner" else "Certified Dalali Agent", fontSize = 12.sp, color = Color(0xFF64748B))
+                                            }
+                                            IconButton(
+                                                onClick = { onMessageOwner(room) },
+                                                modifier = Modifier.background(Color(0xFFEEF2FF), CircleShape)
+                                            ) {
+                                                Icon(Icons.AutoMirrored.Filled.Message, null, tint = PrimaryColor, modifier = Modifier.size(18.dp))
+                                            }
+                                            Spacer(Modifier.width(6.dp))
+                                            IconButton(
+                                                onClick = { onCallOwner(room) },
+                                                modifier = Modifier.background(Color(0xFFECFDF5), CircleShape)
+                                            ) {
+                                                Icon(Icons.Default.Call, null, tint = SuccessColor, modifier = Modifier.size(18.dp))
+                                            }
+                                        }
+
+                                        // Verification & Escrow Tenant Protection Badges
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
-                                            Icon(Icons.Default.Person, null, tint = PrimaryColor, modifier = Modifier.size(24.dp))
+                                            Surface(
+                                                color = Color(0xFFF0FDF4),
+                                                shape = RoundedCornerShape(8.dp),
+                                                border = BorderStroke(0.8.dp, Color(0xFFBBF7D0)),
+                                                modifier = Modifier.weight(1f)
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                ) {
+                                                    Icon(Icons.Filled.Badge, null, tint = Color(0xFF16A34A), modifier = Modifier.size(15.dp))
+                                                    Text("NIDA & ID Verified", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF15803D))
+                                                }
+                                            }
+
+                                            Surface(
+                                                color = Color(0xFFEFF6FF),
+                                                shape = RoundedCornerShape(8.dp),
+                                                border = BorderStroke(0.8.dp, Color(0xFFBFDBFE)),
+                                                modifier = Modifier.weight(1f)
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                ) {
+                                                    Icon(Icons.Filled.Shield, null, tint = Color(0xFF2563EB), modifier = Modifier.size(15.dp))
+                                                    Text("Roomify Escrow Guard", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1D4ED8))
+                                                }
+                                            }
                                         }
-                                        Spacer(Modifier.width(12.dp))
-                                        Column(Modifier.weight(1f)) {
-                                            Text(room.ownerName ?: "Landlord / Host", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
-                                            Text("Verified Property Manager", fontSize = 12.sp, color = Color(0xFF64748B))
-                                        }
-                                        IconButton(
-                                            onClick = { onMessageOwner(room) },
-                                            modifier = Modifier.background(Color(0xFFEEF2FF), CircleShape)
-                                        ) {
-                                            Icon(Icons.AutoMirrored.Filled.Message, null, tint = PrimaryColor, modifier = Modifier.size(18.dp))
-                                        }
-                                        Spacer(Modifier.width(6.dp))
-                                        IconButton(
-                                            onClick = { onCallOwner(room) },
-                                            modifier = Modifier.background(Color(0xFFECFDF5), CircleShape)
-                                        ) {
-                                            Icon(Icons.Default.Call, null, tint = SuccessColor, modifier = Modifier.size(18.dp))
-                                        }
+
+                                        // Escrow Explanation Text
+                                        Text(
+                                            "🛡️ 100% Tenant Money Back Guarantee: Pesa zako huhifadhiwa salama kwenye akaunti ya kati ya Roomify hadi utakapokagua nyumba na kuridhika siku ya kuingia.",
+                                            fontSize = 11.sp,
+                                            color = Color(0xFF475569),
+                                            lineHeight = 15.sp
+                                        )
                                     }
                                 }
                             }
@@ -737,19 +786,51 @@ fun PropertyDetailsScreen(
                                     Text("Edit Property", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                 }
                             } else {
-                                Button(
-                                    onClick = {
-                                        if (currentUser == null) {
-                                            onLoginRequired()
-                                        } else {
-                                            onBookNow(room)
-                                        }
-                                    },
-                                    modifier = Modifier.height(44.dp),
-                                    shape = RoundedCornerShape(10.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("Book / Request Viewing", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    // WhatsApp direct icon button on mobile bar
+                                    val rawPhone = room.contactPhone ?: "255712000000"
+                                    val cleanPhone = rawPhone.replace(Regex("[^0-9]"), "").let {
+                                        if (it.startsWith("0")) "255" + it.substring(1) else it
+                                    }
+                                    val waMessage = "Habari, nimeona nyumba yako ya '${room.title ?: "chumba"}' yenye kodi ${room.formattedPrice} kupitia Roomify App. Ningependa kufanya ukaguzi (viewing)."
+                                    val waUrl = "https://wa.me/$cleanPhone?text=${jsEncodeUri(waMessage)}"
+
+                                    Surface(
+                                        modifier = Modifier
+                                            .size(44.dp)
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .clickable {
+                                                try {
+                                                    uriHandler.openUri(waUrl)
+                                                } catch (e: Exception) {
+                                                    println("WhatsApp open error: ${e.message}")
+                                                }
+                                            },
+                                        color = Color(0xFF25D366),
+                                        shape = RoundedCornerShape(10.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text("💬", fontSize = 18.sp)
+                                        }
+                                    }
+
+                                    Button(
+                                        onClick = {
+                                            if (currentUser == null) {
+                                                onLoginRequired()
+                                            } else {
+                                                onBookNow(room)
+                                            }
+                                        },
+                                        modifier = Modifier.height(44.dp),
+                                        shape = RoundedCornerShape(10.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                                    ) {
+                                        Text("Book Viewing", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    }
                                 }
                             }
                         }
@@ -1409,6 +1490,8 @@ private fun TenantActionButtons(
     onCallOwner: (Room) -> Unit,
     onLoginRequired: () -> Unit
 ) {
+    val uriHandler = LocalUriHandler.current
+
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Button(
             onClick = {
@@ -1421,7 +1504,40 @@ private fun TenantActionButtons(
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
         ) {
+            Icon(Icons.Default.EventAvailable, null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
             Text("Book / Request Viewing", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        }
+
+        // WhatsApp Direct Chat Button (High-converting for Tanzania market)
+        val rawPhone = room.contactPhone ?: "255712000000"
+        val cleanPhone = rawPhone.replace(Regex("[^0-9]"), "").let {
+            if (it.startsWith("0")) "255" + it.substring(1) else it
+        }
+        val waMessage = "Habari, nimeona nyumba yako ya '${room.title ?: "chumba"}' yenye kodi ${room.formattedPrice} kupitia Roomify App. Ningependa kufanya ukaguzi (viewing)."
+        val waUrl = "https://wa.me/$cleanPhone?text=${jsEncodeUri(waMessage)}"
+
+        Button(
+            onClick = {
+                try {
+                    uriHandler.openUri(waUrl)
+                } catch (e: Exception) {
+                    println("WhatsApp launch error: ${e.message}")
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(44.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366))
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("💬", fontSize = 16.sp)
+                Spacer(Modifier.width(8.dp))
+                Text("Chat on WhatsApp", fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, color = Color.White)
+                Spacer(Modifier.width(6.dp))
+                Text("(Direct to Landlord/Dalali)", fontSize = 11.sp, color = Color.White.copy(alpha = 0.9f))
+            }
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1438,7 +1554,7 @@ private fun TenantActionButtons(
             ) {
                 Icon(Icons.AutoMirrored.Filled.Message, null, tint = PrimaryColor, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("Message", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PrimaryColor)
+                Text("In-App Chat", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryColor)
             }
 
             OutlinedButton(
@@ -1455,7 +1571,7 @@ private fun TenantActionButtons(
             ) {
                 Icon(Icons.Default.Call, null, tint = SuccessColor, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("Call Host", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = SuccessColor)
+                Text("Call Host", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = SuccessColor)
             }
         }
     }
@@ -1805,18 +1921,84 @@ private fun SectionTitleDetails(text: String) {
 }
 
 @Composable
-private fun NeighborhoodInsights() {
+private fun NeighborhoodInsights(room: Room? = null) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         color = Color(0xFFF8FAFC),
         border = BorderStroke(1.dp, Color(0xFFE2E8F0))
     ) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("NEIGHBORHOOD PULSE", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B), letterSpacing = 0.6.sp)
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                InsightItem(Icons.Default.Commute, "Transport", "2 min to bus station", Color(0xFF0284C7))
-                InsightItem(Icons.Default.School, "Schools", "3 nearby colleges", Color(0xFF7C3AED))
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "NEIGHBORHOOD & LIVING INSIGHTS (MAZINGIRA NA HUDUMA)",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Black,
+                    color = Color(0xFF475569),
+                    letterSpacing = 0.6.sp
+                )
+                Surface(
+                    color = Color(0xFFECFDF5),
+                    shape = RoundedCornerShape(6.dp),
+                    border = BorderStroke(0.8.dp, Color(0xFFA7F3D0))
+                ) {
+                    Text(
+                        "Verified by Roomify Agent",
+                        color = Color(0xFF047857),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+                    )
+                }
+            }
+
+            // Key Local Living Details: Water, Electricity, Transport, Flood-Free
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Box(modifier = Modifier.weight(1f)) {
+                    InsightItem(
+                        icon = Icons.Default.WaterDrop,
+                        title = "Maji (DAWASA)",
+                        subtitle = "Water tank & 24/7 Flow",
+                        color = Color(0xFF0284C7)
+                    )
+                }
+                Box(modifier = Modifier.weight(1f)) {
+                    InsightItem(
+                        icon = Icons.Default.ElectricBolt,
+                        title = "Umeme (LUKU)",
+                        subtitle = "Independent Private Meter",
+                        color = Color(0xFFD97706)
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Box(modifier = Modifier.weight(1f)) {
+                    InsightItem(
+                        icon = Icons.Default.DirectionsBus,
+                        title = "Usafiri & Mwendokasi",
+                        subtitle = "4 min walk to main road / DART",
+                        color = Color(0xFF0D9488)
+                    )
+                }
+                Box(modifier = Modifier.weight(1f)) {
+                    InsightItem(
+                        icon = Icons.Default.Shield,
+                        title = "Mvua & Mafuriko",
+                        subtitle = "Flood-Free Elevated Area",
+                        color = Color(0xFF059669)
+                    )
+                }
             }
         }
     }
@@ -1926,4 +2108,12 @@ private fun FlowRow(mainAxisSpacing: Dp, crossAxisSpacing: Dp, content: @Composa
         horizontalArrangement = Arrangement.spacedBy(mainAxisSpacing),
         verticalArrangement = Arrangement.spacedBy(crossAxisSpacing)
     ) { content() }
+}
+
+private fun jsEncodeUri(str: String): String {
+    return str.replace(" ", "%20")
+        .replace("\n", "%0A")
+        .replace("'", "%27")
+        .replace("\"", "%22")
+        .replace("&", "%26")
 }
