@@ -38,6 +38,7 @@ import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
 import org.com.model.Booking
 import org.com.model.Room
+import org.com.network.RoomifyApi
 import org.com.ui.components.roomifyAmbientBackground
 import org.com.ui.theme.RoomifyColors
 
@@ -66,6 +67,42 @@ fun TenantScreen(
     var searchQuery by remember { mutableStateOf("") }
     var selectedBudgetSlang by remember { mutableStateOf<String?>(null) }
     var selectedFeatureFilter by remember { mutableStateOf<String?>(null) }
+    var showCustomFilterInputs by remember { mutableStateOf(false) }
+    var customMinPrice by remember { mutableStateOf("") }
+    var customMaxPrice by remember { mutableStateOf("") }
+    var customRequirement by remember { mutableStateOf("") }
+
+    // Dynamic backend suggestions & metadata
+    var backendLocationSuggestions by remember { mutableStateOf<List<String>>(emptyList()) }
+    var backendPropertyTypes by remember { mutableStateOf<List<String>>(emptyList()) }
+    var selectedPropertyType by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) {
+        try {
+            val types = RoomifyApi.getPropertyTypes()
+            if (types.isNotEmpty()) {
+                backendPropertyTypes = types
+            }
+        } catch (e: Exception) {
+            // ignore
+        }
+    }
+
+    LaunchedEffect(searchQuery) {
+        val q = searchQuery.trim()
+        if (q.isNotEmpty()) {
+            try {
+                val suggestions = RoomifyApi.getLocationSuggestions(q)
+                if (suggestions.isNotEmpty()) {
+                    backendLocationSuggestions = suggestions
+                }
+            } catch (e: Exception) {
+                // ignore
+            }
+        } else {
+            backendLocationSuggestions = emptyList()
+        }
+    }
 
     BoxWithConstraints(
         modifier = Modifier
@@ -345,34 +382,88 @@ fun TenantScreen(
                                 singleLine = true
                             )
 
+                            // Quick Reload of Places: Instant display on very first letter (Local + Backend)
                             if (searchQuery.isNotBlank()) {
-                                val placeSuggestions = remember(searchQuery) {
-                                    PlaceSuggestionEngine.suggest(searchQuery).primary.take(5)
+                                val combinedPlaceSuggestions = remember(searchQuery, backendLocationSuggestions) {
+                                    val q = searchQuery.trim().lowercase()
+                                    val localSuggestions = PlaceSuggestionEngine.suggest(q).primary.map { it.name }
+                                    val list = LinkedHashSet<String>()
+                                    (backendLocationSuggestions + localSuggestions).filter { it.lowercase().startsWith(q) }.forEach { list.add(it) }
+                                    (backendLocationSuggestions + localSuggestions).filter { item ->
+                                        item.lowercase().split(Regex("[\\s,()\\-]+")).any { it.startsWith(q) }
+                                    }.forEach { list.add(it) }
+                                    (backendLocationSuggestions + localSuggestions).filter { it.lowercase().contains(q) }.forEach { list.add(it) }
+                                    list.toList()
                                 }
-                                if (placeSuggestions.isNotEmpty()) {
-                                    LazyRow(
+
+                                if (combinedPlaceSuggestions.isNotEmpty()) {
+                                    Surface(
                                         modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
+                                        shape = RoundedCornerShape(16.dp),
+                                        color = Color.White,
+                                        border = BorderStroke(1.dp, PrimaryColor.copy(alpha = 0.2f)),
+                                        shadowElevation = 3.dp
                                     ) {
-                                        items(placeSuggestions) { suggestion ->
-                                            Surface(
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(8.dp))
-                                                    .clickable {
-                                                        searchQuery = suggestion.name
-                                                        onSearch(null, suggestion.name, null, null)
-                                                    },
-                                                color = Color(0xFFEEF2FF),
-                                                border = BorderStroke(1.dp, Color(0xFFC7D2FE))
+                                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
                                             ) {
-                                                Row(
-                                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                                ) {
-                                                    Icon(Icons.Default.LocationOn, null, tint = PrimaryColor, modifier = Modifier.size(13.dp))
-                                                    Text(suggestion.name, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryColor)
+                                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                    Icon(Icons.Default.LocationOn, null, tint = PrimaryColor, modifier = Modifier.size(16.dp))
+                                                    Text(
+                                                        "Maeneo yenye herufi '${searchQuery}' (${combinedPlaceSuggestions.size}):",
+                                                        fontSize = 12.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = PrimaryColor
+                                                    )
+                                                }
+                                                Text(
+                                                    "Futa",
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color.Red,
+                                                    modifier = Modifier.clickable { searchQuery = "" }
+                                                )
+                                            }
+
+                                            LazyRow(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                items(combinedPlaceSuggestions.take(20)) { placeName ->
+                                                    val isSelected = searchQuery.equals(placeName, ignoreCase = true)
+                                                    Surface(
+                                                        modifier = Modifier
+                                                            .clip(RoundedCornerShape(8.dp))
+                                                            .clickable {
+                                                                searchQuery = placeName
+                                                                onSearch(null, placeName, null, null)
+                                                            },
+                                                        color = if (isSelected) PrimaryColor else Color(0xFFEEF2FF),
+                                                        border = BorderStroke(1.dp, if (isSelected) PrimaryColor else Color(0xFFC7D2FE))
+                                                    ) {
+                                                        Row(
+                                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                        ) {
+                                                            Icon(
+                                                                Icons.Default.LocationOn,
+                                                                null,
+                                                                tint = if (isSelected) Color.White else PrimaryColor,
+                                                                modifier = Modifier.size(13.dp)
+                                                            )
+                                                            Text(
+                                                                text = placeName,
+                                                                fontSize = 12.sp,
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = if (isSelected) Color.White else PrimaryColor
+                                                            )
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }
@@ -388,15 +479,19 @@ fun TenantScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text("BAJETI YA HARAKA (TZS)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B), letterSpacing = 0.5.sp)
-                                    if (selectedBudgetSlang != null || selectedFeatureFilter != null) {
+                                    if (selectedBudgetSlang != null || selectedFeatureFilter != null || customMinPrice.isNotBlank() || customMaxPrice.isNotBlank() || customRequirement.isNotBlank() || selectedPropertyType != null) {
                                         Text(
-                                            "Weka Upya (Reset)",
+                                            "Weka Upya (Reset All)",
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = PrimaryColor,
                                             modifier = Modifier.clickable {
                                                 selectedBudgetSlang = null
                                                 selectedFeatureFilter = null
+                                                customMinPrice = ""
+                                                customMaxPrice = ""
+                                                customRequirement = ""
+                                                selectedPropertyType = null
                                             }
                                         )
                                     }
@@ -467,6 +562,106 @@ fun TenantScreen(
                                 }
                             }
 
+                            // Freeform Custom Input Room: Type & Fill Whatever You Want (Custom Price & Requirements)
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(14.dp),
+                                color = Color.White,
+                                border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                            ) {
+                                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { showCustomFilterInputs = !showCustomFilterInputs },
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            Icon(Icons.Default.Tune, null, tint = PrimaryColor, modifier = Modifier.size(18.dp))
+                                            Column {
+                                                Text("Weka Vigezo Vyako Mwenyewe (Type Custom Requirements)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF0F172A))
+                                                Text("Weka kiwango chako cha kodi au sifa unazotaka (Tiles, Jiko, Fensi, AC...)", fontSize = 11.sp, color = Color(0xFF64748B))
+                                            }
+                                        }
+                                        Icon(
+                                            if (showCustomFilterInputs) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                            null,
+                                            tint = PrimaryColor
+                                        )
+                                    }
+
+                                    if (showCustomFilterInputs) {
+                                        HorizontalDivider(color = Color(0xFFF1F5F9))
+
+                                        // Custom Min & Max Price Fields
+                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                            OutlinedTextField(
+                                                value = customMinPrice,
+                                                onValueChange = { customMinPrice = it.filter { ch -> ch.isDigit() } },
+                                                label = { Text("Kodi ya Chini (TZS)", fontSize = 11.sp) },
+                                                placeholder = { Text("mfano 80000", fontSize = 11.sp) },
+                                                modifier = Modifier.weight(1f),
+                                                singleLine = true,
+                                                shape = RoundedCornerShape(10.dp)
+                                            )
+
+                                            OutlinedTextField(
+                                                value = customMaxPrice,
+                                                onValueChange = { customMaxPrice = it.filter { ch -> ch.isDigit() } },
+                                                label = { Text("Kodi ya Juu (TZS)", fontSize = 11.sp) },
+                                                placeholder = { Text("mfano 350000", fontSize = 11.sp) },
+                                                modifier = Modifier.weight(1f),
+                                                singleLine = true,
+                                                shape = RoundedCornerShape(10.dp)
+                                            )
+                                        }
+
+                                        // Custom Freeform Requirement / Amenity text field
+                                        OutlinedTextField(
+                                            value = customRequirement,
+                                            onValueChange = { customRequirement = it },
+                                            label = { Text("Sifa au Vitu Unavyotaka (Custom Feature)", fontSize = 11.sp) },
+                                            placeholder = { Text("mfano: Tiles, Choo ndani, DAWASA, Gypsum, Ghorofani...", fontSize = 11.sp) },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            singleLine = true,
+                                            shape = RoundedCornerShape(10.dp)
+                                        )
+
+                                        // Dynamic Property Types from Backend API
+                                        if (backendPropertyTypes.isNotEmpty()) {
+                                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                Text("Aina ya Nyumba (Fetched from Backend):", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF475569))
+                                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                    items(backendPropertyTypes) { type ->
+                                                        val isSel = selectedPropertyType == type
+                                                        FilterChip(
+                                                            selected = isSel,
+                                                            onClick = { selectedPropertyType = if (isSel) null else type },
+                                                            label = { Text(type, fontSize = 11.sp) }
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        if (customMinPrice.isNotBlank() || customMaxPrice.isNotBlank() || customRequirement.isNotBlank() || selectedPropertyType != null) {
+                                            TextButton(
+                                                onClick = {
+                                                    customMinPrice = ""
+                                                    customMaxPrice = ""
+                                                    customRequirement = ""
+                                                    selectedPropertyType = null
+                                                },
+                                                modifier = Modifier.align(Alignment.End)
+                                            ) {
+                                                Text("Futa Vigezo vya Ziada (Clear)", color = Color.Red, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
                             // High-Value Action Cards & Discovery Hero Section
                             DashboardActionsSection(
                                 isExpanded = isExpanded,
@@ -475,13 +670,19 @@ fun TenantScreen(
                                 onNavigate = onNavigate
                             )
 
-                            // RECOMMENDED FOR YOU (Hot reloaded by search place, budget slang & feature filters)
+                            // RECOMMENDED FOR YOU (Hot reloaded by search place, budget slang & custom typed filters)
                             val q = searchQuery.trim().lowercase()
+                            val minP = customMinPrice.toDoubleOrNull()
+                            val maxP = customMaxPrice.toDoubleOrNull()
+                            val req = customRequirement.trim().lowercase()
+
                             val recommendedRooms = allRooms.filter { room ->
                                 val matchesPlace = q.isBlank() ||
                                     room.displayLocation.lowercase().contains(q) ||
                                     (room.title?.lowercase()?.contains(q) == true) ||
-                                    (room.address?.lowercase()?.contains(q) == true)
+                                    (room.address?.lowercase()?.contains(q) == true) ||
+                                    (room.neighbourhoodPlaces.any { it.lowercase().contains(q) }) ||
+                                    (room.nearestCampus?.lowercase()?.contains(q) == true)
 
                                 val matchesBudget = when (selectedBudgetSlang) {
                                     "LAKI_1" -> room.price <= 100000.0
@@ -491,6 +692,9 @@ fun TenantScreen(
                                     else -> true
                                 }
 
+                                val matchesCustomMin = minP == null || room.price >= minP
+                                val matchesCustomMax = maxP == null || room.price <= maxP
+
                                 val matchesFeature = when (selectedFeatureFilter) {
                                     "LAMI" -> room.roadCondition.equals("LAMI", ignoreCase = true)
                                     "FLOOD_SAFE" -> room.isFloodSafe
@@ -499,7 +703,16 @@ fun TenantScreen(
                                     else -> true
                                 }
 
-                                room.status == "AVAILABLE" && matchesPlace && matchesBudget && matchesFeature
+                                val matchesType = selectedPropertyType == null ||
+                                    room.propertyType.equals(selectedPropertyType, ignoreCase = true)
+
+                                val matchesCustomReq = req.isBlank() ||
+                                    (room.title?.lowercase()?.contains(req) == true) ||
+                                    (room.description?.lowercase()?.contains(req) == true) ||
+                                    (room.amenities.any { it.lowercase().contains(req) }) ||
+                                    (room.rules.any { it.lowercase().contains(req) })
+
+                                room.status == "AVAILABLE" && matchesPlace && matchesBudget && matchesCustomMin && matchesCustomMax && matchesFeature && matchesType && matchesCustomReq
                             }
 
                             if (recommendedRooms.isNotEmpty()) {

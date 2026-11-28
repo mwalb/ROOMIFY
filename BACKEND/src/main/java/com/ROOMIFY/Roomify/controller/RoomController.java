@@ -492,44 +492,105 @@ public class RoomController {
     }
 
     // Location suggestions endpoint starting from first character
+    // Location suggestions endpoint starting from first character
     @GetMapping("/locations/suggestions")
     @Transactional(readOnly = true)
     public ResponseEntity<List<String>> getLocationSuggestions(@RequestParam(required = false, defaultValue = "") String query) {
         try {
-            List<Room> rooms = repo.findByVerificationStatus(VerificationStatus.VERIFIED);
             Set<String> uniqueLocations = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
-            
+
+            // 1. Live locations from Database properties
+            List<Room> rooms = repo.findAll();
             for (Room r : rooms) {
                 String addr = r.getAddress();
                 if (addr != null && !addr.isBlank()) {
                     String[] parts = addr.split(",");
-                    if (parts.length > 0) {
-                        String loc = parts[0].trim();
-                        if (!loc.isEmpty()) {
-                            uniqueLocations.add(loc);
+                    for (String part : parts) {
+                        String clean = part.trim();
+                        if (!clean.isEmpty()) uniqueLocations.add(clean);
+                    }
+                    uniqueLocations.add(addr.trim());
+                }
+                if (r.getNeighbourhoodPlaces() != null) {
+                    for (String np : r.getNeighbourhoodPlaces()) {
+                        if (np != null && !np.isBlank()) uniqueLocations.add(np.trim());
+                    }
+                }
+                if (r.getNearestCampus() != null && !r.getNearestCampus().isBlank()) {
+                    uniqueLocations.add(r.getNearestCampus().trim());
+                }
+            }
+
+            // 2. Canonical Tanzanian urban areas & campuses to guarantee instant reload on 1st letter
+            List<String> tzHubs = Arrays.asList(
+                "Sinza", "Sinza Mori", "Sinza Palestina", "Sinza Mugabe", "Sinza Kijiweni", "Sinza Kwa Remmy",
+                "Mikocheni", "Mikocheni A", "Mikocheni B", "Regent Estate, Mikocheni", "Shoppers Plaza, Mikocheni", "Palm Village, Mikocheni",
+                "Masaki", "Msasani", "Oysterbay", "Ada Estate", "Namanga", "Coco Beach",
+                "Kijitonyama", "Makumbusho", "Victoria", "Morocco", "Mwenge", "Mlimani City", "Survey",
+                "University of Dar es Salaam (UDSM)", "Ardhi University (ARU)", "Makongo Juu", "Changanyikeni",
+                "Kawe", "Mbezi Beach", "Mbezi Beach Africana", "Mbezi Tanki Bovu", "Goba", "Salasala", "Tegeta", "Kunduchi", "Bahari Beach", "Boko", "Bunju", "Madale",
+                "Ubungo", "Ubungo Riverside", "Kimara", "Kimara Korogwe", "Kimara Mwisho", "Kimara Baruti", "Mbezi Luis", "Kibamba", "Mabibo", "Manzese", "Magomeni",
+                "Kariakoo", "Ilala", "Upanga", "Posta", "Kivukoni", "City Centre", "Tabata", "Segerea", "Kinyerezi",
+                "Kigamboni", "Ferry", "Tuangoma", "Mbagala", "Temeke", "Chang'ombe", "Kurasini", "Tandika",
+                "Institute of Finance Management (IFM)", "College of Business Education (CBE)", "Dar es Salaam Institute of Technology (DIT)",
+                "Dodoma", "Dodoma City", "Area C, Dodoma", "Area D, Dodoma", "Kizota", "Nzuguni", "University of Dodoma (UDOM)",
+                "Arusha", "Arusha City", "Njiro", "Sakina", "Kijenge", "Sanawari",
+                "Mwanza", "Mwanza City", "Nyamagana", "Ilemela", "Capripoint", "Kirumba",
+                "Morogoro", "Morogoro Town", "Sua", "Kilakala",
+                "Zanzibar", "Stone Town", "Mbweni", "Chukwani", "Bububu"
+            );
+            uniqueLocations.addAll(tzHubs);
+
+            String q = query == null ? "" : query.trim().toLowerCase();
+            if (q.isEmpty()) {
+                // Return top popular hubs
+                List<String> defaultHubs = Arrays.asList("Sinza", "Mikocheni", "Masaki", "Mwenge", "Mbezi Beach", "Kijitonyama", "University of Dar es Salaam (UDSM)", "Kariakoo", "Kigamboni");
+                return ResponseEntity.ok(defaultHubs);
+            }
+
+            List<String> exactMatches = new ArrayList<>();
+            List<String> prefixMatches = new ArrayList<>();
+            List<String> wordPrefixMatches = new ArrayList<>();
+            List<String> substringMatches = new ArrayList<>();
+
+            for (String loc : uniqueLocations) {
+                String lower = loc.toLowerCase();
+                if (lower.equals(q)) {
+                    exactMatches.add(loc);
+                } else if (lower.startsWith(q)) {
+                    prefixMatches.add(loc);
+                } else {
+                    boolean wordPref = false;
+                    for (String w : lower.split("[\\s,()\\-]+")) {
+                        if (w.startsWith(q)) {
+                            wordPref = true;
+                            break;
                         }
+                    }
+                    if (wordPref) {
+                        wordPrefixMatches.add(loc);
+                    } else if (lower.contains(q)) {
+                        substringMatches.add(loc);
                     }
                 }
             }
-            
-            List<String> prefixMatches = new ArrayList<>();
-            List<String> containsMatches = new ArrayList<>();
-            String q = query == null ? "" : query.trim().toLowerCase();
-            
-            for (String loc : uniqueLocations) {
-                String lowerLoc = loc.toLowerCase();
-                if (q.isEmpty() || lowerLoc.startsWith(q)) {
-                    prefixMatches.add(loc);
-                } else if (lowerLoc.contains(q)) {
-                    containsMatches.add(loc);
-                }
-            }
-            
+
+            exactMatches.sort(String.CASE_INSENSITIVE_ORDER);
             prefixMatches.sort(String.CASE_INSENSITIVE_ORDER);
-            containsMatches.sort(String.CASE_INSENSITIVE_ORDER);
-            
-            List<String> results = new ArrayList<>(prefixMatches);
-            results.addAll(containsMatches);
+            wordPrefixMatches.sort(String.CASE_INSENSITIVE_ORDER);
+            substringMatches.sort(String.CASE_INSENSITIVE_ORDER);
+
+            List<String> results = new ArrayList<>();
+            results.addAll(exactMatches);
+            results.addAll(prefixMatches);
+            results.addAll(wordPrefixMatches);
+            results.addAll(substringMatches);
+
+            // Limit to top 25 matches for high performance
+            if (results.size() > 25) {
+                results = results.subList(0, 25);
+            }
+
             return ResponseEntity.ok(results);
         } catch (Exception e) {
             e.printStackTrace();
