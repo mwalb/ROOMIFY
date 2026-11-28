@@ -466,7 +466,10 @@ actual fun MapContent(
                 "dalaliTools": "${strings.dalaliTools}",
                 "administration": "${strings.administration}",
                 "accountSettings": "${strings.accountSettings}",
-                "yourLivingSpacePartner": "${strings.yourLivingSpacePartner}"
+                "yourLivingSpacePartner": "${strings.yourLivingSpacePartner}",
+                "propertyType": "${strings.propertyType}",
+                "amenities": "${strings.amenities}",
+                "amenitiesAndFeatures": "${strings.amenitiesAndFeatures}"
             }
         """.trimIndent()
         updateSidebarLocalization(json)

@@ -897,6 +897,175 @@
                 transform: translateY(-1px);
             }
 
+            /* Dropdown Accordion Cards (Drop format) */
+            .roomify-drop-card {
+                background: #FFFFFF;
+                border: 1.5px solid #E2E8F0;
+                border-radius: 16px;
+                margin-bottom: 12px;
+                overflow: hidden;
+                transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+                box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+            }
+
+            .roomify-drop-card:hover {
+                border-color: #CBD5E1;
+                box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+            }
+
+            .roomify-drop-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 12px 14px;
+                cursor: pointer;
+                user-select: none;
+                background: #FFFFFF;
+                transition: background 0.2s ease;
+            }
+
+            .roomify-drop-header:hover {
+                background: #F8FAFC;
+            }
+
+            .roomify-drop-title-wrap {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                flex: 1;
+            }
+
+            .roomify-drop-icon-badge {
+                width: 32px;
+                height: 32px;
+                border-radius: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 14px;
+                flex-shrink: 0;
+            }
+
+            .roomify-drop-title {
+                font-size: 13.5px;
+                font-weight: 700;
+                color: #1E293B;
+                letter-spacing: -0.2px;
+            }
+
+            .roomify-drop-state-badge {
+                font-size: 11px;
+                font-weight: 700;
+                padding: 3px 9px;
+                border-radius: 20px;
+                background: #EEF2FF;
+                color: #1A237E;
+                border: 1px solid #C7D2FE;
+                margin-right: 8px;
+                max-width: 130px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+            }
+
+            .roomify-drop-chevron {
+                width: 18px;
+                height: 18px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #64748B;
+                transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+
+            .roomify-drop-card.open .roomify-drop-chevron {
+                transform: rotate(180deg);
+                color: #1A237E;
+            }
+
+            .roomify-drop-body {
+                display: none;
+                padding: 12px 14px 16px 14px;
+                border-top: 1px solid #F1F5F9;
+                background: #FFFFFF;
+            }
+
+            .roomify-drop-card.open .roomify-drop-body {
+                display: block;
+                animation: roomifyDropSlide 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+
+            @keyframes roomifyDropSlide {
+                from { opacity: 0; transform: translateY(-4px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+
+            /* Attractive Badge UI for All Chips and Filter Items */
+            .roomify-badge-chip {
+                padding: 7px 12px;
+                border-radius: 12px;
+                background: #F1F5F9;
+                border: 1.5px solid #E2E8F0;
+                font-size: 12.5px;
+                font-weight: 600;
+                color: #1E293B;
+                cursor: pointer;
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                transition: all 0.2s ease;
+                user-select: none;
+                box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+            }
+
+            .roomify-badge-chip:hover {
+                background: #E2E8F0;
+                border-color: #CBD5E1;
+                transform: translateY(-1px);
+            }
+
+            .roomify-badge-chip.active {
+                background: linear-gradient(135deg, #1A237E, #283593) !important;
+                color: #FFFFFF !important;
+                border-color: #1A237E !important;
+                box-shadow: 0 3px 10px rgba(26, 35, 126, 0.35) !important;
+                transform: translateY(-1px) scale(1.02);
+                font-weight: 700 !important;
+            }
+
+            .roomify-badge-chip .roomify-badge-icon {
+                font-size: 13px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .roomify-badge-check-icon {
+                color: #10B981;
+                font-weight: 800;
+                font-size: 13px;
+            }
+
+            .roomify-badge-chip.active .roomify-badge-check-icon {
+                color: #34D399;
+            }
+
+            .roomify-verified-badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+                padding: 4px 8px;
+                border-radius: 8px;
+                background: #ECFDF5;
+                border: 1px solid #A7F3D0;
+                color: #065F46;
+                font-size: 11px;
+                font-weight: 700;
+            }
+
             /* Dedicated Checkbox Icon inside each chip */
             .roomify-chip-checkbox {
                 width: 18px;
@@ -2712,7 +2881,60 @@
         dalaliTools: "Dalali Tools",
         administration: "Administration",
         accountSettings: "Account Settings",
-        yourLivingSpacePartner: "Your living space partner"
+        yourLivingSpacePartner: "Your living space partner",
+        propertyType: "Property Type",
+        budgetRange: "Budget Range",
+        amenitiesAndFeatures: "Amenities & Features",
+        popularAreas: "Popular Areas",
+        livingInsights: "Living Insights"
+    };
+
+    window.toggleDropCard = function(headerEl) {
+        var card = headerEl.closest('.roomify-drop-card');
+        if (card) {
+            card.classList.toggle('open');
+        }
+    };
+
+    window.selectPopularArea = function(areaName, el) {
+        var locInput = document.getElementById("sidebar-search-input");
+        if (locInput) locInput.value = areaName;
+        var areaChips = document.querySelectorAll("#area-chips .roomify-badge-chip");
+        areaChips.forEach(function(c) { c.classList.remove("active"); });
+        if (el) el.classList.add("active");
+        var stateBadge = document.getElementById("drop-state-location");
+        if (stateBadge) stateBadge.textContent = areaName || (window.roomifyLocalization.all || "All");
+        if (typeof window.roomifyApplyFilters === "function") {
+            window.roomifyApplyFilters();
+        }
+    };
+
+    window.selectQuickBudget = function(maxPrice, label, el) {
+        var budgetInput = document.getElementById("sidebar-budget-input");
+        if (budgetInput) {
+            budgetInput.value = maxPrice ? Number(maxPrice).toLocaleString() : "";
+        }
+        var budgetChips = document.querySelectorAll("#budget-chips .roomify-badge-chip");
+        budgetChips.forEach(function(c) { c.classList.remove("active"); });
+        if (el) el.classList.add("active");
+        var stateBadge = document.getElementById("drop-state-budget");
+        if (stateBadge) stateBadge.textContent = label || (maxPrice ? maxPrice.toLocaleString() + " TZS" : (window.roomifyLocalization.all || "Any"));
+        if (typeof window.roomifyApplyFilters === "function") {
+            window.roomifyApplyFilters();
+        }
+    };
+
+    window.toggleAmenityChip = function(el) {
+        el.classList.toggle("active");
+        var activeChips = document.querySelectorAll("#amenity-chips .roomify-badge-chip.active");
+        var count = activeChips.length;
+        var stateBadge = document.getElementById("drop-state-amenities");
+        if (stateBadge) {
+            stateBadge.textContent = count > 0 ? (count + " " + (window.roomifyLocalization.languageCode === "sw" ? "vifaa" : "selected")) : (window.roomifyLocalization.all || "All");
+        }
+        if (typeof window.roomifyApplyFilters === "function") {
+            window.roomifyApplyFilters();
+        }
     };
 
     window.roomifyUpdateLocalization = function(newLocalizationJson) {
@@ -2730,23 +2952,29 @@
                 var taglineEl = sidebar.querySelector(".roomify-sidebar-tagline");
                 if (taglineEl) taglineEl.textContent = loc.yourLivingSpacePartner || "Your living space partner";
 
-                var nearMeEl = sidebar.querySelector("#use-my-location span");
+                var nearMeEl = sidebar.querySelector("#use-my-location span:last-child");
                 if (nearMeEl) nearMeEl.textContent = loc.nearbyMe || "Nearby me";
 
-                var prefHeaderEl = sidebar.querySelector("#sidebar-pref-heading");
-                if (prefHeaderEl) prefHeaderEl.textContent = loc.preferences || "Preferences";
+                var dropTitleLoc = sidebar.querySelector("#drop-title-location");
+                if (dropTitleLoc) dropTitleLoc.textContent = isSw ? "Eneo & Mitaa" : "Location & Areas";
 
                 var locInput = sidebar.querySelector("#sidebar-search-input");
                 if (locInput) locInput.placeholder = (loc.location || "Location") + " (e.g. Mikocheni, Sinza, UDSM...)";
 
-                var lookingForEl = sidebar.querySelector("#sidebar-looking-for-heading");
-                if (lookingForEl) lookingForEl.textContent = loc.whatAreYouLookingFor || "What are you looking for?";
+                var dropTitleType = sidebar.querySelector("#drop-title-type");
+                if (dropTitleType) dropTitleType.textContent = loc.whatAreYouLookingFor || "Property Type";
+
+                var dropTitleBudget = sidebar.querySelector("#drop-title-budget");
+                if (dropTitleBudget) dropTitleBudget.textContent = isSw ? "Bajeti ya Kodi (TZS)" : "Budget Range (TZS)";
 
                 var budgetInput = sidebar.querySelector("#sidebar-budget-input");
                 if (budgetInput) budgetInput.placeholder = loc.maxBudget || "Max budget";
 
-                var statusHeadingEl = sidebar.querySelector("#sidebar-status-heading");
-                if (statusHeadingEl) statusHeadingEl.textContent = loc.status || "Status";
+                var dropTitleAmenities = sidebar.querySelector("#drop-title-amenities");
+                if (dropTitleAmenities) dropTitleAmenities.textContent = isSw ? "Sifa & Huduma" : "Amenities & Features";
+
+                var dropTitleStatus = sidebar.querySelector("#drop-title-status");
+                if (dropTitleStatus) dropTitleStatus.textContent = loc.status || "Status & Availability";
 
                 var applyBtnText = sidebar.querySelector("#sidebar-filter-btn span");
                 if (applyBtnText) applyBtnText.textContent = loc.applyFilter || "Apply Filter";
@@ -2788,6 +3016,18 @@
                 var allTypeChip = sidebar.querySelector('#type-chips .roomify-chip[data-type="ALL"] span:last-child');
                 if (allTypeChip) allTypeChip.textContent = loc.all || "All";
 
+                var roomTypeChip = sidebar.querySelector('#type-chips .roomify-chip[data-type="Room"] span:last-child');
+                if (roomTypeChip) roomTypeChip.textContent = isSw ? "Chumba" : "Room";
+
+                var aptTypeChip = sidebar.querySelector('#type-chips .roomify-chip[data-type="Apartment"] span:last-child');
+                if (aptTypeChip) aptTypeChip.textContent = isSw ? "Ghorofa (Apartment)" : "Apartment";
+
+                var houseTypeChip = sidebar.querySelector('#type-chips .roomify-chip[data-type="House"] span:last-child');
+                if (houseTypeChip) houseTypeChip.textContent = isSw ? "Nyumba" : "House";
+
+                var officeTypeChip = sidebar.querySelector('#type-chips .roomify-chip[data-type="Office"] span:last-child');
+                if (officeTypeChip) officeTypeChip.textContent = isSw ? "Ofisi" : "Office";
+
                 var allStatusChip = sidebar.querySelector('#status-chips .roomify-chip[data-status="ALL"] span:last-child');
                 if (allStatusChip) allStatusChip.textContent = loc.all || "All";
 
@@ -2799,6 +3039,22 @@
 
                 var rentedStatusChip = sidebar.querySelector('#status-chips .roomify-chip[data-status="RENTED"] span:last-child');
                 if (rentedStatusChip) rentedStatusChip.textContent = loc.rented || "Rented";
+
+                // Update budget chip translations
+                var bAnyChip = sidebar.querySelector('#budget-chips .roomify-badge-chip[data-budget=""] span');
+                if (bAnyChip) bAnyChip.textContent = loc.all || "Any";
+
+                var b100Chip = sidebar.querySelector('#budget-chips .roomify-badge-chip[data-budget="100000"] span');
+                if (b100Chip) b100Chip.textContent = isSw ? "Chini ya Laki 1" : "< 100k";
+
+                var b250Chip = sidebar.querySelector('#budget-chips .roomify-badge-chip[data-budget="250000"] span');
+                if (b250Chip) b250Chip.textContent = isSw ? "Laki 1 - 2.5" : "100k - 250k";
+
+                var b600Chip = sidebar.querySelector('#budget-chips .roomify-badge-chip[data-budget="600000"] span');
+                if (b600Chip) b600Chip.textContent = isSw ? "Laki 3 - 6" : "300k - 600k";
+
+                var b1mChip = sidebar.querySelector('#budget-chips .roomify-badge-chip[data-budget="1000000"] span');
+                if (b1mChip) b1mChip.textContent = isSw ? "Laki 7+" : "700k+";
 
                 // Refresh user role dynamic section & footer
                 if (window.roomifyCurrentUser) {
@@ -2862,98 +3118,191 @@
                 <div class="roomify-sidebar-close" onclick="window.roomifyCloseSidebar()">✕</div>
             </div>
 
-            <div class="roomify-sidebar-body" style="padding: 20px;">
-                <!-- 1. Nearby Me Button at the Top with Visible Border -->
-                <div class="roomify-sidebar-section" style="margin-bottom: 20px;">
-                    <div class="roomify-location-btn" id="use-my-location" style="border: 1.5px solid #1A237E; border-radius: 12px; background: #ffffff; padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; color: #1A237E; font-weight: 700;">
+            <div class="roomify-sidebar-body" style="padding: 18px 16px;">
+                <!-- 1. Nearby Me Quick Action with Prominent GPS Badge -->
+                <div class="roomify-sidebar-section" style="margin-bottom: 14px;">
+                    <div class="roomify-location-btn" id="use-my-location" style="border: 1.5px solid #1A237E; border-radius: 14px; background: #ffffff; padding: 12px 16px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; color: #1A237E; font-weight: 700; box-shadow: 0 2px 6px rgba(26, 35, 126, 0.08); transition: all 0.2s ease;">
+                        <span style="font-size: 16px;">📍</span>
                         <span>\${loc.nearbyMe || "Nearby me"}</span>
                     </div>
                 </div>
 
-                <!-- 2. Preferences Card with Visible Outer Border -->
-                <div class="roomify-sidebar-section" style="margin-bottom: 20px;">
-                    <div style="border: 1px solid #CBD5E1; border-radius: 20px; padding: 20px; background: #ffffff;">
-                        <div id="sidebar-pref-heading" style="font-size: 16px; font-weight: bold; color: #111827; margin-bottom: 16px;">\${loc.preferences || "Preferences"}</div>
-
-                        <!-- Location Field -->
-                        <div id="sidebar-search-wrapper" style="margin-bottom: 16px; position: relative;">
-                            <input type="text" id="sidebar-search-input" autocomplete="off" placeholder="\${(loc.location || 'Location')} (e.g. Mikocheni, Sinza, UDSM...)" style="width: 100%; height: 48px; border: 1px solid #CBD5E1; border-radius: 14px; padding: 0 14px; outline: none; font-size: 14px; background: #ffffff;">
-                            <div id="sidebar-autocomplete-dropdown" class="roomify-autocomplete-dropdown" style="max-height: 300px;"></div>
+                <!-- 2. Drop Card: Location & Popular Areas -->
+                <div class="roomify-drop-card open" id="drop-location">
+                    <div class="roomify-drop-header" onclick="window.toggleDropCard(this)">
+                        <div class="roomify-drop-title-wrap">
+                            <span class="roomify-drop-icon-badge" style="background: #EEF2FF; color: #1A237E;">📍</span>
+                            <span class="roomify-drop-title" id="drop-title-location">\${isSw ? "Eneo & Mitaa" : "Location & Areas"}</span>
                         </div>
+                        <span class="roomify-drop-state-badge" id="drop-state-location">\${loc.all || "All"}</span>
+                        <span class="roomify-drop-chevron">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </span>
+                    </div>
+                    <div class="roomify-drop-body">
+                        <div id="sidebar-search-wrapper" style="margin-bottom: 12px; position: relative;">
+                            <input type="text" id="sidebar-search-input" autocomplete="off" placeholder="\${(loc.location || 'Location')} (e.g. Mikocheni, Sinza, UDSM...)" style="width: 100%; height: 46px; border: 1.5px solid #CBD5E1; border-radius: 12px; padding: 0 14px; outline: none; font-size: 13.5px; background: #ffffff; box-sizing: border-box;">
+                            <div id="sidebar-autocomplete-dropdown" class="roomify-autocomplete-dropdown" style="max-height: 280px;"></div>
+                        </div>
+                        <div style="font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">\${isSw ? "Mitaa Maarufu" : "Popular Areas"}</div>
+                        <div class="roomify-chip-group" id="area-chips" style="display: flex; gap: 6px; flex-wrap: wrap;">
+                            <div class="roomify-badge-chip active" data-area="" onclick="window.selectPopularArea('', this)"><span>\${loc.all || "All"}</span></div>
+                            <div class="roomify-badge-chip" data-area="Mikocheni" onclick="window.selectPopularArea('Mikocheni', this)"><span>Mikocheni</span></div>
+                            <div class="roomify-badge-chip" data-area="Sinza" onclick="window.selectPopularArea('Sinza', this)"><span>Sinza</span></div>
+                            <div class="roomify-badge-chip" data-area="Kinondoni" onclick="window.selectPopularArea('Kinondoni', this)"><span>Kinondoni</span></div>
+                            <div class="roomify-badge-chip" data-area="Mwenge" onclick="window.selectPopularArea('Mwenge', this)"><span>Mwenge</span></div>
+                            <div class="roomify-badge-chip" data-area="Masaki" onclick="window.selectPopularArea('Masaki', this)"><span>Masaki</span></div>
+                            <div class="roomify-badge-chip" data-area="UDSM" onclick="window.selectPopularArea('UDSM', this)"><span>UDSM</span></div>
+                        </div>
+                    </div>
+                </div>
 
-                        <!-- What are you looking for? -->
-                        <div id="sidebar-looking-for-heading" style="font-size: 13px; font-weight: 700; color: #1E293B; margin-bottom: 8px;">\${loc.whatAreYouLookingFor || "What are you looking for?"}</div>
-                        <div class="roomify-chip-group" id="type-chips" style="display: flex; gap: 8px; overflow-x: auto; margin-bottom: 16px; padding-bottom: 4px;">
+                <!-- 3. Drop Card: What are you looking for? (Property Type) -->
+                <div class="roomify-drop-card open" id="drop-type">
+                    <div class="roomify-drop-header" onclick="window.toggleDropCard(this)">
+                        <div class="roomify-drop-title-wrap">
+                            <span class="roomify-drop-icon-badge" style="background: #E0E7FF; color: #3730A3;">🏠</span>
+                            <span class="roomify-drop-title" id="drop-title-type">\${loc.whatAreYouLookingFor || "Property Type"}</span>
+                        </div>
+                        <span class="roomify-drop-state-badge" id="drop-state-type">\${loc.all || "All"}</span>
+                        <span class="roomify-drop-chevron">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </span>
+                    </div>
+                    <div class="roomify-drop-body">
+                        <div class="roomify-chip-group" id="type-chips" style="display: flex; gap: 8px; flex-wrap: wrap;">
                             <div class="roomify-chip active" data-type="ALL"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>\${loc.all || "All"}</span></div>
-                            <div class="roomify-chip" data-type="Room"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>Room</span></div>
-                            <div class="roomify-chip" data-type="Apartment"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>Apartment</span></div>
+                            <div class="roomify-chip" data-type="Room"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>\${isSw ? "Chumba" : "Room"}</span></div>
+                            <div class="roomify-chip" data-type="Apartment"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>\${isSw ? "Ghorofa (Apartment)" : "Apartment"}</span></div>
                             <div class="roomify-chip" data-type="Studio"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>Studio</span></div>
-                            <div class="roomify-chip" data-type="House"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>House</span></div>
-                            <div class="roomify-chip" data-type="Office"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>Office</span></div>
+                            <div class="roomify-chip" data-type="House"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>\${isSw ? "Nyumba" : "House"}</span></div>
+                            <div class="roomify-chip" data-type="Office"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>\${isSw ? "Ofisi" : "Office"}</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Drop Card: Budget Range (TZS) -->
+                <div class="roomify-drop-card open" id="drop-budget">
+                    <div class="roomify-drop-header" onclick="window.toggleDropCard(this)">
+                        <div class="roomify-drop-title-wrap">
+                            <span class="roomify-drop-icon-badge" style="background: #ECFDF5; color: #065F46;">💰</span>
+                            <span class="roomify-drop-title" id="drop-title-budget">\${isSw ? "Bajeti ya Kodi (TZS)" : "Budget Range (TZS)"}</span>
+                        </div>
+                        <span class="roomify-drop-state-badge" id="drop-state-budget">\${loc.all || "Any"}</span>
+                        <span class="roomify-drop-chevron">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </span>
+                    </div>
+                    <div class="roomify-drop-body">
+                        <div style="font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">\${isSw ? "Bajeti ya Haraka" : "Quick Budget (TZS)"}</div>
+                        <div class="roomify-chip-group" id="budget-chips" style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;">
+                            <div class="roomify-badge-chip active" data-budget="" onclick="window.selectQuickBudget(null, '\${loc.all || \"Any\"}', this)"><span>\${loc.all || "Any"}</span></div>
+                            <div class="roomify-badge-chip" data-budget="100000" onclick="window.selectQuickBudget(100000, '< 100k', this)"><span>\${isSw ? "Chini ya Laki 1" : "< 100k"}</span></div>
+                            <div class="roomify-badge-chip" data-budget="250000" onclick="window.selectQuickBudget(250000, '100k - 250k', this)"><span>\${isSw ? "Laki 1 - 2.5" : "100k - 250k"}</span></div>
+                            <div class="roomify-badge-chip" data-budget="600000" onclick="window.selectQuickBudget(600000, '300k - 600k', this)"><span>\${isSw ? "Laki 3 - 6" : "300k - 600k"}</span></div>
+                            <div class="roomify-badge-chip" data-budget="1000000" onclick="window.selectQuickBudget(1000000, '700k+', this)"><span>\${isSw ? "Laki 7+" : "700k+"}</span></div>
                         </div>
 
-                        <!-- Max Budget Field -->
-                        <div style="margin-bottom: 16px;">
-                            <input type="text" id="sidebar-budget-input" placeholder="\${loc.maxBudget || 'Max budget'}" style="width: 100%; height: 48px; border: 1.5px solid #CBD5E1; border-radius: 14px; padding: 0 14px; outline: none; font-size: 14px; background: #ffffff; color: #0F172A; font-weight: 600;">
+                        <div style="position: relative; display: flex; align-items: center;">
+                            <span style="position: absolute; left: 12px; font-size: 12px; font-weight: 800; color: #1A237E; background: #EEF2FF; padding: 3px 8px; border-radius: 6px; border: 1px solid #C7D2FE;">TZS</span>
+                            <input type="text" id="sidebar-budget-input" placeholder="\${loc.maxBudget || 'Max budget'}" style="width: 100%; height: 46px; border: 1.5px solid #CBD5E1; border-radius: 12px; padding: 0 14px 0 62px; outline: none; font-size: 13.5px; background: #ffffff; color: #0F172A; font-weight: 600; box-sizing: border-box;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. Drop Card: Amenities & Living Features (Matching Image 2 Badge UI) -->
+                <div class="roomify-drop-card open" id="drop-amenities">
+                    <div class="roomify-drop-header" onclick="window.toggleDropCard(this)">
+                        <div class="roomify-drop-title-wrap">
+                            <span class="roomify-drop-icon-badge" style="background: #FEF3C7; color: #92400E;">✨</span>
+                            <span class="roomify-drop-title" id="drop-title-amenities">\${isSw ? "Sifa & Huduma" : "Amenities & Features"}</span>
+                        </div>
+                        <span class="roomify-drop-state-badge" id="drop-state-amenities">\${loc.all || "All"}</span>
+                        <span class="roomify-drop-chevron">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </span>
+                    </div>
+                    <div class="roomify-drop-body">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                            <span style="font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px;">\${isSw ? "VIFAA MAALUM" : "POPULAR AMENITIES"}</span>
+                            <span class="roomify-verified-badge">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                <span>Verified by Agent</span>
+                            </span>
                         </div>
 
-                        <!-- Status Section inside Preferences card -->
-                        <div id="sidebar-status-heading" style="font-size: 13px; font-weight: 700; color: #1E293B; margin-bottom: 8px;">\${loc.status || "Status"}</div>
-                        <div class="roomify-chip-group" id="status-chips" style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px;">
+                        <div class="roomify-chip-group" id="amenity-chips" style="display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 14px;">
+                            <div class="roomify-badge-chip" data-amenity="Maji ya DAWASA" onclick="window.toggleAmenityChip(this)"><span class="roomify-badge-check-icon">✔</span><span>Maji ya DAWASA (24/7)</span></div>
+                            <div class="roomify-badge-chip" data-amenity="LUKU" onclick="window.toggleAmenityChip(this)"><span class="roomify-badge-check-icon">✔</span><span>LUKU ya Kujitegemea</span></div>
+                            <div class="roomify-badge-chip" data-amenity="Simtank" onclick="window.toggleAmenityChip(this)"><span class="roomify-badge-check-icon">✔</span><span>Reserve Water (Simtank)</span></div>
+                            <div class="roomify-badge-chip" data-amenity="WiFi" onclick="window.toggleAmenityChip(this)"><span class="roomify-badge-check-icon">✔</span><span>WiFi</span></div>
+                            <div class="roomify-badge-chip" data-amenity="Parking" onclick="window.toggleAmenityChip(this)"><span class="roomify-badge-check-icon">✔</span><span>Parking ya Gari</span></div>
+                            <div class="roomify-badge-chip" data-amenity="AC" onclick="window.toggleAmenityChip(this)"><span class="roomify-badge-check-icon">✔</span><span>Air Conditioning (AC)</span></div>
+                            <div class="roomify-badge-chip" data-amenity="Furnished" onclick="window.toggleAmenityChip(this)"><span class="roomify-badge-check-icon">✔</span><span>Furnished</span></div>
+                            <div class="roomify-badge-chip" data-amenity="Security" onclick="window.toggleAmenityChip(this)"><span class="roomify-badge-check-icon">✔</span><span>Security (Mlinzi/Fensi)</span></div>
+                            <div class="roomify-badge-chip" data-amenity="Balcony" onclick="window.toggleAmenityChip(this)"><span class="roomify-badge-check-icon">✔</span><span>Balcony</span></div>
+                        </div>
+
+                        <div style="font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">\${isSw ? "MAZINGIRA NA HUDUMA" : "LIVING INSIGHTS"}</div>
+                        <div class="roomify-chip-group" style="display: flex; gap: 6px; flex-wrap: wrap;">
+                            <div class="roomify-badge-chip" data-amenity="Lami" onclick="window.toggleAmenityChip(this)"><span class="roomify-badge-icon">🚗</span><span>Lami Tu</span></div>
+                            <div class="roomify-badge-chip" data-amenity="Mafuriko" onclick="window.toggleAmenityChip(this)"><span class="roomify-badge-icon">🛡️</span><span>Salama Mafuriko</span></div>
+                            <div class="roomify-badge-chip" data-amenity="Chuo" onclick="window.toggleAmenityChip(this)"><span class="roomify-badge-icon">🎓</span><span>Karibu na Chuo</span></div>
+                            <div class="roomify-badge-chip" data-amenity="Mwezi" onclick="window.toggleAmenityChip(this)"><span class="roomify-badge-icon">📅</span><span>Mwezi kwa Mwezi</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6. Drop Card: Availability Status -->
+                <div class="roomify-drop-card open" id="drop-status">
+                    <div class="roomify-drop-header" onclick="window.toggleDropCard(this)">
+                        <div class="roomify-drop-title-wrap">
+                            <span class="roomify-drop-icon-badge" style="background: #F3E8FF; color: #6B21A8;">📊</span>
+                            <span class="roomify-drop-title" id="drop-title-status">\${loc.status || "Status & Availability"}</span>
+                        </div>
+                        <span class="roomify-drop-state-badge" id="drop-state-status">\${loc.available || "Available"}</span>
+                        <span class="roomify-drop-chevron">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </span>
+                    </div>
+                    <div class="roomify-drop-body">
+                        <div class="roomify-chip-group" id="status-chips" style="display: flex; gap: 8px; flex-wrap: wrap;">
                             <div class="roomify-chip" data-status="ALL"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>\${loc.all || "All"}</span></div>
                             <div class="roomify-chip active" data-status="AVAILABLE"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>\${loc.available || "Available"}</span></div>
                             <div class="roomify-chip" data-status="PENDING"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>\${loc.pending || "Pending"}</span></div>
                             <div class="roomify-chip" data-status="RENTED"><span class="roomify-chip-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span>\${loc.rented || "Rented"}</span></div>
                         </div>
-
-                        <!-- APPLY FILTER & CLEAR FILTER Buttons -->
-                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                            <div id="sidebar-filter-btn" style="flex: 1; min-width: 120px; display: flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(135deg, #1A237E, #283593); color: white; border-radius: 14px; height: 48px; font-weight: 700; cursor: pointer; font-size: 13.5px; letter-spacing: 0.5px; box-shadow: 0 4px 14px rgba(26, 35, 126, 0.35); transition: all 0.2s ease;">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
-                                <span>\${loc.applyFilter || "Apply Filter"}</span>
-                            </div>
-                            <div id="sidebar-clear-btn" onclick="window.roomifyClearSidebarFilters()" style="flex: 1; min-width: 110px; display: flex; align-items: center; justify-content: center; gap: 6px; background: #ffffff; color: #475569; border: 1.5px solid #CBD5E1; border-radius: 14px; height: 48px; font-weight: 700; cursor: pointer; font-size: 13.5px; letter-spacing: 0.5px; transition: all 0.2s ease;">
-                                <span>\${loc.clearFilter || "Clear"}</span>
-                            </div>
-                        </div>
-
-                        <!-- NO RESULTS CONTAINER -->
-                        <div id="sidebar-no-results" style="display: none; padding: 16px; background: #FEF2F2; border: 1px solid #FCA5A5; border-radius: 14px; text-align: center; margin-top: 12px;">
-                            <div style="font-size: 14px; font-weight: 700; color: #991B1B; margin-bottom: 4px;">\${loc.noPropertiesFound || "No properties found"}</div>
-                            <div style="font-size: 12px; color: #7F1D1D; margin-bottom: 12px; line-height: 1.4;">\${loc.tryChangingFilters || "Try changing your location, property type, or budget filters."}</div>
-                            <div id="sidebar-clear-filters-btn" onclick="window.roomifyClearSidebarFilters()" style="display: inline-block; padding: 8px 16px; background: #DC2626; color: white; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer;">\${loc.clearFilters || "Clear Filters"}</div>
-                        </div>
                     </div>
                 </div>
 
-                <!-- 3. Explore Furniture -->
-                <div class="roomify-sidebar-section" style="margin-bottom: 20px;">
-                    <div id="sidebar-furniture-label" class="roomify-sidebar-label" style="font-size: 11px; font-weight: bold; color: #374151; letter-spacing: 1px; margin-bottom: 8px;">\${(loc.furnitureHub || "EXPLORE FURNITURE").toUpperCase()}</div>
-                    <div class="roomify-furniture-card" data-roomify-menu="furniture_choice" style="display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: #E8EAF6; border-radius: 16px; border: 1px solid #C7D2FE; cursor: pointer;">
+                <!-- 7. APPLY FILTER & CLEAR FILTER Action Badges -->
+                <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+                    <div id="sidebar-filter-btn" style="flex: 1; min-width: 120px; display: flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(135deg, #1A237E, #283593); color: white; border-radius: 14px; height: 48px; font-weight: 700; cursor: pointer; font-size: 13.5px; letter-spacing: 0.5px; box-shadow: 0 4px 14px rgba(26, 35, 126, 0.35); transition: all 0.2s ease;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                        <span>\${loc.applyFilter || "Apply Filter"}</span>
+                    </div>
+                    <div id="sidebar-clear-btn" onclick="window.roomifyClearSidebarFilters()" style="flex: 1; min-width: 100px; display: flex; align-items: center; justify-content: center; gap: 6px; background: #ffffff; color: #475569; border: 1.5px solid #CBD5E1; border-radius: 14px; height: 48px; font-weight: 700; cursor: pointer; font-size: 13.5px; letter-spacing: 0.5px; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);">
+                        <span>\${loc.clearFilter || "Clear"}</span>
+                    </div>
+                </div>
+
+                <!-- NO RESULTS CONTAINER -->
+                <div id="sidebar-no-results" style="display: none; padding: 16px; background: #FEF2F2; border: 1.5px solid #FCA5A5; border-radius: 16px; text-align: center; margin-bottom: 16px;">
+                    <div style="font-size: 14px; font-weight: 700; color: #991B1B; margin-bottom: 4px;">\${loc.noPropertiesFound || "No properties found"}</div>
+                    <div style="font-size: 12px; color: #7F1D1D; margin-bottom: 12px; line-height: 1.4;">\${loc.tryChangingFilters || "Try changing your location, property type, or budget filters."}</div>
+                    <div id="sidebar-clear-filters-btn" onclick="window.roomifyClearSidebarFilters()" style="display: inline-block; padding: 8px 16px; background: #DC2626; color: white; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer;">\${loc.clearFilters || "Clear Filters"}</div>
+                </div>
+
+                <!-- 8. Explore Furniture Hub Badge Card -->
+                <div class="roomify-sidebar-section" style="margin-bottom: 16px;">
+                    <div id="sidebar-furniture-label" class="roomify-sidebar-label" style="font-size: 11px; font-weight: 800; color: #475569; letter-spacing: 1px; margin-bottom: 8px;">\${(loc.furnitureHub || "EXPLORE FURNITURE").toUpperCase()}</div>
+                    <div class="roomify-furniture-card" data-roomify-menu="furniture_choice" style="display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: #EEF2FF; border-radius: 16px; border: 1.5px solid #C7D2FE; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 2px 6px rgba(30, 41, 59, 0.04);">
                         <span style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 12px; background: #1A237E; color: white;">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 9V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v3"/><path d="M3 16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v5z"/><line x1="6" y1="18" x2="6" y2="21"/><line x1="18" y1="18" x2="18" y2="21"/></svg>
                         </span>
                         <div>
                             <div id="sidebar-furniture-title" style="font-weight: 700; color: #1A237E; font-size: 15px;">\${loc.furnitureHub || "Furniture Hub"}</div>
                             <div id="sidebar-furniture-subtitle" style="font-size: 12px; color: #283593; font-weight: 600;">\${loc.furnishYourSpace || "Furnish Your Space"}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="dynamic-menu-items"></div>
-            </div>
-
-            <div class="roomify-sidebar-footer" id="sidebar-footer-content">
-                <!-- Login / Register -->
-            </div>
-        `;
-                    <div class="roomify-furniture-card" data-roomify-menu="furniture_choice" style="display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: #E8EAF6; border-radius: 16px; border: 1px solid #C7D2FE; cursor: pointer;">
-                        <span style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 12px; background: #1A237E; color: white;">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 9V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v3"/><path d="M3 16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v5z"/><line x1="6" y1="18" x2="6" y2="21"/><line x1="18" y1="18" x2="18" y2="21"/></svg>
-                        </span>
-                        <div>
-                            <div style="font-weight: 700; color: #1A237E; font-size: 15px;">Furniture Hub</div>
-                            <div style="font-size: 12px; color: #283593; font-weight: 600;">Furnish Your Space</div>
                         </div>
                     </div>
                 </div>
@@ -3267,8 +3616,23 @@
             };
         };
 
-        setupChips("type-chips", "data-type", (type) => {});
-        setupChips("status-chips", "data-status", (status) => {});
+        setupChips("type-chips", "data-type", (type) => {
+            var stateBadge = document.getElementById("drop-state-type");
+            if (stateBadge) {
+                var activeSpan = document.querySelector("#type-chips .roomify-chip.active span:last-child");
+                stateBadge.textContent = activeSpan ? activeSpan.textContent : type;
+            }
+            applySidebarFilters();
+        });
+
+        setupChips("status-chips", "data-status", (status) => {
+            var stateBadge = document.getElementById("drop-state-status");
+            if (stateBadge) {
+                var activeSpan = document.querySelector("#status-chips .roomify-chip.active span:last-child");
+                stateBadge.textContent = activeSpan ? activeSpan.textContent : status;
+            }
+            applySidebarFilters();
+        });
 
         // Max Budget Comma Formatting
         const budgetInput = document.getElementById("sidebar-budget-input");
@@ -3281,6 +3645,13 @@
                 } else {
                     e.target.value = "";
                 }
+                var budgetChips = document.querySelectorAll("#budget-chips .roomify-badge-chip");
+                budgetChips.forEach(function(c) { c.classList.remove("active"); });
+                var stateBadge = document.getElementById("drop-state-budget");
+                if (stateBadge) {
+                    stateBadge.textContent = e.target.value ? (e.target.value + " TZS") : (window.roomifyLocalization.all || "Any");
+                }
+                applySidebarFilters();
             });
         }
 
@@ -3302,6 +3673,38 @@
                 if (c.getAttribute("data-status") === "ALL") c.classList.add("active");
                 else c.classList.remove("active");
             });
+
+            var areaChips = document.querySelectorAll("#area-chips .roomify-badge-chip");
+            areaChips.forEach(function(c, i) {
+                if (i === 0) c.classList.add("active");
+                else c.classList.remove("active");
+            });
+
+            var budgetChips = document.querySelectorAll("#budget-chips .roomify-badge-chip");
+            budgetChips.forEach(function(c, i) {
+                if (i === 0) c.classList.add("active");
+                else c.classList.remove("active");
+            });
+
+            var amenityChips = document.querySelectorAll("#amenity-chips .roomify-badge-chip");
+            amenityChips.forEach(function(c) {
+                c.classList.remove("active");
+            });
+
+            var stateLoc = document.getElementById("drop-state-location");
+            if (stateLoc) stateLoc.textContent = window.roomifyLocalization.all || "All";
+
+            var stateType = document.getElementById("drop-state-type");
+            if (stateType) stateType.textContent = window.roomifyLocalization.all || "All";
+
+            var stateBudget = document.getElementById("drop-state-budget");
+            if (stateBudget) stateBudget.textContent = window.roomifyLocalization.all || "Any";
+
+            var stateAmenities = document.getElementById("drop-state-amenities");
+            if (stateAmenities) stateAmenities.textContent = window.roomifyLocalization.all || "All";
+
+            var stateStatus = document.getElementById("drop-state-status");
+            if (stateStatus) stateStatus.textContent = window.roomifyLocalization.available || "Available";
 
             var noResultsEl = document.getElementById("sidebar-no-results");
             if (noResultsEl) noResultsEl.style.display = "none";
@@ -3362,6 +3765,14 @@
             const typeActiveEl = typeChipsEl ? typeChipsEl.querySelector(".active") : null;
             const type = typeActiveEl ? typeActiveEl.getAttribute("data-type") : "ALL";
 
+            // Filter by selected amenities / features
+            var activeAmenityEls = document.querySelectorAll("#amenity-chips .roomify-badge-chip.active");
+            var selectedAmenities = [];
+            activeAmenityEls.forEach(function(el) {
+                var a = el.getAttribute("data-amenity");
+                if (a) selectedAmenities.push(a.toLowerCase());
+            });
+
             var sourceRooms = (window.roomifyMasterRooms && window.roomifyMasterRooms.length > 0)
                 ? window.roomifyMasterRooms
                 : window.roomifyAllRooms;
@@ -3383,6 +3794,17 @@
                         var searchable = [room.title, room.address, room.city, room.areaName, room.location, neighStr].filter(Boolean).join(" ").toLowerCase();
                         if (!searchable.includes(locVal.toLowerCase())) return false;
                     }
+                    if (selectedAmenities.length > 0) {
+                        var roomAmenities = (room.amenities || []).map(function(item) { return String(item).toLowerCase(); });
+                        var desc = (room.description || "").toLowerCase();
+                        var title = (room.title || "").toLowerCase();
+                        var matchesAll = selectedAmenities.every(function(sel) {
+                            return roomAmenities.some(function(ra) { return ra.includes(sel); }) ||
+                                   desc.includes(sel) ||
+                                   title.includes(sel);
+                        });
+                        if (!matchesAll) return false;
+                    }
                     return true;
                 });
             }
@@ -3400,7 +3822,7 @@
             } else {
                 if (noResultsEl) noResultsEl.style.display = "none";
 
-                if (locVal || parsedBudget || (type && type !== "ALL") || (status && status !== "ALL")) {
+                if (locVal || parsedBudget || (type && type !== "ALL") || (status && status !== "ALL") || selectedAmenities.length > 0) {
                     if (window.roomifyMap) {
                         var validRooms = matches.filter(function(r) {
                             var lat = Number(r.latitude !== undefined ? r.latitude : r.lat);
@@ -3428,6 +3850,36 @@
                 }
             }
 
+            // Update drop-header badges dynamically
+            var typeBadge = document.getElementById("drop-state-type");
+            if (typeBadge) {
+                var activeType = typeChipsEl ? typeChipsEl.querySelector(".active") : null;
+                typeBadge.textContent = activeType ? (activeType.querySelector("span:last-child") ? activeType.querySelector("span:last-child").textContent : type) : (window.roomifyLocalization.all || "All");
+            }
+
+            var statusBadge = document.getElementById("drop-state-status");
+            if (statusBadge) {
+                var activeStatus = statusChipsEl ? statusChipsEl.querySelector(".active") : null;
+                statusBadge.textContent = activeStatus ? (activeStatus.querySelector("span:last-child") ? activeStatus.querySelector("span:last-child").textContent : status) : (window.roomifyLocalization.all || "All");
+            }
+
+            var budgetBadge = document.getElementById("drop-state-budget");
+            if (budgetBadge) {
+                budgetBadge.textContent = parsedBudget ? (parsedBudget.toLocaleString() + " TZS") : (window.roomifyLocalization.all || "Any");
+            }
+
+            var locBadge = document.getElementById("drop-state-location");
+            if (locBadge) {
+                locBadge.textContent = locVal || (window.roomifyLocalization.all || "All");
+            }
+
+            var amenityBadge = document.getElementById("drop-state-amenities");
+            if (amenityBadge) {
+                amenityBadge.textContent = selectedAmenities.length > 0
+                    ? (selectedAmenities.length + " " + (window.roomifyLocalization.languageCode === "sw" ? "vifaa" : "selected"))
+                    : (window.roomifyLocalization.all || "All");
+            }
+
             var event = new CustomEvent("roomifySidebarFilter", {
                 detail: JSON.stringify({
                     area: locVal || null,
@@ -3440,6 +3892,8 @@
 
             return matches.length;
         }
+
+        window.roomifyApplyFilters = applySidebarFilters;
 
         // Location button listener
         const locationBtn = document.getElementById("use-my-location");
@@ -3494,41 +3948,81 @@
 
         if (upperRole === "TENANT") {
             bodyHtml += `
-                <div class="roomify-sidebar-section">
-                    <div class="roomify-sidebar-label">\${loc.myDashboard || "My Dashboard"}</div>
-                    <div class="roomify-chip-group">
-                        <div class="roomify-chip" data-roomify-menu="tenant">\${loc.overview || "Overview"}</div>
-                        <div class="roomify-chip" data-roomify-menu="saved">\${loc.savedRooms || "Favourites"}</div>
-                        <div class="roomify-chip" data-roomify-menu="bookings">\${loc.myBookings || "My Bookings"}</div>
-                        <div class="roomify-chip" data-roomify-menu="messages">\${loc.messages || "Messages"}</div>
+                <div class="roomify-drop-card open" style="margin-top: 14px;">
+                    <div class="roomify-drop-header" onclick="window.toggleDropCard(this)">
+                        <div class="roomify-drop-title-wrap">
+                            <span class="roomify-drop-icon-badge" style="background: #FDF2F8; color: #DB2777;">📋</span>
+                            <span class="roomify-drop-title">\${loc.myDashboard || "My Dashboard"}</span>
+                        </div>
+                        <span class="roomify-drop-chevron">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </span>
+                    </div>
+                    <div class="roomify-drop-body">
+                        <div class="roomify-chip-group" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <div class="roomify-badge-chip" data-roomify-menu="tenant"><span>📊 \${loc.overview || "Overview"}</span></div>
+                            <div class="roomify-badge-chip" data-roomify-menu="saved"><span>❤️ \${loc.savedRooms || "Favourites"}</span></div>
+                            <div class="roomify-badge-chip" data-roomify-menu="bookings"><span>📑 \${loc.myBookings || "My Bookings"}</span></div>
+                            <div class="roomify-badge-chip" data-roomify-menu="messages"><span>💬 \${loc.messages || "Messages"}</span></div>
+                        </div>
                     </div>
                 </div>
             `;
         } else if (upperRole === "OWNER") {
             bodyHtml += `
-                <div class="roomify-sidebar-section">
-                    <div class="roomify-sidebar-label">\${loc.management || "Management"}</div>
-                    <div class="roomify-chip-group">
-                        <div class="roomify-chip" data-roomify-menu="ownerdashboard">\${loc.dashboard || "Dashboard"}</div>
-                        <div class="roomify-chip" data-roomify-menu="postroom">\${loc.postARoom || "Post a Room"}</div>
+                <div class="roomify-drop-card open" style="margin-top: 14px;">
+                    <div class="roomify-drop-header" onclick="window.toggleDropCard(this)">
+                        <div class="roomify-drop-title-wrap">
+                            <span class="roomify-drop-icon-badge" style="background: #FEF3C7; color: #D97706;">🔑</span>
+                            <span class="roomify-drop-title">\${loc.management || "Management"}</span>
+                        </div>
+                        <span class="roomify-drop-chevron">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </span>
+                    </div>
+                    <div class="roomify-drop-body">
+                        <div class="roomify-chip-group" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <div class="roomify-badge-chip" data-roomify-menu="ownerdashboard"><span>📊 \${loc.dashboard || "Dashboard"}</span></div>
+                            <div class="roomify-badge-chip" data-roomify-menu="postroom"><span>➕ \${loc.postARoom || "Post a Room"}</span></div>
+                        </div>
                     </div>
                 </div>
             `;
         } else if (upperRole === "DALALI") {
             bodyHtml += `
-                <div class="roomify-sidebar-section">
-                    <div class="roomify-sidebar-label">\${loc.dalaliTools || "Dalali Tools"}</div>
-                    <div class="roomify-chip-group">
-                        <div class="roomify-chip" data-roomify-menu="dalalidashboard">\${loc.dashboard || "Dashboard"}</div>
+                <div class="roomify-drop-card open" style="margin-top: 14px;">
+                    <div class="roomify-drop-header" onclick="window.toggleDropCard(this)">
+                        <div class="roomify-drop-title-wrap">
+                            <span class="roomify-drop-icon-badge" style="background: #E0E7FF; color: #4338CA;">🤝</span>
+                            <span class="roomify-drop-title">\${loc.dalaliTools || "Dalali Tools"}</span>
+                        </div>
+                        <span class="roomify-drop-chevron">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </span>
+                    </div>
+                    <div class="roomify-drop-body">
+                        <div class="roomify-chip-group" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <div class="roomify-badge-chip" data-roomify-menu="dalalidashboard"><span>📊 \${loc.dashboard || "Dashboard"}</span></div>
+                        </div>
                     </div>
                 </div>
             `;
         } else if (upperRole === "ADMIN" || upperRole === "SUPER_ADMIN") {
              bodyHtml += `
-                <div class="roomify-sidebar-section">
-                    <div class="roomify-sidebar-label">\${loc.administration || "Administration"}</div>
-                    <div class="roomify-chip-group">
-                        <div class="roomify-chip" data-roomify-menu="admindashboard">\${loc.adminPanel || "Admin Panel"}</div>
+                <div class="roomify-drop-card open" style="margin-top: 14px;">
+                    <div class="roomify-drop-header" onclick="window.toggleDropCard(this)">
+                        <div class="roomify-drop-title-wrap">
+                            <span class="roomify-drop-icon-badge" style="background: #FEE2E2; color: #DC2626;">🛡️</span>
+                            <span class="roomify-drop-title">\${loc.administration || "Administration"}</span>
+                        </div>
+                        <span class="roomify-drop-chevron">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </span>
+                    </div>
+                    <div class="roomify-drop-body">
+                        <div class="roomify-chip-group" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <div class="roomify-badge-chip" data-roomify-menu="admindashboard"><span>⚙️ \${loc.adminPanel || "Admin Panel"}</span></div>
+                        </div>
                     </div>
                 </div>
             `;

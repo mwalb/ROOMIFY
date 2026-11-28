@@ -71,6 +71,13 @@ fun RoomifySidebar(
     var selectedStatus by remember { mutableStateOf("ALL") }
     var showNoResults by remember { mutableStateOf(false) }
 
+    var isLocationOpen by remember { mutableStateOf(true) }
+    var isTypeOpen by remember { mutableStateOf(true) }
+    var isBudgetOpen by remember { mutableStateOf(true) }
+    var isAmenitiesOpen by remember { mutableStateOf(true) }
+    var isStatusOpen by remember { mutableStateOf(true) }
+    var selectedAmenities by remember { mutableStateOf<Set<String>>(emptySet()) }
+
     val applyFilter = {
         val area = locationInput.trim().ifBlank { null }
         val type = if (selectedType.uppercase() == "ALL") null else selectedType
@@ -104,6 +111,7 @@ fun RoomifySidebar(
         selectedType = "ALL"
         budgetInput = ""
         selectedStatus = "ALL"
+        selectedAmenities = emptySet()
         showNoResults = false
         onSearch(null, null, null, null)
     }
@@ -304,33 +312,23 @@ fun RoomifySidebar(
 
                 Spacer(Modifier.height(20.dp))
 
-                // 4. Preferences Card
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
-                    color = Color.White,
-                    border = BorderStroke(1.dp, Color(0xFFCBD5E1))
+                // 4. Dropdown Cards (Drop Format & Attractive Badge UI)
+                // Card 1: Location & Popular Areas
+                SidebarDropCard(
+                    title = strings.location,
+                    icon = "📍",
+                    badgeText = locationInput.ifBlank { strings.all },
+                    isOpen = isLocationOpen,
+                    onToggle = { isLocationOpen = !isLocationOpen }
                 ) {
-                    Column(
-                        modifier = Modifier.padding(20.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            strings.preferences,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF111827),
-                            modifier = Modifier.padding(bottom = 16.dp).align(Alignment.Start)
-                        )
-
-                        // Location Field
+                    Column(modifier = Modifier.fillMaxWidth()) {
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(48.dp),
-                            shape = RoundedCornerShape(14.dp),
+                                .height(46.dp),
+                            shape = RoundedCornerShape(12.dp),
                             color = Color.White,
-                            border = BorderStroke(1.dp, Color(0xFFCBD5E1))
+                            border = BorderStroke(1.5.dp, Color(0xFFCBD5E1))
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -343,7 +341,7 @@ fun RoomifySidebar(
                                     singleLine = true,
                                     decorationBox = { inner ->
                                         if (locationInput.isEmpty()) {
-                                            Text(strings.location, color = Color(0xFF9CA3AF), fontSize = 13.sp)
+                                            Text("${strings.location} (e.g. Mikocheni, Sinza, UDSM...)", color = Color(0xFF9CA3AF), fontSize = 13.sp)
                                         }
                                         inner()
                                     }
@@ -391,30 +389,99 @@ fun RoomifySidebar(
                             }
                         }
 
-                        Spacer(Modifier.height(16.dp))
-
-                        // What are you looking for?
+                        Spacer(Modifier.height(10.dp))
                         Text(
-                            strings.whatAreYouLookingFor,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = TextDarkGray,
-                            modifier = Modifier.padding(bottom = 8.dp).align(Alignment.Start)
+                            "Popular Areas",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF64748B),
+                            modifier = Modifier.padding(bottom = 6.dp)
                         )
-
-                        val propertyTypes = listOf(strings.all, "Room", "Apartment", "Studio", "House", "Office")
+                        val popularAreas = listOf("Mikocheni", "Sinza", "Kinondoni", "Mwenge", "Masaki", "UDSM")
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            propertyTypes.forEach { type ->
-                                val isSelected = selectedType.equals(type, ignoreCase = true)
+                            popularAreas.forEach { area ->
+                                val isSelected = locationInput.equals(area, ignoreCase = true)
                                 FilterChip(
                                     selected = isSelected,
-                                    onClick = { selectedType = type },
-                                    label = { Text(type, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium) },
+                                    onClick = { locationInput = if (isSelected) "" else area },
+                                    label = { Text(area, fontSize = 12.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = PrimaryColor,
+                                        selectedLabelColor = Color.White,
+                                        containerColor = Color(0xFFF1F5F9),
+                                        labelColor = TextDarkGray
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Card 2: Property Type
+                SidebarDropCard(
+                    title = strings.whatAreYouLookingFor,
+                    icon = "🏠",
+                    badgeText = selectedType,
+                    isOpen = isTypeOpen,
+                    onToggle = { isTypeOpen = !isTypeOpen }
+                ) {
+                    val propertyTypes = listOf(strings.all, "Room", "Apartment", "Studio", "House", "Office")
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        propertyTypes.forEach { type ->
+                            val isSelected = selectedType.equals(type, ignoreCase = true)
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { selectedType = type },
+                                label = { Text(type, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = PrimaryColor,
+                                    selectedLabelColor = Color.White,
+                                    containerColor = Color(0xFFF1F5F9),
+                                    labelColor = TextDarkGray
+                                )
+                            )
+                        }
+                    }
+                }
+
+                // Card 3: Budget Range
+                SidebarDropCard(
+                    title = strings.maxBudget,
+                    icon = "💰",
+                    badgeText = budgetInput.ifBlank { strings.all },
+                    isOpen = isBudgetOpen,
+                    onToggle = { isBudgetOpen = !isBudgetOpen }
+                ) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        val quickBudgets = listOf(
+                            strings.all to "",
+                            "< 100k" to "100000",
+                            "100k - 250k" to "250000",
+                            "300k - 600k" to "600000",
+                            "700k+" to "1000000"
+                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            quickBudgets.forEach { (label, value) ->
+                                val isSelected = if (value.isEmpty()) budgetInput.isEmpty() else budgetInput.replace(",", "") == value
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = { budgetInput = value },
+                                    label = { Text(label, fontSize = 12.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium) },
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = PrimaryColor,
                                         selectedLabelColor = Color.White,
@@ -425,21 +492,27 @@ fun RoomifySidebar(
                             }
                         }
 
-                        Spacer(Modifier.height(16.dp))
-
-                        // Max Budget Field
+                        Spacer(Modifier.height(10.dp))
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(48.dp),
-                            shape = RoundedCornerShape(14.dp),
+                                .height(46.dp),
+                            shape = RoundedCornerShape(12.dp),
                             color = Color.White,
-                            border = BorderStroke(1.dp, Color(0xFFCBD5E1))
+                            border = BorderStroke(1.5.dp, Color(0xFFCBD5E1))
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.padding(horizontal = 14.dp)
                             ) {
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = Color(0xFFEEF2FF),
+                                    border = BorderStroke(1.dp, Color(0xFFC7D2FE))
+                                ) {
+                                    Text("TZS", color = PrimaryColor, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                }
+                                Spacer(Modifier.width(8.dp))
                                 BasicTextField(
                                     value = budgetInput,
                                     onValueChange = { budgetInput = it },
@@ -464,31 +537,46 @@ fun RoomifySidebar(
                                 }
                             }
                         }
+                    }
+                }
 
-                        Spacer(Modifier.height(16.dp))
-
-                        // Status Section
-                        Text(
-                            strings.status,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = TextDarkGray,
-                            modifier = Modifier.padding(bottom = 8.dp).align(Alignment.Start)
+                // Card 4: Amenities & Features (Matching Image 2 Badge UI)
+                SidebarDropCard(
+                    title = strings.amenitiesAndFeatures,
+                    icon = "✨",
+                    badgeText = if (selectedAmenities.isEmpty()) strings.all else "${selectedAmenities.size} selected",
+                    isOpen = isAmenitiesOpen,
+                    onToggle = { isAmenitiesOpen = !isAmenitiesOpen }
+                ) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        val amenitiesList = listOf(
+                            "Maji ya DAWASA (24/7 Flow)",
+                            "LUKU ya Kujitegemea",
+                            "Simtank",
+                            "WiFi",
+                            "Parking ya Gari",
+                            "Air Conditioning (AC)",
+                            "Furnished",
+                            "Security",
+                            "Balcony"
                         )
-
-                        val statusOptions = listOf(strings.all, strings.available, strings.pending, strings.rented)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            statusOptions.forEach { status ->
-                                val isSelected = selectedStatus.equals(status, ignoreCase = true)
+                            amenitiesList.forEach { amenity ->
+                                val isSelected = selectedAmenities.contains(amenity)
                                 FilterChip(
                                     selected = isSelected,
-                                    onClick = { selectedStatus = status },
-                                    label = { Text(status, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium) },
+                                    onClick = {
+                                        selectedAmenities = if (isSelected) selectedAmenities - amenity else selectedAmenities + amenity
+                                    },
+                                    leadingIcon = {
+                                        Text(if (isSelected) "✔" else "○", fontSize = 11.sp, color = if (isSelected) Color.White else Color(0xFF10B981))
+                                    },
+                                    label = { Text(amenity, fontSize = 12.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium) },
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = PrimaryColor,
                                         selectedLabelColor = Color.White,
@@ -498,83 +586,120 @@ fun RoomifySidebar(
                                 )
                             }
                         }
+                    }
+                }
 
-                        Spacer(Modifier.height(20.dp))
+                // Card 5: Status Section
+                SidebarDropCard(
+                    title = strings.status,
+                    icon = "📊",
+                    badgeText = selectedStatus,
+                    isOpen = isStatusOpen,
+                    onToggle = { isStatusOpen = !isStatusOpen }
+                ) {
+                    val statusOptions = listOf(strings.all, strings.available, strings.pending, strings.rented)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        statusOptions.forEach { status ->
+                            val isSelected = selectedStatus.equals(status, ignoreCase = true)
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { selectedStatus = status },
+                                label = { Text(status, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = PrimaryColor,
+                                    selectedLabelColor = Color.White,
+                                    containerColor = Color(0xFFF1F5F9),
+                                    labelColor = TextDarkGray
+                                )
+                            )
+                        }
+                    }
+                }
 
-                        // APPLY FILTER & CLEAR FILTER Buttons
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                Spacer(Modifier.height(14.dp))
+
+                // APPLY FILTER & CLEAR FILTER Buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Button(
+                        onClick = { applyFilter() },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                    ) {
+                        Text(
+                            strings.applyFilter,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
+
+                    OutlinedButton(
+                        onClick = { clearFilter() },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        border = BorderStroke(1.5.dp, PrimaryColor),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryColor)
+                    ) {
+                        Text(
+                            strings.clearFilter,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
+                }
+
+                if (showNoResults) {
+                    Spacer(Modifier.height(14.dp))
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        color = Color(0xFFFEF2F2),
+                        border = BorderStroke(1.dp, Color(0xFFFCA5A5))
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
+                            Text(
+                                strings.noPropertiesFound,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF991B1B),
+                                fontSize = 14.sp
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                strings.tryChangingFilters,
+                                color = Color(0xFF7F1D1D),
+                                fontSize = 12.sp,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                            Spacer(Modifier.height(12.dp))
                             Button(
-                                onClick = { applyFilter() },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(48.dp),
-                                shape = RoundedCornerShape(14.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
-                            ) {
-                                Text(
-                                    strings.applyFilter,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    letterSpacing = 0.5.sp
-                                )
-                            }
-
-                            OutlinedButton(
                                 onClick = { clearFilter() },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(48.dp),
-                                shape = RoundedCornerShape(14.dp),
-                                border = BorderStroke(1.5.dp, PrimaryColor),
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryColor)
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626)),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                             ) {
-                                Text(
-                                    strings.clearFilter,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    letterSpacing = 0.5.sp
-                                )
+                                Text(strings.clearFilters, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
-
-                        if (showNoResults) {
-                            Spacer(Modifier.height(14.dp))
-                            Surface(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(14.dp),
-                                color = Color(0xFFFEF2F2),
-                                border = BorderStroke(1.dp, Color(0xFFFCA5A5))
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(16.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Text(
-                                        strings.noPropertiesFound,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF991B1B),
-                                        fontSize = 14.sp
-                                    )
-                                    Spacer(Modifier.height(4.dp))
-                                    Text(
-                                        strings.tryChangingFilters,
-                                        color = Color(0xFF7F1D1D),
-                                        fontSize = 12.sp,
-                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                                    )
-                                    Spacer(Modifier.height(12.dp))
-                                    Button(
-                                        onClick = { clearFilter() },
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626)),
-                                        shape = RoundedCornerShape(8.dp),
-                                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-                                    ) {
-                                        Text(strings.clearFilters, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                    }
+                    }
+                }
                                 }
                             }
                         }
@@ -817,3 +942,76 @@ private fun SidebarHeader(onClose: () -> Unit) {
         }
     }
 }
+
+@Composable
+fun SidebarDropCard(
+    title: String,
+    icon: String,
+    badgeText: String,
+    isOpen: Boolean,
+    onToggle: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = Color.White,
+        border = BorderStroke(1.5.dp, Color(0xFFE2E8F0)),
+        shadowElevation = 1.dp
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onToggle() }
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color(0xFFEEF2FF)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(icon, fontSize = 14.sp)
+                }
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    title,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.5.sp,
+                    color = Color(0xFF1E293B),
+                    modifier = Modifier.weight(1f)
+                )
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color(0xFFEEF2FF),
+                    border = BorderStroke(1.dp, Color(0xFFC7D2FE))
+                ) {
+                    Text(
+                        badgeText,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryColor,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                    )
+                }
+                Spacer(Modifier.width(6.dp))
+                Icon(
+                    if (isOpen) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = Color(0xFF64748B),
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+            if (isOpen) {
+                HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+                Box(modifier = Modifier.fillMaxWidth().padding(14.dp)) {
+                    content()
+                }
+            }
+        }
+    }
+}
+
