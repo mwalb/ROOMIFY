@@ -13,7 +13,7 @@ import java.util.Arrays;
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
-    @Value("${cors.allowed-origins:http://localhost:8080,http://localhost:8081,http://localhost:8082,https://roomify.co.tz,https://roomifytz-backend.fly.dev}")
+    @Value("${cors.allowed-origins:http://localhost:8080,http://localhost:8081,http://localhost:8082,https://roomify.co.tz,https://roomifytz-api.fly.dev,https://roomify-api.fly.dev}")
     private String allowedOriginsProperty;
 
     @Override

@@ -24,7 +24,7 @@ actual fun getPlatformBaseUrl(): String {
     return if (isLocal) {
         "http://$hostname:8080"
     } else {
-        "https://roomifytz-backend.fly.dev"
+        "https://roomifytz-api.fly.dev"
     }
 }
 
